@@ -86,17 +86,17 @@ export class HUDScene extends Phaser.Scene {
     // Chapter Title and description headers
     let bossName = `CHAPTER ${this.chapterId}`;
     let bossTitle = "";
-    let desc = "Description Goes Here...\nA chilling battle awaits.";
+    
     if (this.chapterId == 1) {
       bossName = "SI IMELDA";
       bossTitle = "ANG UNANG MANANANGGAL";
-      desc = "[LORE PLACEHOLDER] Avoid her gaze and dodge the aerial attacks.";
     } else if (this.chapterId == 2) {
       bossName = "BUNGISNGIS";
       bossTitle = "ANG HIGANTENG SIKLOP";
-      desc = "A fearsome one-eyed giant. Beware the flora and fauna he commands.";
+    } else if (this.chapterId == 3) {
+      bossName = "KATAW";
+      bossTitle = "ABYSSAL SIREN";
     }
-
     // Main Title (Giga Saturn) — absolute Y ~10px from top
     this.add.text(boxPadX, bossBoxY - 143, bossName, {
       fontFamily: 'GigaSaturn', fontSize: '32px', color: '#ffd700', align: 'left'
@@ -105,11 +105,6 @@ export class HUDScene extends Phaser.Scene {
     // Subtitle
     this.add.text(boxPadX, bossBoxY - 102, bossTitle, {
       fontFamily: 'VCR', fontSize: '15px', color: '#f0e6d3', align: 'left'
-    }).setOrigin(0, 0);
-
-    // Placeholder Lore Description
-    this.add.text(boxPadX, bossBoxY - 82, desc, {
-      fontFamily: 'VCR', fontSize: '11px', color: '#a89b8c', align: 'left', wordWrap: { width: bossBoxW }
     }).setOrigin(0, 0);
 
     // *** BOSS ANIMATED SPRITE — rendered HERE in HUDScene so it's visible ***
@@ -188,6 +183,55 @@ export class HUDScene extends Phaser.Scene {
           if (boss.hp <= 0 || gameScene.isGameOver) return;
           // Change text to show current attack
           debugBtn.setText(`RUNNING CH2 ATTACK ${idx + 1}/${attacks.length}`);
+          const duration = attacks[idx]();
+          this.time.delayedCall(duration + 1500, () => runNext(idx + 1));
+        };
+
+        runNext(0);
+      });
+    }
+    
+    // TEMPORARY DEBUG BUTTON FOR CHAPTER 3 SEQUENTIAL ATTACKS
+    if (this.chapterId === 3) {
+      const debugBtn = this.add.text(this.scale.width / 2, 20, 'DEBUG: RUN ALL CH3 ATTACKS', {
+        backgroundColor: '#00ccff',
+        color: '#000',
+        fontFamily: 'VCR',
+        fontSize: '20px',
+        padding: { x: 10, y: 10 }
+      }).setOrigin(0.5, 0).setDepth(9999).setInteractive();
+
+      debugBtn.on('pointerdown', () => {
+        const gameScene = this.scene.get('GameScene');
+        if (!gameScene || !gameScene.boss || gameScene.boss.hp <= 0) return;
+        const boss = gameScene.boss;
+
+        // Stop standard looping
+        if (boss.attackTimer) boss.attackTimer.remove();
+
+        const attacks = [
+          () => boss.ch3FishKingSummonerWave(),
+          () => boss.ch3FishKingMultiSpell(),
+          () => boss.ch3SharkLanes(),
+          () => boss.ch3JellyfishCurtain(),
+          () => boss.ch3NemoSwarm(),
+          () => boss.ch3BatDiveBomb(),
+          () => boss.ch3BioluminescentBlackout(),
+          () => boss.ch3WhirlpoolMaze(),
+          () => boss.ch3SirensLure(),
+          () => boss.ch3MedusaGaze(),
+          () => boss.ch3CthulhuRifts(),
+          () => boss.ch3SirenSnakeChase()
+        ];
+
+        const runNext = (idx) => {
+          if (idx >= attacks.length) {
+             debugBtn.setText('DEBUG: TEST COMPLETED');
+             return;
+          }
+          if (boss.hp <= 0 || gameScene.isGameOver) return;
+          // Change text to show current attack
+          debugBtn.setText(`RUNNING CH3 ATTACK ${idx + 1}/${attacks.length}`);
           const duration = attacks[idx]();
           this.time.delayedCall(duration + 1500, () => runNext(idx + 1));
         };

@@ -19,6 +19,12 @@ export class Player {
     this.maxHp = 6;
     this.isInvulnerable = false;
     this.isFrozen = false;
+    
+    // Chapter 3 Mechanics
+    this.isCharmed = false; // Reverses controls
+    this.isPetrified = false; // Blocks movement
+    this.isSlid = false;
+    this.history = []; // Array of last 10 {col, row}
 
     const startPos = this.grid.getPixelPosition(this.col, this.row);
     
@@ -49,13 +55,22 @@ export class Player {
   }
 
   move(direction) {
-    if (this.isMoving || this.isFrozen) return;
+    if (this.isMoving || this.isFrozen || this.isPetrified) return;
+
+    // Siren's Lure: reverse controls
+    let actDir = direction;
+    if (this.isCharmed) {
+        if (direction === 'up') actDir = 'down';
+        else if (direction === 'down') actDir = 'up';
+        else if (direction === 'left') actDir = 'right';
+        else if (direction === 'right') actDir = 'left';
+    }
 
     let dCol = 0, dRow = 0;
-    if (direction === 'up') dRow = -1;
-    else if (direction === 'down') dRow = 1;
-    else if (direction === 'left') dCol = -1;
-    else if (direction === 'right') dCol = 1;
+    if (actDir === 'up') dRow = -1;
+    else if (actDir === 'down') dRow = 1;
+    else if (actDir === 'left') dCol = -1;
+    else if (actDir === 'right') dCol = 1;
     else return;
 
     const dist = this.hasDash ? 3 : 1;
@@ -74,8 +89,12 @@ export class Player {
     // Check Chapter 2 Obstacles
     if (this.grid.cells[targetRow][targetCol].status === 'locked') return;
 
+    // Track history before changing col/row
+    this.history.push({ col: this.col, row: this.row });
+    if (this.history.length > 10) this.history.shift();
+
     this.isMoving = true;
-    this.facing = direction;
+    this.facing = actDir;
     this.col = targetCol;
     this.row = targetRow;
 
@@ -113,6 +132,39 @@ export class Player {
             this.move(this.facing);
           }
         }
+      }
+    });
+  }
+
+  // Force move the player across the board (used by Cthulhu Wing Gust, Octopus sweeps)
+  forceMove(dCol, dRow, durationMs = 200) {
+    if (this.isMoving) return;
+    
+    let targetCol = this.col + dCol;
+    let targetRow = this.row + dRow;
+
+    if (targetCol < 0) targetCol = 0;
+    if (targetCol >= this.grid.cols) targetCol = this.grid.cols - 1;
+    if (targetRow < 0) targetRow = 0;
+    if (targetRow >= this.grid.rows) targetRow = this.grid.rows - 1;
+    
+    if (targetCol === this.col && targetRow === this.row) return;
+
+    this.isMoving = true;
+    this.col = targetCol;
+    this.row = targetRow;
+
+    const targetPos = this.grid.getPixelPosition(this.col, this.row);
+    
+    this.scene.tweens.add({
+      targets: this.sprite,
+      x: targetPos.x,
+      y: targetPos.y,
+      duration: durationMs,
+      ease: 'Power2',
+      onComplete: () => {
+        this.isMoving = false;
+        this.scene.events.emit('player:moved', this.col, this.row);
       }
     });
   }

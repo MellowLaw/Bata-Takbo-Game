@@ -107,6 +107,86 @@ export class GameScene extends Phaser.Scene {
       this.load.spritesheet('lives_up', '/assets/fx/lives_up.png', { frameWidth: 128, frameHeight: 128 });
       this.load.spritesheet('frozen', '/assets/fx/frozen.png', { frameWidth: 128, frameHeight: 128 });
 
+    } else if (this.chapterId === 3) {
+      // ===== CHAPTER 3: KATAW ASSETS =====
+      this.load.spritesheet('boss_idle', '/assets/characters/boss/chapter-2/boss_idle.png', { frameWidth: 87, frameHeight: 110 }); // Temp fallback
+      this.load.spritesheet('boss_cast', '/assets/characters/boss/chapter-2/boss_idle.png', { frameWidth: 87, frameHeight: 110 });
+      
+      // Blue FX (129x32 strip → 4 frames of 32x32)
+      this.load.spritesheet('ch3_fx_bubble',    '/assets/projectiles/chapter3/blue/blue5.png',  { frameWidth: 32, frameHeight: 32 });
+      this.load.spritesheet('ch3_fx_sonic',     '/assets/projectiles/chapter3/blue/blue3.png',  { frameWidth: 32, frameHeight: 32 });
+      this.load.spritesheet('ch3_fx_fireblade', '/assets/projectiles/chapter3/blue/blue16.png', { frameWidth: 32, frameHeight: 32 });
+      this.load.spritesheet('ch3_fx_darkorbit', '/assets/projectiles/chapter3/blue/blue19.png', { frameWidth: 32, frameHeight: 32 });
+      this.load.spritesheet('ch3_fx_thunder',   '/assets/projectiles/chapter3/blue/blue21.png', { frameWidth: 32, frameHeight: 32 });
+      this.load.spritesheet('ch3_fx_ring',      '/assets/projectiles/chapter3/blue/blue4.png',  { frameWidth: 32, frameHeight: 32 });
+      this.load.spritesheet('ch3_fx_whirl',     '/assets/projectiles/chapter3/blue/blue0.png',  { frameWidth: 32, frameHeight: 32 });
+
+      // Smoke Spawn/Despawn (832x64 → 13 frames of 64x64)
+      this.load.spritesheet('ch3_smoke_spawn', '/assets/projectiles/chapter3/Smoke-Spawn.png', { frameWidth: 64, frameHeight: 64 });
+
+      // Bat (576x64 → 9 frames for IdleFly; 512x64 → 8 frames for Attack; frame size 64x64)
+      this.load.spritesheet('ch3_bat_fly', '/assets/projectiles/chapter3/Bat/Bat-IdleFly.png', { frameWidth: 64, frameHeight: 64 });
+      this.load.spritesheet('ch3_bat_hit', '/assets/projectiles/chapter3/Bat/Bat-Attack1.png', { frameWidth: 64, frameHeight: 64 });
+
+      // Fish King (2000x250 → 8 frames of 250x250)
+      this.load.spritesheet('ch3_fishking_idle',  '/assets/projectiles/chapter3/Fish-king/Idle.png',    { frameWidth: 250, frameHeight: 250 });
+      this.load.spritesheet('ch3_fishking_wand',  '/assets/projectiles/chapter3/Fish-king/Attack1.png', { frameWidth: 250, frameHeight: 250 });
+      this.load.spritesheet('ch3_fishking_spell', '/assets/projectiles/chapter3/Fish-king/Attack2.png', { frameWidth: 250, frameHeight: 250 });
+
+      // Jellyfish (192x48 → 4 frames of 48x48; Death 288x48 → 6 frames)
+      this.load.spritesheet('ch3_jelly_idle',   '/assets/projectiles/chapter3/JellyFish/Idle.png',   { frameWidth: 48, frameHeight: 48 });
+      this.load.spritesheet('ch3_jelly_walk',   '/assets/projectiles/chapter3/JellyFish/Walk.png',   { frameWidth: 48, frameHeight: 48 });
+      this.load.spritesheet('ch3_jelly_death',  '/assets/projectiles/chapter3/JellyFish/Death.png',  { frameWidth: 48, frameHeight: 48 });
+      this.load.spritesheet('ch3_jelly_attack', '/assets/projectiles/chapter3/JellyFish/Attack.png', { frameWidth: 48, frameHeight: 48 });
+
+      // Shark (192x48 → 4 frames of 48x48; Attack 288x48 → 6 frames)
+      this.load.spritesheet('ch3_shark_idle',   '/assets/projectiles/chapter3/Shark/Idle.png',   { frameWidth: 48, frameHeight: 48 });
+      this.load.spritesheet('ch3_shark_walk',   '/assets/projectiles/chapter3/Shark/Walk.png',   { frameWidth: 48, frameHeight: 48 });
+      this.load.spritesheet('ch3_shark_attack', '/assets/projectiles/chapter3/Shark/Attack.png', { frameWidth: 48, frameHeight: 48 });
+
+      // Angler (192x48 → 4 frames of 48x48) — used in Attack 7
+      this.load.spritesheet('ch3_angler', '/assets/projectiles/chapter3/Angler/Walk.png', { frameWidth: 48, frameHeight: 48 });
+
+      // Nemo (all sheets are 128x128 → 2x2 = 4 frames of 64x64 each)
+      this.load.spritesheet('ch3_nemo_swim',   '/assets/projectiles/chapter3/Nemo-Fish/Normal Actions/normalswim.png',          { frameWidth: 64, frameHeight: 64 });
+      this.load.spritesheet('ch3_nemo_chomp',  '/assets/projectiles/chapter3/Nemo-Fish/Normal Actions/normalchomp.png',         { frameWidth: 64, frameHeight: 64 });
+      this.load.spritesheet('ch3_nemo_diagdn', '/assets/projectiles/chapter3/Nemo-Fish/Normal Actions/normalswimdiagdown.png',   { frameWidth: 64, frameHeight: 64 });
+      this.load.spritesheet('ch3_nemo_diagup', '/assets/projectiles/chapter3/Nemo-Fish/Normal Actions/normalswimdiagup.png',     { frameWidth: 64, frameHeight: 64 });
+      // Tilt chomps: 256x64 → 4 frames in 1 row of 64x64
+      this.load.spritesheet('ch3_nemo_tiltdn', '/assets/projectiles/chapter3/Nemo-Fish/Normal Actions/normaltiltdownchomp.PNG', { frameWidth: 64, frameHeight: 64 });
+      this.load.spritesheet('ch3_nemo_tiltup', '/assets/projectiles/chapter3/Nemo-Fish/Normal Actions/normaltiltupchomp.png',   { frameWidth: 64, frameHeight: 64 });
+
+      // Snake (448x128 → 2 rows × 7 cols = 14 frames of 64x64, faces LEFT)
+      this.load.spritesheet('ch3_snake', '/assets/projectiles/chapter3/Snake/snake.png', { frameWidth: 64, frameHeight: 64 });
+
+      // Siren Sisters (128x128 per frame)
+      this.load.spritesheet('ch3_siren1',         '/assets/projectiles/chapter3/Siren1/Idle.png',    { frameWidth: 128, frameHeight: 128 });
+      this.load.spritesheet('ch3_siren2',         '/assets/projectiles/chapter3/Siren2/Idle.png',    { frameWidth: 128, frameHeight: 128 });
+      this.load.spritesheet('ch3_siren3_idle',    '/assets/projectiles/chapter3/Siren3/Idle.png',    { frameWidth: 128, frameHeight: 128 });
+      this.load.spritesheet('ch3_siren3_special', '/assets/projectiles/chapter3/Siren3/Special.png', { frameWidth: 128, frameHeight: 128 });
+
+      // Cthulhu (2880x784 → 15 cols × 7 rows of 192x112)
+      this.load.spritesheet('ch3_cthulhu', '/assets/projectiles/chapter3/cthulu.png', { frameWidth: 192, frameHeight: 112 });
+
+
+
+      // Water Beam Spells — pixel-accurate
+      // darkbolt: 768x88 → 12 frames of 64x88
+      // firebomb: 960x64 → 15 frames of 64x64
+      // lightning: 704x128 → 11 frames of 64x128
+      // spark: 256x32 → 8 frames of 32x32
+      // waterbeam: 252x32 → 4 frames of 63x32
+      // waterbeam2: 192x32 → 4 frames of 48x32
+      // waterburst: 378x48 → 6 frames of 63x48
+      // waterspiral: 192x32 → 6 frames of 32x32
+      this.load.spritesheet('ch3_darkbolt',   '/assets/projectiles/chapter3/Water Beams/Dark-Bolt.png',   { frameWidth: 64, frameHeight: 88 });
+      this.load.spritesheet('ch3_firebomb',   '/assets/projectiles/chapter3/Water Beams/Fire-bomb.png',   { frameWidth: 64, frameHeight: 64 });
+      this.load.spritesheet('ch3_lightning',  '/assets/projectiles/chapter3/Water Beams/Lightning.png',   { frameWidth: 64, frameHeight: 128 });
+      this.load.spritesheet('ch3_spark',      '/assets/projectiles/chapter3/Water Beams/spark.png',       { frameWidth: 32, frameHeight: 32 });
+      this.load.spritesheet('ch3_waterspiral','/assets/projectiles/chapter3/Water Beams/water-spiral.png',{ frameWidth: 32, frameHeight: 32 });
+      this.load.spritesheet('ch3_waterbeam',  '/assets/projectiles/chapter3/Water Beams/water-beam.png',  { frameWidth: 63, frameHeight: 32 });
+      this.load.spritesheet('ch3_waterbeam2', '/assets/projectiles/chapter3/Water Beams/water-beam2.png', { frameWidth: 48, frameHeight: 32 });
+      this.load.spritesheet('ch3_waterburst', '/assets/projectiles/chapter3/Water Beams/water-burst.png', { frameWidth: 63, frameHeight: 48 });
     } else {
       // Default fallback for future chapters
       this.load.spritesheet('boss_idle', '/assets/characters/boss/chapter-2/boss_idle.png', { frameWidth: 87, frameHeight: 110 });
@@ -132,6 +212,10 @@ export class GameScene extends Phaser.Scene {
     this.load.spritesheet('chest3', '/assets/fx/chest3.png', { frameWidth: 100, frameHeight: 100 });
     this.load.spritesheet('chest4', '/assets/fx/chest4.png', { frameWidth: 100, frameHeight: 100 });
     this.load.spritesheet('lives_decreased', '/assets/fx/lives_decreased.png', { frameWidth: 64, frameHeight: 64 });
+    // lives_up: 2944x128 = 46 frames of 64x128
+    this.load.spritesheet('lives_up', '/assets/fx/lives_up.png', { frameWidth: 64, frameHeight: 128 });
+    // frozen: 1536x128 = 12 frames of 128x128
+    this.load.spritesheet('frozen', '/assets/fx/frozen.png', { frameWidth: 128, frameHeight: 128 });
 
     // Power-Up Assets — Chests.png is 288x128 = 9 cols x 4 rows of 32x32 frames
     // Columns 0=Common(green), 1=Rare(blue), 2=Legendary(gold)
@@ -191,7 +275,7 @@ export class GameScene extends Phaser.Scene {
       this.anims.create({ key: 'anim_chest3', frames: this.anims.generateFrameNumbers('chest3', { start: 0, end: 79 }), frameRate: 28, repeat: 0 });
       this.anims.create({ key: 'anim_chest4', frames: this.anims.generateFrameNumbers('chest4', { start: 0, end: 79 }), frameRate: 28, repeat: 0 });
       this.anims.create({ key: 'anim_villain_hp_up', frames: this.anims.generateFrameNumbers('villain_hp_up', { start: 0, end: 11 }), frameRate: 15, repeat: 0 });
-      this.anims.create({ key: 'anim_lives_up', frames: this.anims.generateFrameNumbers('lives_up', { start: 0, end: 22 }), frameRate: 20, repeat: 0 });
+      this.anims.create({ key: 'anim_lives_up', frames: this.anims.generateFrameNumbers('lives_up', { start: 0, end: 45 }), frameRate: 20, repeat: 0 });
       this.anims.create({ key: 'anim_lives_decreased', frames: this.anims.generateFrameNumbers('lives_decreased', { start: 105, end: 119 }), frameRate: 30, repeat: 0 });
       this.anims.create({ key: 'anim_frozen', frames: this.anims.generateFrameNumbers('frozen', { start: 0, end: 11 }), frameRate: 15, repeat: 0 });
       
@@ -264,6 +348,82 @@ export class GameScene extends Phaser.Scene {
         this.anims.create({ key: 'anim_ch2_acid_end', frames: this.anims.generateFrameNumbers('ch2_acid_end', { start: 0, end: 5 }), frameRate: 12, repeat: 0 });
         // Horizontal row projectile: first 10 frames of Acid-01.png (the mouth/launch animation)
         this.anims.create({ key: 'anim_ch2_acid_projectile', frames: this.anims.generateFrameNumbers('ch2_acid_charge', { start: 0, end: 9 }), frameRate: 15, repeat: -1 });
+      }
+
+      // ===== CHAPTER 3 ANIMATIONS =====
+      if (this.chapterId === 3 && !this.anims.exists('anim_ch3_bat_fly')) {
+        // Blue FX (4 frames of 32x32 each)
+        this.anims.create({ key: 'anim_ch3_fx_bubble',    frames: this.anims.generateFrameNumbers('ch3_fx_bubble',    { start: 0, end: 3 }), frameRate: 10, repeat: -1 });
+        this.anims.create({ key: 'anim_ch3_fx_sonic',     frames: this.anims.generateFrameNumbers('ch3_fx_sonic',     { start: 0, end: 3 }), frameRate: 10, repeat: -1 });
+        this.anims.create({ key: 'anim_ch3_fx_fireblade', frames: this.anims.generateFrameNumbers('ch3_fx_fireblade', { start: 0, end: 3 }), frameRate: 10, repeat: -1 });
+        this.anims.create({ key: 'anim_ch3_fx_darkorbit', frames: this.anims.generateFrameNumbers('ch3_fx_darkorbit', { start: 0, end: 3 }), frameRate: 10, repeat: -1 });
+        this.anims.create({ key: 'anim_ch3_fx_thunder',   frames: this.anims.generateFrameNumbers('ch3_fx_thunder',   { start: 0, end: 3 }), frameRate: 10, repeat: -1 });
+        this.anims.create({ key: 'anim_ch3_fx_ring',      frames: this.anims.generateFrameNumbers('ch3_fx_ring',      { start: 0, end: 3 }), frameRate: 10, repeat: -1 });
+        this.anims.create({ key: 'anim_ch3_fx_whirl',     frames: this.anims.generateFrameNumbers('ch3_fx_whirl',     { start: 0, end: 3 }), frameRate: 10, repeat: -1 });
+
+        // Smoke (13 frames of 64x64)
+        this.anims.create({ key: 'anim_ch3_smoke', frames: this.anims.generateFrameNumbers('ch3_smoke_spawn', { start: 0, end: 12 }), frameRate: 18, repeat: 0 });
+
+        // Bat – IdleFly: 9 frames; Attack: 8 frames
+        this.anims.create({ key: 'anim_ch3_bat_fly', frames: this.anims.generateFrameNumbers('ch3_bat_fly', { start: 0, end: 8 }), frameRate: 15, repeat: -1 });
+        this.anims.create({ key: 'anim_ch3_bat_hit', frames: this.anims.generateFrameNumbers('ch3_bat_hit', { start: 0, end: 7 }), frameRate: 18, repeat: 0 });
+
+        // Fish King (8 frames per sheet)
+        this.anims.create({ key: 'anim_ch3_fishking_idle',  frames: this.anims.generateFrameNumbers('ch3_fishking_idle',  { start: 0, end: 7 }), frameRate: 8,  repeat: -1 });
+        this.anims.create({ key: 'anim_ch3_fishking_wand',  frames: this.anims.generateFrameNumbers('ch3_fishking_wand',  { start: 0, end: 7 }), frameRate: 10, repeat: 0 });
+        this.anims.create({ key: 'anim_ch3_fishking_spell', frames: this.anims.generateFrameNumbers('ch3_fishking_spell', { start: 0, end: 7 }), frameRate: 12, repeat: 0 });
+
+        // Jellyfish
+        this.anims.create({ key: 'anim_ch3_jelly_idle',   frames: this.anims.generateFrameNumbers('ch3_jelly_idle',   { start: 0, end: 3 }), frameRate: 8,  repeat: -1 });
+        this.anims.create({ key: 'anim_ch3_jelly_walk',   frames: this.anims.generateFrameNumbers('ch3_jelly_walk',   { start: 0, end: 3 }), frameRate: 10, repeat: -1 });
+        this.anims.create({ key: 'anim_ch3_jelly_death',  frames: this.anims.generateFrameNumbers('ch3_jelly_death',  { start: 0, end: 5 }), frameRate: 10, repeat: 0 });
+        this.anims.create({ key: 'anim_ch3_jelly_attack', frames: this.anims.generateFrameNumbers('ch3_jelly_attack', { start: 0, end: 3 }), frameRate: 12, repeat: 0 });
+
+        // Shark
+        this.anims.create({ key: 'anim_ch3_shark_idle',   frames: this.anims.generateFrameNumbers('ch3_shark_idle',   { start: 0, end: 3 }), frameRate: 8,  repeat: -1 });
+        this.anims.create({ key: 'anim_ch3_shark_walk',   frames: this.anims.generateFrameNumbers('ch3_shark_walk',   { start: 0, end: 3 }), frameRate: 12, repeat: -1 });
+        this.anims.create({ key: 'anim_ch3_shark_attack', frames: this.anims.generateFrameNumbers('ch3_shark_attack', { start: 0, end: 5 }), frameRate: 12, repeat: 0 });
+
+        // Angler
+        this.anims.create({ key: 'anim_ch3_angler', frames: this.anims.generateFrameNumbers('ch3_angler', { start: 0, end: 3 }), frameRate: 10, repeat: -1 });
+
+        // Nemo – all 64x64, 4 frames each (2x2 grids)
+        this.anims.create({ key: 'anim_ch3_nemo',        frames: this.anims.generateFrameNumbers('ch3_nemo_swim',   { start: 0, end: 3 }), frameRate: 12, repeat: -1 });
+        this.anims.create({ key: 'anim_ch3_nemo_chomp',  frames: this.anims.generateFrameNumbers('ch3_nemo_chomp',  { start: 0, end: 3 }), frameRate: 14, repeat: 0 });
+        this.anims.create({ key: 'anim_ch3_nemo_diagdn', frames: this.anims.generateFrameNumbers('ch3_nemo_diagdn', { start: 0, end: 3 }), frameRate: 12, repeat: -1 });
+        this.anims.create({ key: 'anim_ch3_nemo_diagup', frames: this.anims.generateFrameNumbers('ch3_nemo_diagup', { start: 0, end: 3 }), frameRate: 12, repeat: -1 });
+        this.anims.create({ key: 'anim_ch3_nemo_tiltdn', frames: this.anims.generateFrameNumbers('ch3_nemo_tiltdn', { start: 0, end: 3 }), frameRate: 14, repeat: 0 });
+        this.anims.create({ key: 'anim_ch3_nemo_tiltup', frames: this.anims.generateFrameNumbers('ch3_nemo_tiltup', { start: 0, end: 3 }), frameRate: 14, repeat: 0 });
+
+        // Snake – 2 rows x 7 cols = 14 frames of 64x64, faces LEFT
+        this.anims.create({ key: 'anim_ch3_snake', frames: this.anims.generateFrameNumbers('ch3_snake', { start: 0, end: 13 }), frameRate: 12, repeat: -1 });
+
+        // Sirens
+        this.anims.create({ key: 'anim_ch3_siren1',         frames: this.anims.generateFrameNumbers('ch3_siren1'),         frameRate: 8,  repeat: -1 });
+        this.anims.create({ key: 'anim_ch3_siren2',         frames: this.anims.generateFrameNumbers('ch3_siren2'),         frameRate: 8,  repeat: -1 });
+        this.anims.create({ key: 'anim_ch3_siren3_idle',    frames: this.anims.generateFrameNumbers('ch3_siren3_idle'),    frameRate: 8,  repeat: -1 });
+        this.anims.create({ key: 'anim_ch3_siren3_special', frames: this.anims.generateFrameNumbers('ch3_siren3_special'), frameRate: 10, repeat: 0 });
+
+        // Cthulhu rows (15 frames per row)
+        this.anims.create({ key: 'anim_ch3_cthulhu_idle',  frames: this.anims.generateFrameNumbers('ch3_cthulhu', { start: 0,  end: 14 }), frameRate: 8,  repeat: -1 });
+        this.anims.create({ key: 'anim_ch3_cthulhu_fly',   frames: this.anims.generateFrameNumbers('ch3_cthulhu', { start: 30, end: 44 }), frameRate: 10, repeat: -1 });
+        this.anims.create({ key: 'anim_ch3_cthulhu_slash', frames: this.anims.generateFrameNumbers('ch3_cthulhu', { start: 45, end: 59 }), frameRate: 12, repeat: 0 });
+        this.anims.create({ key: 'anim_ch3_cthulhu_cast',  frames: this.anims.generateFrameNumbers('ch3_cthulhu', { start: 60, end: 74 }), frameRate: 12, repeat: 0 });
+
+
+
+        // Water Beams
+        this.anims.create({ key: 'anim_ch3_darkbolt',    frames: this.anims.generateFrameNumbers('ch3_darkbolt',    { start: 0, end: 11 }), frameRate: 15, repeat: 0  });
+        this.anims.create({ key: 'anim_ch3_firebomb',    frames: this.anims.generateFrameNumbers('ch3_firebomb',    { start: 0, end: 14 }), frameRate: 15, repeat: 0  });
+        this.anims.create({ key: 'anim_ch3_lightning',   frames: this.anims.generateFrameNumbers('ch3_lightning',   { start: 0, end: 10 }), frameRate: 12, repeat: -1 });
+        this.anims.create({ key: 'anim_ch3_spark',       frames: this.anims.generateFrameNumbers('ch3_spark',       { start: 0, end: 7  }), frameRate: 15, repeat: -1 });
+        // waterspiral: 192x32 → 6 frames of 32x32
+        this.anims.create({ key: 'anim_ch3_waterspiral', frames: this.anims.generateFrameNumbers('ch3_waterspiral', { start: 0, end: 5  }), frameRate: 12, repeat: -1 });
+        // waterbeam/2: 4 frames each, looping
+        this.anims.create({ key: 'anim_ch3_waterbeam',   frames: this.anims.generateFrameNumbers('ch3_waterbeam',   { start: 0, end: 3  }), frameRate: 12, repeat: -1 });
+        this.anims.create({ key: 'anim_ch3_waterbeam2',  frames: this.anims.generateFrameNumbers('ch3_waterbeam2',  { start: 0, end: 3  }), frameRate: 12, repeat: -1 });
+        // waterburst: 6 frames, plays once
+        this.anims.create({ key: 'anim_ch3_waterburst',  frames: this.anims.generateFrameNumbers('ch3_waterburst',  { start: 0, end: 5  }), frameRate: 15, repeat: 0 });
       }
     }
 

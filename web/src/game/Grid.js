@@ -510,4 +510,17 @@ export class Grid {
       tempGfx.destroy();
     });
   }
+
+  telegraphRow(row, durationMs = 1500) {
+    for (let c = 0; c < this.cols; c++) {
+      this.telegraph(c, row, durationMs);
+    }
+  }
+
+  telegraphCol(col, durationMs = 1500) {
+    for (let r = 0; r < this.rows; r++) {
+      this.telegraph(col, r, durationMs);
+    }
+  }
+
 }
