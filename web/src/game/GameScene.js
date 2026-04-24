@@ -187,6 +187,19 @@ export class GameScene extends Phaser.Scene {
       this.load.spritesheet('ch3_waterbeam',  '/assets/projectiles/chapter3/Water Beams/water-beam.png',  { frameWidth: 63, frameHeight: 32 });
       this.load.spritesheet('ch3_waterbeam2', '/assets/projectiles/chapter3/Water Beams/water-beam2.png', { frameWidth: 48, frameHeight: 32 });
       this.load.spritesheet('ch3_waterburst', '/assets/projectiles/chapter3/Water Beams/water-burst.png', { frameWidth: 63, frameHeight: 48 });
+      
+      this.load.spritesheet('ch3_explosion_1', '/assets/projectiles/chapter3/EXPLOSIONS/explosion-1-b.png', { frameWidth: 80, frameHeight: 48 });
+      this.load.spritesheet('ch3_explosion_2', '/assets/projectiles/chapter3/EXPLOSIONS/explosion-2-b.png', { frameWidth: 48, frameHeight: 48 });
+      this.load.spritesheet('ch3_explosion_3', '/assets/projectiles/chapter3/EXPLOSIONS/explosion-3-b.png', { frameWidth: 48, frameHeight: 48 });
+      this.load.spritesheet('ch3_explosion_4', '/assets/projectiles/chapter3/EXPLOSIONS/explosion-4-b.png', { frameWidth: 128, frameHeight: 128 });
+      
+      this.load.spritesheet('ch3_explosion_2a', '/assets/projectiles/chapter3/EXPLOSIONS/explosion-2-a.png', { frameWidth: 256, frameHeight: 256 });
+      this.load.spritesheet('ch3_explosion_3a', '/assets/projectiles/chapter3/EXPLOSIONS/explosion-3-a.png', { frameWidth: 256, frameHeight: 256 });
+      this.load.spritesheet('ch3_explosion_4a', '/assets/projectiles/chapter3/EXPLOSIONS/explosion-4-a.png', { frameWidth: 256, frameHeight: 256 });
+      
+      this.load.spritesheet('ch3_explosion_1d', '/assets/projectiles/chapter3/EXPLOSIONS/explosion-1-d.png', { frameWidth: 64, frameHeight: 64 });
+      this.load.spritesheet('ch3_explosion_2d', '/assets/projectiles/chapter3/EXPLOSIONS/explosion-2-d.png', { frameWidth: 128, frameHeight: 80 });
+      this.load.spritesheet('ch3_explosion_3d', '/assets/projectiles/chapter3/EXPLOSIONS/explosion-3-d.png', { frameWidth: 192, frameHeight: 192 });
     } else {
       // Default fallback for future chapters
       this.load.spritesheet('boss_idle', '/assets/characters/boss/chapter-2/boss_idle.png', { frameWidth: 87, frameHeight: 110 });
@@ -424,6 +437,19 @@ export class GameScene extends Phaser.Scene {
         this.anims.create({ key: 'anim_ch3_waterbeam2',  frames: this.anims.generateFrameNumbers('ch3_waterbeam2',  { start: 0, end: 3  }), frameRate: 12, repeat: -1 });
         // waterburst: 6 frames, plays once
         this.anims.create({ key: 'anim_ch3_waterburst',  frames: this.anims.generateFrameNumbers('ch3_waterburst',  { start: 0, end: 5  }), frameRate: 15, repeat: 0 });
+
+        this.anims.create({ key: 'anim_ch3_explosion_1', frames: this.anims.generateFrameNumbers('ch3_explosion_1', { start: 0, end: 12 }), frameRate: 15, repeat: 0 });
+        this.anims.create({ key: 'anim_ch3_explosion_2', frames: this.anims.generateFrameNumbers('ch3_explosion_2', { start: 0, end: 7 }), frameRate: 15, repeat: 0 });
+        this.anims.create({ key: 'anim_ch3_explosion_3', frames: this.anims.generateFrameNumbers('ch3_explosion_3', { start: 0, end: 6 }), frameRate: 15, repeat: 0 });
+        this.anims.create({ key: 'anim_ch3_explosion_4', frames: this.anims.generateFrameNumbers('ch3_explosion_4', { start: 0, end: 11 }), frameRate: 15, repeat: 0 });
+
+        this.anims.create({ key: 'anim_ch3_explosion_2a', frames: this.anims.generateFrameNumbers('ch3_explosion_2a', { start: 0, end: 63 }), frameRate: 24, repeat: 0 });
+        this.anims.create({ key: 'anim_ch3_explosion_3a', frames: this.anims.generateFrameNumbers('ch3_explosion_3a', { start: 0, end: 63 }), frameRate: 24, repeat: 0 });
+        this.anims.create({ key: 'anim_ch3_explosion_4a', frames: this.anims.generateFrameNumbers('ch3_explosion_4a', { start: 0, end: 63 }), frameRate: 24, repeat: 0 });
+
+        this.anims.create({ key: 'anim_ch3_explosion_1d', frames: this.anims.generateFrameNumbers('ch3_explosion_1d', { start: 0, end: 7 }), frameRate: 15, repeat: 0 });
+        this.anims.create({ key: 'anim_ch3_explosion_2d', frames: this.anims.generateFrameNumbers('ch3_explosion_2d', { start: 0, end: 9 }), frameRate: 15, repeat: 0 });
+        this.anims.create({ key: 'anim_ch3_explosion_3d', frames: this.anims.generateFrameNumbers('ch3_explosion_3d', { start: 0, end: 21 }), frameRate: 15, repeat: 0 });
       }
     }
 

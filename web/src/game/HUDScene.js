@@ -210,6 +210,17 @@ export class HUDScene extends Phaser.Scene {
         if (boss.attackTimer) boss.attackTimer.remove();
 
         const attacks = [
+          () => boss.ch3KatawExplosionPattern1(),
+          () => boss.ch3KatawExplosionPattern2(),
+          () => boss.ch3KatawExplosionPattern3(),
+          () => boss.ch3AbyssalCrossPattern1(),
+          () => boss.ch3AbyssalCrossPattern2(),
+          () => boss.ch3AbyssalCrossPattern3(),
+          () => boss.ch3AbyssalCrossPattern4(),
+          () => boss.ch3DiamondStormPattern1(),
+          () => boss.ch3DiamondStormPattern2(),
+          () => boss.ch3DiamondStormPattern3(),
+          () => boss.ch3DiamondStormPattern4(),
           () => boss.ch3FishKingSummonerWave(),
           () => boss.ch3FishKingMultiSpell(),
           () => boss.ch3SharkLanes(),

@@ -149,15 +149,15 @@ export class Boss {
         // 11 Unique attacks with anti-repeat
         let pattern;
         do {
-          pattern = Phaser.Math.Between(0, 11);
+          pattern = Phaser.Math.Between(0, 22);
         } while (pattern === this.lastAttackId);
         
         this.secondLastAttackId = this.lastAttackId;
         this.lastAttackId = pattern;
 
-        // Route to the 11 completely randomized Kataw attacks
+        // Route to the completely randomized Kataw attacks
         switch (pattern) {
-          case 0: currentAttackDuration = this.ch3FishKingSummonerWave(); break;
+          case 0: currentAttackDuration = this.ch3KatawExplosionPattern1(); break;
           case 1: currentAttackDuration = this.ch3FishKingMultiSpell(); break;
           case 2: currentAttackDuration = this.ch3SharkLanes(); break;
           case 3: currentAttackDuration = this.ch3JellyfishCurtain(); break;
@@ -169,6 +169,17 @@ export class Boss {
           case 9: currentAttackDuration = this.ch3MedusaGaze(); break;
           case 10: currentAttackDuration = this.ch3CthulhuRifts(); break;
           case 11: currentAttackDuration = this.ch3SirenSnakeChase(); break;
+          case 12: currentAttackDuration = this.ch3FishKingSummonerWave(); break;
+          case 13: currentAttackDuration = this.ch3KatawExplosionPattern2(); break;
+          case 14: currentAttackDuration = this.ch3KatawExplosionPattern3(); break;
+          case 15: currentAttackDuration = this.ch3AbyssalCrossPattern1(); break;
+          case 16: currentAttackDuration = this.ch3AbyssalCrossPattern2(); break;
+          case 17: currentAttackDuration = this.ch3AbyssalCrossPattern3(); break;
+          case 18: currentAttackDuration = this.ch3AbyssalCrossPattern4(); break;
+          case 19: currentAttackDuration = this.ch3DiamondStormPattern1(); break;
+          case 20: currentAttackDuration = this.ch3DiamondStormPattern2(); break;
+          case 21: currentAttackDuration = this.ch3DiamondStormPattern3(); break;
+          case 22: currentAttackDuration = this.ch3DiamondStormPattern4(); break;
           default: currentAttackDuration = 2000;
         }
       } else {
@@ -1192,7 +1203,298 @@ export class Boss {
     smoke.once('animationcomplete', () => { smoke.destroy(); if (onDone) onDone(); });
   }
 
-  // ─── ATTACK 1: Fish King Summoner Wave ───────────────────────────
+  // ─── ATTACK: Kataw Explosion Pattern 1 (attack-1_1) ──────────────────────
+  ch3KatawExplosionPattern1() {
+    const grid = this._decodeGridPattern(`
+R0: Y Y Y Y Y Y Y Y Y
+R1: Y R R R R R R R Y
+R2: Y R P P P P P R Y
+R3: Y R P . . . P R Y
+R4: Y R P . . . P R Y
+R5: Y R P . . . P R Y
+R6: Y R P P P P P R Y
+R7: Y R R R R R R R Y
+R8: Y Y Y Y Y Y Y Y Y
+    `);
+    const steps = [
+      { type: '1', duration: 866, tiles: grid['Y'] },
+      { type: '2', duration: 533, tiles: grid['R'] },
+      { type: '3', duration: 466, tiles: grid['P'] }
+    ];
+    return this._executeSpecificExplosionSequence(steps, { '1': 1.5, '2': 1.2, '3': 1.2 });
+  }
+  
+  // ─── ATTACK: Kataw Explosion Pattern 2 (attack-1_2) ──────────────────────
+  ch3KatawExplosionPattern2() {
+    const grid = this._decodeGridPattern(`
+R0: P P P P P P P P P
+R1: P R R R R R R R P
+R2: P R . . . . . R P
+R3: P R . Y Y Y . R P
+R4: P R . Y Y Y . R P
+R5: P R . Y Y Y . R P
+R6: P R . . . . . R P
+R7: P R R R R R R R P
+R8: P P P P P P P P P
+    `);
+    const steps = [
+      { type: '3', duration: 466, tiles: grid['P'] },
+      { type: '2', duration: 533, tiles: grid['R'] },
+      { type: '1', duration: 866, tiles: grid['Y'] }
+    ];
+    return this._executeSpecificExplosionSequence(steps, { '1': 1.5, '2': 1.2, '3': 1.2 });
+  }
+  
+  // ─── ATTACK: Kataw Explosion Pattern 3 (attack-1_3) ──────────────────────
+  ch3KatawExplosionPattern3() {
+    const grid = this._decodeGridPattern(`
+R0: P P P P P P P P P
+R1: P . . . . . . . P
+R2: P . R R R R R . P
+R3: P . R . . . R . P
+R4: P . R . Y . R . P
+R5: P . R . . . R . P
+R6: P . R R R R R . P
+R7: P . . . . . . . P
+R8: P P P P P P P P P
+    `);
+    const steps = [
+      { type: '3', duration: 466, tiles: grid['P'] },
+      { type: '2', duration: 533, tiles: grid['R'] },
+      { type: '1', duration: 866, tiles: grid['Y'] }
+    ];
+    return this._executeSpecificExplosionSequence(steps, { '1': 2.0, '2': 1.2, '3': 1.2 });
+  }
+
+  _decodeGridPattern(gridStr) {
+    const rows = gridStr.trim().split('\n').filter(r => r.trim() !== '');
+    const tilesByColor = { 'O': [], 'R': [], 'P': [], 'Y': [] };
+    rows.forEach((row, r) => {
+      const cells = row.trim().split(/\s+/);
+      let startIndex = 0;
+      if (cells.length > 0 && cells[0].startsWith('R')) startIndex = 1;
+      for (let i = startIndex; i < cells.length; i++) {
+        const cell = cells[i];
+        const c = i - startIndex;
+        if (cell === '🟠' || cell === 'O') tilesByColor['O'].push({ c, r });
+        else if (cell === '🔴' || cell === 'R') tilesByColor['R'].push({ c, r });
+        else if (cell === '🟣' || cell === 'P') tilesByColor['P'].push({ c, r });
+        else if (cell === '🟡' || cell === 'Y') tilesByColor['Y'].push({ c, r });
+      }
+    });
+    return tilesByColor;
+  }
+
+  _executeSpecificExplosionSequence(steps, scaleOverrides) {
+    const ts = this.grid.tileSize;
+    let currentSpawnTime = 1100;
+    let maxAttackDuration = currentSpawnTime;
+
+    steps.forEach((step) => {
+      let telegraphTime = currentSpawnTime - 1100;
+      if (telegraphTime < 0) telegraphTime = 0;
+
+      let animKey = 'anim_ch3_explosion_' + step.type;
+      let duration = step.duration;
+      let scaleMultiplier = scaleOverrides[step.type] || 1.2;
+
+      const tiles = step.tiles;
+
+      this.scene.time.delayedCall(telegraphTime, () => {
+        if (this.hp <= 0 || this.scene.isGameOver) return;
+        tiles.forEach(t => {
+          if (t.c >= 0 && t.c < this.grid.cols && t.r >= 0 && t.r < this.grid.rows) {
+            this.grid.telegraph(t.c, t.r, 1100);
+          }
+        });
+      });
+
+      this.scene.time.delayedCall(currentSpawnTime, () => {
+        if (this.hp <= 0 || this.scene.isGameOver) return;
+        tiles.forEach(t => {
+          if (t.c >= 0 && t.c < this.grid.cols && t.r >= 0 && t.r < this.grid.rows) {
+            const pix = this.grid.getPixelPosition(t.c, t.r);
+            const exp = this.scene.add.sprite(pix.x, pix.y, animKey.replace('anim_', ''))
+              .setDepth(60).setDisplaySize(ts * scaleMultiplier, ts * scaleMultiplier).play(animKey);
+            exp.once('animationcomplete', () => exp.destroy());
+
+            if (this.scene.player.col === t.c && this.scene.player.row === t.r) {
+              this.scene.player.takeDamage();
+            }
+          }
+        });
+      });
+
+      maxAttackDuration = Math.max(maxAttackDuration, currentSpawnTime + duration);
+      currentSpawnTime += 100; // 100ms rapid cascade overlap
+    });
+
+    return maxAttackDuration + 500;
+  }
+
+  // ─── ABYSSAL CROSS ───────────────────────────
+  ch3AbyssalCrossPattern1() {
+    const grid = this._decodeGridPattern(`
+R0: Y Y R . P . R Y Y
+R1: Y . R . P . R . Y
+R2: R R . . P . . R R
+R3: . . . . P . . . .
+R4: Y P P P P P P P P
+R5: . . . . P . . . .
+R6: R R . . P . . R R
+R7: Y . R . P . R . Y
+R8: Y Y R . P . R Y Y
+    `);
+    const steps = [
+      { type: '4a', duration: 2666, tiles: grid['Y'] || grid['O'] },
+      { type: '2a', duration: 2666, tiles: grid['R'] },
+      { type: '3a', duration: 2666, tiles: grid['P'] }
+    ];
+    return this._executeSpecificExplosionSequence(steps, { '4a': 1.8, '2a': 1.8, '3a': 1.8 });
+  }
+
+  ch3AbyssalCrossPattern2() {
+    const grid = this._decodeGridPattern(`
+R0: . Y . Y P Y . Y .
+R1: R R R R P R R R R
+R2: . Y . Y P Y . Y .
+R3: R R R R P R R R R
+R4: P P P P P P P P P
+R5: R R R R P R R R R
+R6: . Y . Y P Y . Y .
+R7: R R R R P R R R R
+R8: . Y . Y P Y . Y .
+    `);
+    const steps = [
+      { type: '4a', duration: 2666, tiles: grid['Y'] || grid['O'] },
+      { type: '2a', duration: 2666, tiles: grid['R'] },
+      { type: '3a', duration: 2666, tiles: grid['P'] }
+    ];
+    return this._executeSpecificExplosionSequence(steps, { '4a': 1.8, '2a': 1.8, '3a': 1.8 });
+  }
+
+  ch3AbyssalCrossPattern3() {
+    const grid = this._decodeGridPattern(`
+R0: R Y Y Y P Y Y Y R
+R1: R . . . P . . . R
+R2: R R R R P R R R R
+R3: R . . . P . . . R
+R4: P P P P P P P P P
+R5: R . . . P . . . R
+R6: R R R R P R R R R
+R7: R . . . P . . . R
+R8: R Y Y Y P Y Y Y R
+    `);
+    const steps = [
+      { type: '4a', duration: 2666, tiles: grid['Y'] || grid['O'] },
+      { type: '2a', duration: 2666, tiles: grid['R'] },
+      { type: '3a', duration: 2666, tiles: grid['P'] }
+    ];
+    return this._executeSpecificExplosionSequence(steps, { '4a': 1.8, '2a': 1.8, '3a': 1.8 });
+  }
+
+  ch3AbyssalCrossPattern4() {
+    const grid = this._decodeGridPattern(`
+R0: Y Y R Y P Y R Y Y
+R1: Y . R . P . R . Y
+R2: R R R R P R R R R
+R3: Y . R . P . R . Y
+R4: P P P P P P P P P
+R5: Y . R . P . R . Y
+R6: R R R R P R R R R
+R7: Y . R . P . R . Y
+R8: Y Y R Y P Y R Y Y
+    `);
+    const steps = [
+      { type: '4a', duration: 2666, tiles: grid['Y'] || grid['O'] },
+      { type: '2a', duration: 2666, tiles: grid['R'] },
+      { type: '3a', duration: 2666, tiles: grid['P'] }
+    ];
+    return this._executeSpecificExplosionSequence(steps, { '4a': 1.8, '2a': 1.8, '3a': 1.8 });
+  }
+
+  // ─── DIAMOND STORM ───────────────────────────
+  ch3DiamondStormPattern1() {
+    const grid = this._decodeGridPattern(`
+R0: . . . . . . . . .
+R1: . Y . . Y . . Y .
+R2: . . R . . . R . .
+R3: . . . P P P . . .
+R4: . Y . P P P . Y .
+R5: . . . P P P . . .
+R6: . . R . . . R . .
+R7: . Y . . Y . . Y .
+R8: . . . . . . . . .
+    `);
+    const steps = [
+      { type: '1d', duration: 533, tiles: grid['Y'] || grid['O'] },
+      { type: '2d', duration: 666, tiles: grid['R'] },
+      { type: '3d', duration: 1466, tiles: grid['P'] }
+    ];
+    return this._executeSpecificExplosionSequence(steps, { '1d': 1.5, '2d': 1.5, '3d': 1.5 });
+  }
+
+  ch3DiamondStormPattern2() {
+    const grid = this._decodeGridPattern(`
+R0: R . . . P . . . R
+R1: . R . Y P Y . R .
+R2: . . R . P . R . .
+R3: . Y . R P R . Y .
+R4: P P P P P P P P P
+R5: . Y . R P R . Y .
+R6: . . R . P . R . .
+R7: . R . Y P Y . R .
+R8: R . . . P . . . R
+    `);
+    const steps = [
+      { type: '1d', duration: 533, tiles: grid['Y'] || grid['O'] },
+      { type: '2d', duration: 666, tiles: grid['R'] },
+      { type: '3d', duration: 1466, tiles: grid['P'] }
+    ];
+    return this._executeSpecificExplosionSequence(steps, { '1d': 1.5, '2d': 1.5, '3d': 1.5 });
+  }
+
+  ch3DiamondStormPattern3() {
+    const grid = this._decodeGridPattern(`
+R0: Y . . . R . . . Y
+R1: . Y . . R . . Y .
+R2: . . P P P P P . .
+R3: . . P Y R Y P . .
+R4: R R P R R R P R R
+R5: . . P Y R Y P . .
+R6: . . P P P P P . .
+R7: . Y . . R . . Y .
+R8: Y . . . R . . . Y
+    `);
+    const steps = [
+      { type: '1d', duration: 533, tiles: grid['Y'] || grid['O'] },
+      { type: '2d', duration: 666, tiles: grid['R'] },
+      { type: '3d', duration: 1466, tiles: grid['P'] }
+    ];
+    return this._executeSpecificExplosionSequence(steps, { '1d': 1.5, '2d': 1.5, '3d': 1.5 });
+  }
+
+  ch3DiamondStormPattern4() {
+    const grid = this._decodeGridPattern(`
+R0: . . . . Y . . . .
+R1: . . . . R . . . .
+R2: . . R . . . R . .
+R3: . . . P P P . . .
+R4: Y R . P . P . R Y
+R5: . . . P P P . . .
+R6: . . R . . . R . .
+R7: . . . . R . . . .
+R8: . . . . Y . . . .
+    `);
+    const steps = [
+      { type: '1d', duration: 533, tiles: grid['Y'] || grid['O'] },
+      { type: '2d', duration: 666, tiles: grid['R'] },
+      { type: '3d', duration: 1466, tiles: grid['P'] }
+    ];
+    return this._executeSpecificExplosionSequence(steps, { '1d': 1.5, '2d': 1.5, '3d': 1.5 });
+  }
+
+  // ─── ATTACK 1.5: Fish King Summoner Wave ───────────────────────────
   ch3FishKingSummonerWave() {
     const ts   = this.grid.tileSize;
     const edgeX = this.grid.getPixelPosition(this.grid.cols - 1, 0).x + ts * 3;
@@ -1250,7 +1552,7 @@ export class Boss {
               if (this.hp <= 0 || this.scene.isGameOver) return;
               const c = Phaser.Math.Between(0, this.grid.cols - 1);
               const startPix = this.grid.getPixelPosition(c, this.grid.rows);
-              const endPix   = this.grid.getPixelPosition(c, -1);
+              const endPix   = this.grid.getPixelPosition(c, -4);
               
               this.grid.telegraphCol(c, 600);
               
