@@ -170,6 +170,26 @@ class GestureController {
     if (!this.classifier) return {};
     return this.classifier.getClassExampleCount();
   }
+
+  async exportModelJSON() {
+    if (!this.classifier) return;
+    const data = this.classifier.exportData();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `bata-takbo-gestures-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async importModelJSON(file) {
+    if (!this.classifier) return;
+    const text = await file.text();
+    const data = JSON.parse(text);
+    this.classifier.importData(data);
+    await this.saveModel();
+  }
 }
 
 export const gestureController = new GestureController();

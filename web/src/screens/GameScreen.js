@@ -92,6 +92,7 @@ export const GameScreen = {
     this.isPaused = false;
     
     const chapterId = params.chapterId || 1;
+    const isTutorial = params.isTutorial || false;
     
     // 1. Boot up ML Gestures
     try {
@@ -131,7 +132,7 @@ export const GameScreen = {
 
     // Add scenes manually ONCE with the correct data, preventing double-start
     this.game.events.on('ready', () => {
-      this.game.scene.add('GameScene', GameScene, true, { chapterId });
+      this.game.scene.add('GameScene', GameScene, true, { chapterId, isTutorial });
       this.game.scene.add('HUDScene', HUDScene, false);
       // GameScene.create() will call scene.launch('HUDScene') when ready
     });

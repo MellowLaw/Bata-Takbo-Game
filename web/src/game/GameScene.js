@@ -11,8 +11,9 @@ export class GameScene extends Phaser.Scene {
 
   init(data) {
     this.chapterId = data.chapterId || 1;
+    this.isTutorial = data.isTutorial || false;
     this.isGameOver = false;
-    console.log(`[GameScene] Initializing Chapter ${this.chapterId}`);
+    console.log(`[GameScene] Initializing Chapter ${this.chapterId} (Tutorial: ${this.isTutorial})`);
   }
 
   preload() {
@@ -271,8 +272,14 @@ export class GameScene extends Phaser.Scene {
     // 2. Initialize Player on the grid
     this.player = new Player(this, this.grid);
 
+    // In tutorial mode, make the player effectively invincible so they can't die
+    // mid-lesson and interrupt the scripted flow.
+    if (this.isTutorial) {
+      this.player.isInvincible = true;
+    }
+
     // 3. Initialize Boss (attack logic only — sprite lives in HUDScene)
-    this.boss = new Boss(this, this.grid);
+    this.boss = new Boss(this, this.grid, this.isTutorial);
     this.goldenTile = null;
     this.isUltimateActive = false;
     this._ultCooldown = false;

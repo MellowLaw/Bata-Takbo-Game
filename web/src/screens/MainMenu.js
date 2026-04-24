@@ -5,6 +5,7 @@
  * for all other menu screens (Spellbook, Gesture Setup, Settings, Leaderboard, About).
  */
 import { state } from '../utils/StateManager.js';
+import { DialogueBox } from '../utils/DialogueBox.js';
 
 // Module-level audio instance so music persists while browsing sub-menus
 let _bgMusic = null;
@@ -76,7 +77,24 @@ export const MainMenu = {
           // Fade music out, THEN navigate
           this._fadeOutMusic(800, () => {
             btn.style.animation = '';
-            window.__screenManager.navigate(targetScreen);
+            const tutState = state.get('tutorialComplete') || {};
+            const isGestureTrained = state.get('gestureModelTrained');
+
+            // Returning player who finished the tutorial → straight to chapter select
+            if (tutState.gameplayComplete) {
+              window.__screenManager.navigate(targetScreen);
+              return;
+            }
+
+            // First-time players who already trained gestures (from the menu)
+            // → skip the welcome prompt and jump into the gameplay tutorial
+            if (isGestureTrained) {
+              window.__screenManager.navigate('tutorial-screen');
+              return;
+            }
+
+            // Brand-new player — show the welcome prompt explaining hand gestures
+            this._showWelcomePrompt();
           });
         } else {
           // Music keeps playing; navigate after flash
@@ -106,6 +124,67 @@ export const MainMenu = {
   },
 
   // ── Helpers ────────────────────────────────────────────────────────────
+
+  _showWelcomePrompt() {
+    const dialogue = new DialogueBox('screen-container');
+    const portrait = '/assets/characters/character.png';
+    const portraitFrames = 5;
+
+    const step1 = () => {
+      dialogue.show({
+        text: "Welcome to Bata, Takbo! This game is controlled with your hand gestures through your webcam. Before you play, we need to set up your gestures so the game knows how you move.",
+        subtext: 'Step 1 / 2',
+        portrait,
+        portraitFrames,
+        position: 'center',
+        overlay: true,
+        typewriter: true,
+        buttons: [
+          { label: 'Next', action: 'next' },
+          { label: 'Skip Tutorial', action: 'skip', style: 'subtle' }
+        ]
+      }, (action) => {
+        if (action === 'next') step2();
+        else if (action === 'skip') skipAll();
+      });
+    };
+
+    const step2 = () => {
+      dialogue.show({
+        text: "You'll train 5 gestures: UP, DOWN, LEFT, RIGHT, and REST. It only takes a minute. Ready?",
+        subtext: 'Step 2 / 2',
+        portrait,
+        portraitFrames,
+        position: 'center',
+        overlay: true,
+        typewriter: true,
+        buttons: [
+          { label: 'Go to Gesture Setup', action: 'next' },
+          { label: 'Skip Tutorial', action: 'skip', style: 'subtle' }
+        ]
+      }, (action) => {
+        if (action === 'next') {
+          dialogue.hide();
+          window.__screenManager.navigate('gesture-training');
+        } else if (action === 'skip') {
+          skipAll();
+        }
+      });
+    };
+
+    const skipAll = () => {
+      // Mark both tutorials complete so we never bug the player again
+      const tutState = state.get('tutorialComplete') || {};
+      tutState.gestureComplete = true;
+      tutState.gameplayComplete = true;
+      state.set('tutorialComplete', tutState);
+      state.saveTutorialState();
+      dialogue.hide();
+      window.__screenManager.navigate('chapter-select');
+    };
+
+    step1();
+  },
 
   _startMusic() {
     if (_bgMusic) {

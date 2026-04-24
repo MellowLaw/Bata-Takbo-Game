@@ -213,7 +213,10 @@ export const LoginScreen = {
           } catch (err) {
             console.error('Failed to encrypt session:', err);
           }
-          
+
+          // Fresh guest session → always show the tutorial again
+          state.resetTutorialState();
+
           // Bug 2: Redirect to the main menu
           if (window.__screenManager) {
             window.__screenManager.navigate('main-menu');
@@ -310,6 +313,8 @@ export const LoginScreen = {
         
         if (res.ok && data.success) {
           sessionStorage.setItem('guest_session', JSON.stringify({ is_guest: false, username }));
+          // Fresh login → always show the tutorial again
+          state.resetTutorialState();
           if (window.__screenManager) {
             window.__screenManager.navigate('main-menu');
           }
@@ -413,6 +418,8 @@ export const LoginScreen = {
         
         if (res.ok && data.success) {
           sessionStorage.setItem('guest_session', JSON.stringify({ is_guest: false, username }));
+          // New account → always show the tutorial
+          state.resetTutorialState();
           if (window.__screenManager) {
             window.__screenManager.navigate('main-menu');
           }

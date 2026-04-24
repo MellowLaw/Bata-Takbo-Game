@@ -187,4 +187,32 @@ export class GestureClassifier {
     await clearIDB();
     this.isLoaded = false;
   }
+
+  /**
+   * Export all KNN training data as a plain object
+   */
+  exportData() {
+    const dataset = this.classifier.getClassifierDataset();
+    const data = {};
+    for (const [label, tensor] of Object.entries(dataset)) {
+      data[label] = Array.from(tensor.dataSync());
+      data[label + '_shape'] = tensor.shape;
+    }
+    return data;
+  }
+
+  /**
+   * Import KNN training data from a plain object
+   */
+  importData(data) {
+    this.classifier.clearAllClasses();
+    const tensors = {};
+    for (const key of Object.keys(data)) {
+      if (key.endsWith('_shape')) continue;
+      const shape = data[key + '_shape'];
+      tensors[key] = tf.tensor(data[key], shape);
+    }
+    this.classifier.setClassifierDataset(tensors);
+    this.isLoaded = true;
+  }
 }

@@ -1,4 +1,5 @@
 import * as Phaser from 'phaser';
+import { state } from '../utils/StateManager.js';
 
 export class Player {
   /**
@@ -123,6 +124,7 @@ export class Player {
         this.isMoving = false;
         this.sprite.play(`idle_${this.facing}`);
         this.scene.events.emit('player:moved', this.col, this.row);
+        state.emit('player:moved', direction);
 
         // Grid Hazard Effects
         if (this.grid.cells[this.row][this.col].status === 'mud') {

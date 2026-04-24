@@ -15,6 +15,7 @@ import { About } from './screens/About.js';
 import { GameScreen } from './screens/GameScreen.js';
 import { ResultsScreen } from './screens/ResultsScreen.js';
 import { LoginScreen } from './screens/LoginScreen.js';
+import { TutorialScreen } from './screens/TutorialScreen.js';
 import { gestureController } from './gesture/GestureController.js';
 
 // Initialize screen manager
@@ -34,6 +35,7 @@ screenManager.register('about', About);
 screenManager.register('game-screen', GameScreen);
 screenManager.register('results-screen', ResultsScreen);
 screenManager.register('login-screen', LoginScreen);
+screenManager.register('tutorial-screen', TutorialScreen);
 
 async function init() {
   // Small delay for font loading

@@ -125,9 +125,15 @@ class StateManager {
   _loadTutorialState() {
     try {
       const saved = localStorage.getItem('bata_takbo_tutorial');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          gameplayComplete: parsed.gameplayComplete || false,
+          gestureComplete: parsed.gestureComplete || false,
+        };
+      }
     } catch (e) { /* ignore */ }
-    return { firstLaunchComplete: false, chapterTutorialComplete: {} };
+    return { gameplayComplete: false, gestureComplete: false };
   }
 
   _loadBestiary() {
@@ -150,6 +156,19 @@ class StateManager {
     try {
       localStorage.setItem('bata_takbo_tutorial', JSON.stringify(this._state.tutorialComplete));
     } catch (e) { /* ignore */ }
+  }
+
+  /**
+   * Reset tutorial completion flags — called on fresh login / guest join
+   * so every new account (or re-login) sees the tutorial again.
+   * The trained gesture model is intentionally NOT reset (it's per-device).
+   */
+  resetTutorialState() {
+    this._state.tutorialComplete = { gameplayComplete: false, gestureComplete: false };
+    try {
+      localStorage.removeItem('bata_takbo_tutorial');
+    } catch (e) { /* ignore */ }
+    this.emit('tutorialComplete:changed', { key: 'tutorialComplete', value: this._state.tutorialComplete });
   }
 
   saveBestiary() {

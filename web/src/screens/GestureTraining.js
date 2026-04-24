@@ -4,6 +4,7 @@
  */
 import { gestureController } from '../gesture/GestureController.js';
 import { state } from '../utils/StateManager.js';
+import { TutorialManager } from '../utils/TutorialManager.js';
 
 export const GestureTraining = {
   render() {
@@ -50,8 +51,8 @@ export const GestureTraining = {
             <span class="gesture-dir-btn__label">RIGHT</span>
             <span class="gesture-dir-btn__count">0</span>
           </button>
-          <button class="gesture-dir-btn" data-dir="idle" id="dir-idle" style="border-color: var(--accent-gold);">
-            <span class="gesture-dir-btn__arrow"><img src="/assets/ui/bone-hand.png" alt="Rest" style="height: 1em; vertical-align: bottom;" /></span>
+          <button class="gesture-dir-btn" data-dir="idle" id="dir-idle">
+            <span class="gesture-dir-btn__arrow"><img src="/assets/ui/bone-hand.png" alt="Rest" class="gesture-dir-btn__icon" /></span>
             <span class="gesture-dir-btn__label">REST</span>
             <span class="gesture-dir-btn__count">0</span>
           </button>
@@ -72,6 +73,13 @@ export const GestureTraining = {
           <button class="menu-btn" id="btn-test-gestures" style="font-size: var(--text-sm);">
             Test My Gestures
           </button>
+          <button class="menu-btn" id="btn-export-gestures" style="font-size: var(--text-sm);">
+            Export
+          </button>
+          <button class="menu-btn" id="btn-import-gestures" style="font-size: var(--text-sm);">
+            Import
+          </button>
+          <input type="file" id="import-file-input" accept=".json" style="display: none;" />
           <button class="menu-btn text-red" id="btn-reset-gestures" style="font-size: var(--text-sm);">
             Reset All
           </button>
@@ -105,6 +113,13 @@ export const GestureTraining = {
       // Hide loading spinner
       this.loadingUi.style.display = 'none';
       this._updateUIFromCounts();
+      
+      // Start tutorial if not completed
+      const tutState = state.get('tutorialComplete') || {};
+      if (!tutState.gestureComplete && !gestureController.isTesting) {
+        this._startTutorial(el);
+      }
+      
     } catch (e) {
       this.loadingUi.innerHTML = `<span class="text-red">Camera Error. Refresh and allow permissions.</span>`;
     }
@@ -155,6 +170,9 @@ export const GestureTraining = {
     // Event listener for incoming sample counts
     this.unsubSampleAdded = state.on('gesture:sampleAdded', (data) => {
       this._updateUIFromCounts(data.counts);
+      if (this.tutorialManager) {
+        this.tutorialManager.update('sampleAdded', data.counts);
+      }
     });
 
     // Event listener for gesture testing
@@ -189,11 +207,45 @@ export const GestureTraining = {
         this._updateUIFromCounts({});
       }
     });
+    
+    // Export gestures
+    el.querySelector('#btn-export-gestures').addEventListener('click', async () => {
+      if (gestureController.exportModelJSON) {
+        await gestureController.exportModelJSON();
+      }
+    });
+    
+    // Import gestures
+    const importInput = el.querySelector('#import-file-input');
+    el.querySelector('#btn-import-gestures').addEventListener('click', () => {
+      importInput.click();
+    });
+    
+    importInput.addEventListener('change', async (e) => {
+      if (e.target.files && e.target.files[0]) {
+        if (gestureController.importModelJSON) {
+          try {
+            await gestureController.importModelJSON(e.target.files[0]);
+            alert('Gestures imported successfully!');
+            this._updateUIFromCounts();
+          } catch (err) {
+            alert('Failed to import gestures. Invalid file format.');
+            console.error(err);
+          }
+        }
+      }
+      importInput.value = ''; // Reset input
+    });
   },
 
   onLeave() {
     if (this.unsubSampleAdded) this.unsubSampleAdded();
     if (this.unsubGestureDetected) this.unsubGestureDetected();
+
+    if (this.tutorialManager) {
+      this.tutorialManager.skip();
+      this.tutorialManager = null;
+    }
 
     gestureController.isTesting = false;
     gestureController.stopRecording();
@@ -243,7 +295,7 @@ export const GestureTraining = {
     gestureController.isTesting = active;
 
     if (active) {
-      testBtn.style.color = 'var(-accent-red)';
+      testBtn.style.color = 'var(--accent-red)';
       testBtn.textContent = 'Stop Testing';
       
       // hide record button
@@ -261,5 +313,123 @@ export const GestureTraining = {
       dirBtns.forEach(b => b.classList.remove('active', 'trained'));
       el.querySelector(`#dir-${this.activeDir}`).classList.add('active');
     }
+  },
+
+  _startTutorial(el) {
+    this.tutorialManager = new TutorialManager('screen-container');
+    const portrait = '/assets/characters/character.png'; // 5-frame talking sprite sheet
+    
+    const steps = [
+      {
+        text: "Welcome to Bata, Takbo! Before we begin, let's set up your hand gestures. You'll use your webcam to teach the game how you move!",
+        portrait: portrait,
+        position: 'top'
+      },
+      {
+        text: "This is your camera view. Make sure your hand is clearly visible inside the frame!",
+        portrait: portrait,
+        position: 'top',
+        highlight: '#gesture-camera',
+        buttons: [{ label: 'Got it', action: 'next' }]
+      },
+      {
+        text: "These are the gesture buttons. You will select a direction before you start recording.",
+        portrait: portrait,
+        position: 'top',
+        highlight: '.gesture-directions',
+        buttons: [{ label: 'Next', action: 'next' }]
+      },
+      {
+        text: "Let's train the **UP** gesture. Make a clear upward hand signal, then press and hold the **Record** button until the bar fills.",
+        highlight: "#btn-record",
+        portrait: portrait,
+        position: 'top',
+        onEnter: () => el.querySelector('#dir-up').click(),
+        autoAdvance: {
+          type: 'sampleAdded',
+          check: (counts) => counts.up >= 10
+        }
+      },
+      {
+        text: "Great! Now do the same for **DOWN**. Make a downward signal and hold record.",
+        highlight: "#btn-record",
+        portrait: portrait,
+        position: 'top',
+        onEnter: () => el.querySelector('#dir-down').click(),
+        autoAdvance: {
+          type: 'sampleAdded',
+          check: (counts) => counts.down >= 10
+        }
+      },
+      {
+        text: "Now point **LEFT**.",
+        highlight: "#btn-record",
+        portrait: portrait,
+        position: 'top',
+        onEnter: () => el.querySelector('#dir-left').click(),
+        autoAdvance: {
+          type: 'sampleAdded',
+          check: (counts) => counts.left >= 10
+        }
+      },
+      {
+        text: "And point **RIGHT**.",
+        highlight: "#btn-record",
+        portrait: portrait,
+        position: 'top',
+        onEnter: () => el.querySelector('#dir-right').click(),
+        autoAdvance: {
+          type: 'sampleAdded',
+          check: (counts) => counts.right >= 10
+        }
+      },
+      {
+        text: "One more — make your **REST** pose. This is what your hand looks like when you're NOT moving (e.g., an open palm or fist).",
+        highlight: "#btn-record",
+        portrait: portrait,
+        position: 'top',
+        onEnter: () => el.querySelector('#dir-idle').click(),
+        autoAdvance: {
+          type: 'sampleAdded',
+          check: (counts) => counts.idle >= 10
+        }
+      },
+      {
+        text: "Perfect! Let's test it. Click 'Test My Gestures', move your hand, and see if the arrows highlight correctly.",
+        highlight: "#btn-test-gestures",
+        portrait: portrait,
+        position: 'top',
+        buttons: [{ label: 'Done Testing', action: 'next' }]
+      },
+      {
+        text: "You're all set! Your gesture model has been saved. Let's jump into the game!",
+        portrait: portrait,
+        position: 'top',
+        buttons: [{ label: 'Start Tutorial', action: 'next' }]
+      }
+    ];
+
+    this.tutorialManager.start(steps, {
+      onComplete: () => {
+        this._completeTutorial();
+      },
+      onSkip: () => {
+        this._completeTutorial();
+      }
+    });
+  },
+  
+  async _completeTutorial() {
+    await gestureController.saveModel();
+    const tutState = state.get('tutorialComplete') || {};
+    tutState.gestureComplete = true;
+    state.set('tutorialComplete', tutState);
+    state.saveTutorialState();
+    
+    // Navigate to the dedicated tutorial screen (which wraps GameScreen with scripted steps).
+    // Reset history so the Back button later returns to main-menu, not gesture-training.
+    gestureController.stopCamera();
+    window.__screenManager.history = ['main-menu'];
+    window.__screenManager.navigate('tutorial-screen', {}, false);
   }
 };

@@ -7,10 +7,15 @@ export class Boss {
    * @param {Phaser.Scene} scene 
    * @param {import('./Grid.js').Grid} grid 
    */
-  constructor(scene, grid) {
+  constructor(scene, grid, isTutorial = false) {
     this.scene = scene;
     this.grid = grid;
-    if (scene.chapterId === 1) {
+    this.isTutorial = isTutorial;
+    
+    // In tutorial mode, we want a lot of HP so it doesn't die.
+    if (this.isTutorial) {
+      this.maxHp = 999;
+    } else if (scene.chapterId === 1) {
       this.maxHp = 5;
     } else if (scene.chapterId === 2) {
       this.maxHp = 8;
@@ -31,7 +36,23 @@ export class Boss {
     this.projectileOriginY = grid.offsetY - 30;
 
     this.cheatMode = false; // Activated by the secret cheat code
-    this.startAttackLoop();
+    
+    if (this.isTutorial) {
+      // In tutorial, don't start the normal attack loop.
+      // We will listen for specific tutorial events to trigger simple attacks.
+      this.unsubTutorialAttack = state.on('tutorial:triggerAttack', (stepIndex) => {
+        this.tutorialAttack(stepIndex);
+      });
+      this.unsubTutorialDamageTile = state.on('tutorial:spawnDamageTile', () => {
+        this.spawnDamageTile();
+      });
+      this.scene.events.once('shutdown', () => {
+        if (this.unsubTutorialAttack) this.unsubTutorialAttack();
+        if (this.unsubTutorialDamageTile) this.unsubTutorialDamageTile();
+      });
+    } else {
+      this.startAttackLoop();
+    }
   }
 
   startAttackLoop() {
@@ -47,6 +68,63 @@ export class Boss {
         this.attackTimer.paused = isStopped;
       }
     });
+  }
+
+  tutorialAttack(stepIndex) {
+    this.scene.events.emit('boss:attack');
+    let duration = 0;
+
+    if (stepIndex === 0) {
+      // Very simple: single column warning (column 2)
+      duration = this._tutorialSimpleAttack([{ c: 2, r: 0 }, { c: 2, r: 1 }, { c: 2, r: 2 }, { c: 2, r: 3 }, { c: 2, r: 4 }]);
+    } else if (stepIndex === 1) {
+      // Simple row warning (row 2)
+      duration = this._tutorialSimpleAttack([{ c: 0, r: 2 }, { c: 1, r: 2 }, { c: 2, r: 2 }, { c: 3, r: 2 }, { c: 4, r: 2 }]);
+    } else if (stepIndex === 2) {
+      // Small cross in the center
+      duration = this._tutorialSimpleAttack([
+        { c: 2, r: 1 }, { c: 1, r: 2 }, { c: 2, r: 2 }, { c: 3, r: 2 }, { c: 2, r: 3 }
+      ]);
+    }
+
+    // Wait for the attack to finish then notify state
+    this.scene.time.delayedCall(duration, () => {
+      state.emit('tutorial:attackComplete');
+    });
+  }
+
+  _tutorialSimpleAttack(tiles) {
+    const WARNING_MS = 2000; // 2s red tile telegraph — longer so player can react
+
+    // 1. Show red telegraph tiles
+    tiles.forEach(pos => {
+      this.grid.telegraph(pos.c, pos.r, WARNING_MS);
+    });
+
+    // 2. After warning, trigger explosions
+    this.scene.time.delayedCall(WARNING_MS, () => {
+      tiles.forEach(pos => {
+        const gPos = this.grid.getPixelPosition(pos.c, pos.r);
+
+        // Explosion sprite
+        const exp = this.scene.add.sprite(gPos.x, gPos.y, 'eye_explosion')
+          .setOrigin(0.5, 0.6).setDepth(30).setScale(1.5);
+        if (this.scene.anims.exists('anim_eye_explosion')) {
+          exp.play('anim_eye_explosion');
+          exp.once('animationcomplete', () => exp.destroy());
+        } else {
+          this.scene.time.delayedCall(400, () => exp.destroy());
+        }
+
+        // Player hit check
+        if (this.scene.player.col === pos.c && this.scene.player.row === pos.r
+            && !this.scene.player.isDashing) {
+          this.scene.player.takeDamage();
+        }
+      });
+    });
+
+    return WARNING_MS + 600; // total duration before next step
   }
 
   executeAttack() {
@@ -1166,8 +1244,8 @@ export class Boss {
 
     this.scene.events.emit('damageTile:spawned', tC, tR);
 
-    // Gives player exactly 4 seconds to reach it
-    this.scene.time.delayedCall(4000, () => {
+    // Player has 10 seconds to reach the golden tile before it despawns.
+    this.scene.time.delayedCall(10000, () => {
       this.scene.events.emit('damageTile:despawned', tC, tR);
       this.grid.render();
     });
@@ -1177,6 +1255,10 @@ export class Boss {
     this.hp--;
     this.scene.cameras.main.shake(200, 0.02);
     this.scene.events.emit('boss:damaged', this.hp, this.maxHp);
+
+    if (this.isTutorial) {
+      state.emit('tutorial:bossDamaged');
+    }
 
     if (this.hp <= 0) {
       this.die();

@@ -185,10 +185,10 @@ export const Settings = {
 
     // Reset tutorial
     el.querySelector('#btn-reset-tutorial').addEventListener('click', () => {
-      const tutorialState = { firstLaunchComplete: false, chapterTutorialComplete: {} };
+      const tutorialState = { gameplayComplete: false, gestureComplete: false };
       state.set('tutorialComplete', tutorialState);
       state.saveTutorialState();
-      alert('Tutorial has been reset! It will show on next play.');
+      alert('Tutorial has been reset! Go back and click Play to replay it.');
     });
   },
 
