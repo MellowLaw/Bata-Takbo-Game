@@ -76,24 +76,24 @@ export const MainMenu = {
         if (isPlay) {
           // Fade music out, THEN navigate
           this._fadeOutMusic(800, () => {
-            btn.style.animation = '';
+          btn.style.animation = '';
             const tutState = state.get('tutorialComplete') || {};
             const isGestureTrained = state.get('gestureModelTrained');
 
-            // Returning player who finished the tutorial → straight to chapter select
+            // Returning player who finished both tutorials → straight to chapter select
             if (tutState.gameplayComplete) {
               window.__screenManager.navigate(targetScreen);
               return;
             }
 
-            // First-time players who already trained gestures (from the menu)
-            // → skip the welcome prompt and jump into the gameplay tutorial
-            if (isGestureTrained) {
+            // Player already trained gestures AND completed gesture tutorial
+            // → skip the welcome prompt and jump into the gameplay tutorial directly
+            if (isGestureTrained && tutState.gestureComplete) {
               window.__screenManager.navigate('tutorial-screen');
               return;
             }
 
-            // Brand-new player — show the welcome prompt explaining hand gestures
+            // Brand-new player or gesture not trained → show the welcome prompt
             this._showWelcomePrompt();
           });
         } else {
@@ -126,9 +126,18 @@ export const MainMenu = {
   // ── Helpers ────────────────────────────────────────────────────────────
 
   _showWelcomePrompt() {
+    // Guard: prevent stacking multiple prompts when Play is clicked repeatedly
+    if (this._promptOpen) return;
+    this._promptOpen = true;
+
     const dialogue = new DialogueBox('screen-container');
     const portrait = '/assets/characters/character.png';
     const portraitFrames = 5;
+
+    const cleanup = () => {
+      this._promptOpen = false;
+      dialogue.hide();
+    };
 
     const step1 = () => {
       dialogue.show({
@@ -164,8 +173,8 @@ export const MainMenu = {
         ]
       }, (action) => {
         if (action === 'next') {
-          dialogue.hide();
-          window.__screenManager.navigate('gesture-training');
+          cleanup();
+          window.__screenManager.navigate('gesture-training', { fromPlay: true });
         } else if (action === 'skip') {
           skipAll();
         }
@@ -173,14 +182,9 @@ export const MainMenu = {
     };
 
     const skipAll = () => {
-      // Mark both tutorials complete so we never bug the player again
-      const tutState = state.get('tutorialComplete') || {};
-      tutState.gestureComplete = true;
-      tutState.gameplayComplete = true;
-      state.set('tutorialComplete', tutState);
-      state.saveTutorialState();
-      dialogue.hide();
-      window.__screenManager.navigate('chapter-select');
+      // Player skipped the welcome prompt — send to game tutorial instead
+      cleanup();
+      window.__screenManager.navigate('tutorial-screen');
     };
 
     step1();

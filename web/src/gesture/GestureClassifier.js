@@ -150,6 +150,12 @@ export class GestureClassifier {
       };
     });
 
+    // Only count as trained if dataset has actual samples
+    const totalSamples = Object.values(datasetObj).reduce((sum, v) => {
+      try { return sum + (v.shape ? v.shape[0] : 0); } catch { return sum; }
+    }, 0);
+    if (totalSamples === 0) return false;
+
     const outputStr = JSON.stringify(datasetObj);
     await saveToIDB(outputStr);
     this.isLoaded = true;
@@ -164,8 +170,14 @@ export class GestureClassifier {
       if (!savedStr) return false;
 
       const datasetObj = JSON.parse(savedStr);
+
+      // Only restore if the saved dataset has at least some samples
+      const totalSamples = Object.values(datasetObj).reduce((sum, v) => {
+        try { return sum + (v.shape ? v.shape[0] : 0); } catch { return sum; }
+      }, 0);
+      if (totalSamples === 0) return false;
+
       let tensorObj = {};
-      
       Object.keys(datasetObj).forEach((key) => {
         tensorObj[key] = tf.tensor(datasetObj[key].data, datasetObj[key].shape);
       });

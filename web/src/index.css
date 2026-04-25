@@ -1615,7 +1615,7 @@ a {
   border: 1px solid rgba(255, 165, 0, 0.3);
   border-radius: var(--radius-lg);
   padding: var(--space-md);
-  z-index: var(--z-modal);
+  z-index: 201; /* above the tutorial-overlay (199) */
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
@@ -1720,8 +1720,8 @@ a {
   width: 100%;
   height: 100%;
   background: rgba(0, 0, 0, 0.75);
-  z-index: var(--z-modal);
-  pointer-events: none;
+  z-index: 199; /* just below the dialogue-box (201) */
+  pointer-events: auto; /* blocks all clicks on elements underneath */
   animation: fadeIn 0.3s ease;
 }
 

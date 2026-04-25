@@ -72,22 +72,12 @@ export class Boss {
 
   tutorialAttack(stepIndex) {
     this.scene.events.emit('boss:attack');
-    let duration = 0;
 
-    if (stepIndex === 0) {
-      // Very simple: single column warning (column 2)
-      duration = this._tutorialSimpleAttack([{ c: 2, r: 0 }, { c: 2, r: 1 }, { c: 2, r: 2 }, { c: 2, r: 3 }, { c: 2, r: 4 }]);
-    } else if (stepIndex === 1) {
-      // Simple row warning (row 2)
-      duration = this._tutorialSimpleAttack([{ c: 0, r: 2 }, { c: 1, r: 2 }, { c: 2, r: 2 }, { c: 3, r: 2 }, { c: 4, r: 2 }]);
-    } else if (stepIndex === 2) {
-      // Small cross in the center
-      duration = this._tutorialSimpleAttack([
-        { c: 2, r: 1 }, { c: 1, r: 2 }, { c: 2, r: 2 }, { c: 3, r: 2 }, { c: 2, r: 3 }
-      ]);
-    }
+    // All 3 tutorial attack steps use the Crimson Splatter so the player
+    // sees the real Chapter 1 blood mechanic and learns to dodge it.
+    const duration = this.ch1AttackCrimsonSplatter();
 
-    // Wait for the attack to finish then notify state
+    // Notify TutorialScreen once the attack animation finishes
     this.scene.time.delayedCall(duration, () => {
       state.emit('tutorial:attackComplete');
     });

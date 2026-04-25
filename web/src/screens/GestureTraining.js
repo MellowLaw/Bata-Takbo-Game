@@ -88,11 +88,14 @@ export const GestureTraining = {
     `;
   },
 
-  async onEnter(el) {
+  async onEnter(el, params = {}) {
     this.videoEl = el.querySelector('#webcam-video');
     this.canvasEl = el.querySelector('#webcam-canvas');
     this.loadingUi = el.querySelector('#camera-loading');
     this.activeDir = 'up'; // default
+    // If true: user was sent here from the Play button (gesture setup is required)
+    // If false: user navigated here directly via the Gesture Setup button
+    this.fromPlay = params.fromPlay || false;
 
     // Force canvas size to match video aspect locally
     this.canvasEl.width = 640;
@@ -114,10 +117,10 @@ export const GestureTraining = {
       this.loadingUi.style.display = 'none';
       this._updateUIFromCounts();
       
-      // Start tutorial if not completed
+      // Show tutorial if gesture setup hasn't been completed yet
       const tutState = state.get('tutorialComplete') || {};
       if (!tutState.gestureComplete && !gestureController.isTesting) {
-        this._startTutorial(el);
+        this._startTutorial(el, this.fromPlay);
       }
       
     } catch (e) {
@@ -315,9 +318,9 @@ export const GestureTraining = {
     }
   },
 
-  _startTutorial(el) {
+  _startTutorial(el, fromPlay = false) {
     this.tutorialManager = new TutorialManager('screen-container');
-    const portrait = '/assets/characters/character.png'; // 5-frame talking sprite sheet
+    const portrait = '/assets/characters/character.png';
     
     const steps = [
       {
@@ -402,34 +405,46 @@ export const GestureTraining = {
         buttons: [{ label: 'Done Testing', action: 'next' }]
       },
       {
-        text: "You're all set! Your gesture model has been saved. Let's jump into the game!",
+        text: fromPlay
+          ? "You're all set! Your gesture model has been saved. Let's jump into the game!"
+          : "You're all set! Your gesture model has been saved. You can come back anytime to retrain.",
         portrait: portrait,
         position: 'top',
-        buttons: [{ label: 'Start Tutorial', action: 'next' }]
+        buttons: [{ label: fromPlay ? 'Start Tutorial' : 'Done', action: 'next' }]
       }
     ];
 
     this.tutorialManager.start(steps, {
-      onComplete: () => {
-        this._completeTutorial();
-      },
-      onSkip: () => {
-        this._completeTutorial();
-      }
+      onComplete: () => this._completeTutorial(fromPlay),
+      onSkip: () => this._skipTutorial(fromPlay)
     });
   },
+
+  _skipTutorial(fromPlay) {
+    // Case 1 — user opened Gesture Setup directly: just close the prompt, stay here
+    // Case 2 — user came via Play button and skipped: send to game tutorial instead
+    if (fromPlay) {
+      gestureController.stopCamera();
+      window.__screenManager.history = ['main-menu'];
+      window.__screenManager.navigate('tutorial-screen', {}, false);
+    }
+    // else: do nothing — dialogue already hides itself via TutorialManager.skip()
+  },
   
-  async _completeTutorial() {
+  async _completeTutorial(fromPlay = false) {
     await gestureController.saveModel();
     const tutState = state.get('tutorialComplete') || {};
     tutState.gestureComplete = true;
     state.set('tutorialComplete', tutState);
     state.saveTutorialState();
-    
-    // Navigate to the dedicated tutorial screen (which wraps GameScreen with scripted steps).
-    // Reset history so the Back button later returns to main-menu, not gesture-training.
-    gestureController.stopCamera();
-    window.__screenManager.history = ['main-menu'];
-    window.__screenManager.navigate('tutorial-screen', {}, false);
+
+    if (fromPlay) {
+      // Came from Play — proceed to game tutorial
+      gestureController.stopCamera();
+      window.__screenManager.history = ['main-menu'];
+      window.__screenManager.navigate('tutorial-screen', {}, false);
+    }
+    // else: user opened Gesture Setup directly — just stay on the screen.
+    // The dialogue has already closed, model is saved, they can keep training.
   }
 };
