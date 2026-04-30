@@ -214,10 +214,9 @@ export const LoginScreen = {
             console.error('Failed to encrypt session:', err);
           }
 
-          // Fresh guest session → always show the tutorial again
-          state.resetTutorialState();
+          // Fresh guest session → tutorial not yet done
+          state.set('tutorialComplete', false);
 
-          // Bug 2: Redirect to the main menu
           if (window.__screenManager) {
             window.__screenManager.navigate('main-menu');
           }
@@ -313,8 +312,45 @@ export const LoginScreen = {
         
         if (res.ok && data.success) {
           sessionStorage.setItem('guest_session', JSON.stringify({ is_guest: false, username }));
-          // Fresh login → always show the tutorial again
-          state.resetTutorialState();
+
+          // Determine tutorial state from server data
+          let tutorialComplete = false;
+
+          if (data.gameData) {
+            if (data.gameData.settings) {
+              const currentSettings = state.get('settings');
+              const mergedSettings = state._deepMerge(currentSettings, data.gameData.settings);
+              state.set('settings', mergedSettings);
+            }
+
+            // Explicitly read tutorialComplete — false/missing means show tutorial
+            tutorialComplete = data.gameData.tutorialComplete === true || data.gameData.tutorialComplete === 'true';
+            console.log('[TUTORIAL-DEBUG] LoginScreen: data.gameData.tutorialComplete =', data.gameData.tutorialComplete, '→ resolved:', tutorialComplete);
+            state.set('tutorialComplete', tutorialComplete);
+
+            if (data.gameData.chapterProgress) {
+              state.set('chapterProgress', data.gameData.chapterProgress);
+            }
+
+            if (data.gameData.gestureModel && window.__gestureController) {
+              try {
+                window.__gestureController.classifier.importData(data.gameData.gestureModel);
+                await window.__gestureController.saveModel();
+              } catch(e) {
+                console.error('Failed to import gesture model', e);
+              }
+            }
+
+            // Sync to local storage only (prevent redundant server roundtrips)
+            state.saveSettings(false);
+            state.saveTutorialState(false);
+            state.saveChapterProgress(false);
+          } else {
+            // No saved game data at all — fresh account, show tutorial
+            tutorialComplete = false;
+            state.set('tutorialComplete', false);
+          }
+
           if (window.__screenManager) {
             window.__screenManager.navigate('main-menu');
           }
@@ -418,9 +454,10 @@ export const LoginScreen = {
         
         if (res.ok && data.success) {
           sessionStorage.setItem('guest_session', JSON.stringify({ is_guest: false, username }));
-          // New account → always show the tutorial
-          state.resetTutorialState();
+          // New account → tutorial not yet done
+          state.set('tutorialComplete', false);
           if (window.__screenManager) {
+            // Auto-start tutorial since this is a brand new account
             window.__screenManager.navigate('main-menu');
           }
         } else {

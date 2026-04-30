@@ -16,6 +16,7 @@ import { GameScreen } from './screens/GameScreen.js';
 import { ResultsScreen } from './screens/ResultsScreen.js';
 import { LoginScreen } from './screens/LoginScreen.js';
 import { TutorialScreen } from './screens/TutorialScreen.js';
+import { ProfileScreen } from './screens/ProfileScreen.js';
 import { gestureController } from './gesture/GestureController.js';
 
 // Initialize screen manager
@@ -23,6 +24,7 @@ const screenManager = new ScreenManager('screen-container');
 
 // Expose globally for screen button handlers
 window.__screenManager = screenManager;
+window.__gestureController = gestureController;
 
 // Register all screens
 screenManager.register('main-menu', MainMenu);
@@ -36,6 +38,7 @@ screenManager.register('game-screen', GameScreen);
 screenManager.register('results-screen', ResultsScreen);
 screenManager.register('login-screen', LoginScreen);
 screenManager.register('tutorial-screen', TutorialScreen);
+screenManager.register('profile-screen', ProfileScreen);
 
 async function init() {
   // Small delay for font loading

@@ -198,17 +198,14 @@ export const TutorialScreen = {
     }, 200);
   },
 
-  _finish() {
+  async _finish() {
     if (this._timePoll) { clearInterval(this._timePoll); this._timePoll = null; }
 
-    const tutState = state.get('tutorialComplete') || {};
-    tutState.gameplayComplete = true;
-    state.set('tutorialComplete', tutState);
-    state.saveTutorialState();
+    console.log('[TUTORIAL-DEBUG] TutorialScreen._finish(): setting tutorialComplete = true');
+    state.set('tutorialComplete', true);
+    await state.saveTutorialState();
 
     // Destroy the game, then go to chapter select.
-    // Reset history so the Back button on chapter-select returns to the main menu
-    // (not back into the tutorial we just finished/skipped).
     if (GameScreen.game) { GameScreen.game.destroy(true); GameScreen.game = null; }
     window.__screenManager.history = ['main-menu'];
     window.__screenManager.navigate('chapter-select', {}, false);

@@ -1,0 +1,238 @@
+import { state } from '../utils/StateManager.js';
+
+export const ProfileScreen = {
+  render() {
+    return `
+      <div class="settings-screen screen" id="profile-container">
+        <button class="back-btn" id="btn-profile-back">Back</button>
+        
+        <h1 class="screen-title" style="animation: fadeInUp 0.4s ease forwards;">
+          Profile
+        </h1>
+        
+        <div class="settings-screen__content scrollable" style="text-align: center;">
+          <div class="settings-group" style="animation: fadeInUp 0.4s ease forwards; animation-delay: 0.1s; opacity: 0; padding: var(--space-lg) var(--space-md);">
+            <div id="profile-avatar-container">
+              <div style="width: 80px; height: 80px; background-color: var(--accent-orange); border-radius: 50%; margin: 0 auto var(--space-md); animation: pulse 1.5s infinite;"></div>
+            </div>
+            
+            <h2 id="profile-username" style="color: var(--text-primary); margin-bottom: var(--space-xs);">Loading...</h2>
+            <p id="profile-account-type" style="color: var(--text-dim); font-size: var(--text-sm); margin-bottom: var(--space-md);"></p>
+            
+            <div class="setting-row" style="justify-content: space-between;">
+              <span class="setting-row__label">Member Since</span>
+              <span class="slider-value" id="profile-date">-</span>
+            </div>
+            
+            <div class="setting-row" style="justify-content: space-between;">
+              <span class="setting-row__label">Games Played</span>
+              <span class="slider-value" id="profile-games">-</span>
+            </div>
+            
+            <div class="setting-row" style="justify-content: space-between;">
+              <span class="setting-row__label">Total Score</span>
+              <span class="slider-value" id="profile-score">-</span>
+            </div>
+          </div>
+          
+          <div class="settings-group" style="animation: fadeInUp 0.4s ease forwards; animation-delay: 0.2s; opacity: 0; padding: var(--space-lg) var(--space-md); margin-top: var(--space-md);">
+            <h3 style="color: var(--accent-orange); margin-bottom: var(--space-md); font-family: var(--font-display); font-size: var(--text-base); text-transform: uppercase;">Change Password</h3>
+            <div style="display: flex; flex-direction: column; gap: var(--space-sm);">
+              <input type="password" id="cp-current" class="login-card__input" placeholder="CURRENT PASSWORD" style="font-size: var(--text-sm); padding: var(--space-sm);" />
+              <input type="password" id="cp-new" class="login-card__input" placeholder="NEW PASSWORD" style="font-size: var(--text-sm); padding: var(--space-sm);" />
+              <input type="password" id="cp-confirm" class="login-card__input" placeholder="CONFIRM NEW PASSWORD" style="font-size: var(--text-sm); padding: var(--space-sm);" />
+              <p id="cp-msg" style="font-size: var(--text-sm); margin-top: var(--space-xs); font-weight: bold; min-height: 1.2em;"></p>
+              <div style="display: flex; gap: var(--space-sm); margin-top: var(--space-xs);">
+                <button id="btn-cancel-password" class="login-card__join-btn" style="padding: var(--space-sm); font-size: var(--text-base); flex: 1;">CANCEL</button>
+                <button id="btn-save-password" class="login-card__join-btn" style="padding: var(--space-sm); font-size: var(--text-base); flex: 1;">SAVE</button>
+              </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="settings-group" style="animation: fadeInUp 0.4s ease forwards; animation-delay: 0.3s; opacity: 0; padding: var(--space-lg) var(--space-md); margin-top: var(--space-md);">
+            <button id="btn-profile-logout" class="login-card__join-btn" style="padding: var(--space-sm); font-size: var(--text-base);">LOGOUT</button>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  async onEnter(el) {
+    el.querySelector('#btn-profile-back').addEventListener('click', () => {
+      window.__screenManager.back();
+    });
+
+    let isRegistered = false;
+    let fallbackUsername = '';
+    try {
+      const stored = sessionStorage.getItem('guest_session');
+      if (stored) {
+        try {
+          const session = JSON.parse(stored);
+          if (session && session.is_guest === false) {
+            isRegistered = true;
+            fallbackUsername = session.username || '';
+          }
+        } catch(e) {}
+      }
+    } catch (e) {}
+
+    if (!isRegistered) {
+      window.__screenManager.navigate('main-menu');
+      return;
+    }
+
+    try {
+      const res = await fetch('/auth/profile', {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      const data = await res.json();
+      
+      const username = data.username || fallbackUsername;
+      
+      const pAvatar = el.querySelector('#profile-avatar-container');
+      if (pAvatar && username) {
+        pAvatar.innerHTML = `
+          <div style="width: 80px; height: 80px; background-color: var(--accent-orange); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 3rem; color: #111; margin: 0 auto var(--space-md); font-weight: bold; text-transform: uppercase;">
+            ${username.charAt(0)}
+          </div>
+        `;
+      }
+      
+      const pUser = el.querySelector('#profile-username');
+      if (pUser) pUser.textContent = username;
+      
+      const pType = el.querySelector('#profile-account-type');
+      if (pType) pType.textContent = 'Account Type: ' + (data.accountType || 'Registered');
+      
+      const pDate = el.querySelector('#profile-date');
+      if (pDate && data.registeredAt) {
+        const d = new Date(data.registeredAt);
+        pDate.textContent = d.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+      }
+
+      // Compute stats
+      const progress = state.get('chapterProgress');
+      let gamesPlayed = 0;
+      let totalScore = 0;
+      
+      if (progress) {
+        if (progress.chaptersCompleted) gamesPlayed = progress.chaptersCompleted.length;
+        if (progress.bestScores) {
+          totalScore = Object.values(progress.bestScores).reduce((sum, score) => sum + score, 0);
+        }
+      }
+      
+      const pGames = el.querySelector('#profile-games');
+      if (pGames) pGames.textContent = gamesPlayed.toString();
+      
+      const pScore = el.querySelector('#profile-score');
+      if (pScore) pScore.textContent = totalScore.toString();
+      
+      // Change Password Logic
+      const cpBtn = el.querySelector('#btn-save-password');
+      const cpCurrent = el.querySelector('#cp-current');
+      const cpNew = el.querySelector('#cp-new');
+      const cpConfirm = el.querySelector('#cp-confirm');
+      const cpMsg = el.querySelector('#cp-msg');
+      
+      const cpCancelBtn = el.querySelector('#btn-cancel-password');
+      
+      if (cpCancelBtn) {
+        cpCancelBtn.addEventListener('click', () => {
+          cpCurrent.value = '';
+          cpNew.value = '';
+          cpConfirm.value = '';
+          cpMsg.textContent = '';
+        });
+      }
+      
+      if (cpBtn) {
+        cpBtn.addEventListener('click', async () => {
+          const currentPass = cpCurrent.value;
+          const newPass = cpNew.value;
+          const confirmPass = cpConfirm.value;
+          
+          if (!currentPass || !newPass || !confirmPass) {
+            cpMsg.textContent = 'All fields are required.';
+            cpMsg.style.color = 'var(--accent-red)';
+            return;
+          }
+          
+          if (newPass !== confirmPass) {
+            cpMsg.textContent = 'New passwords do not match.';
+            cpMsg.style.color = 'var(--accent-red)';
+            return;
+          }
+          
+          if (newPass === currentPass) {
+            cpMsg.textContent = 'New password must be different.';
+            cpMsg.style.color = 'var(--accent-red)';
+            return;
+          }
+          
+          if (newPass.length < 8 || newPass.length > 50) {
+            cpMsg.textContent = 'Password must be 8-50 chars long.';
+            cpMsg.style.color = 'var(--accent-red)';
+            return;
+          }
+          
+          try {
+            cpBtn.textContent = 'SAVING...';
+            cpBtn.disabled = true;
+            cpMsg.textContent = '';
+            
+            const res = await fetch('/auth/change-password', {
+              method: 'POST',
+              credentials: 'include',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ currentPassword: currentPass, newPassword: newPass })
+            });
+            
+            const data = await res.json();
+            
+            if (res.ok && data.success) {
+              cpMsg.textContent = 'Password changed successfully.';
+              cpMsg.style.color = 'var(--accent-green)';
+              cpCurrent.value = '';
+              cpNew.value = '';
+              cpConfirm.value = '';
+            } else {
+              cpMsg.textContent = data.error || 'Failed to change password.';
+              cpMsg.style.color = 'var(--accent-red)';
+            }
+          } catch (err) {
+            console.error('Change password error:', err);
+            cpMsg.textContent = 'Network error. Try again.';
+            cpMsg.style.color = 'var(--accent-red)';
+          } finally {
+            cpBtn.textContent = 'SAVE';
+            cpBtn.disabled = false;
+          }
+        });
+      }
+      
+    } catch (err) {
+      console.error('Failed to load profile details:', err);
+      const pUser = el.querySelector('#profile-username');
+      if (pUser) pUser.textContent = fallbackUsername;
+      const pType = el.querySelector('#profile-account-type');
+      if (pType) pType.textContent = 'Account Type: Registered';
+    }
+
+    const pLogoutBtn = el.querySelector('#btn-profile-logout');
+    if (pLogoutBtn) {
+      pLogoutBtn.addEventListener('click', () => {
+        state.logout();
+      });
+    }
+  },
+
+  onLeave() {
+  }
+};

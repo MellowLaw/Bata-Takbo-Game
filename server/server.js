@@ -32,6 +32,22 @@ const authLimiter = rateLimit({
 
 app.use('/auth', authLimiter);
 
+const tokenBlacklist = new Set();
+
+const authMiddleware = (req, res, next) => {
+  const token = req.cookies.jwt;
+  if (!token) return res.status(401).json({ error: 'Unauthorized' });
+  if (tokenBlacklist.has(token)) return res.status(401).json({ error: 'Token invalidated' });
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (err) {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+};
+
 let db;
 
 // Basic validation for username
@@ -168,7 +184,16 @@ app.post('/auth/login', async (req, res) => {
         sameSite: 'lax'
       });
 
-      return res.status(200).json({ success: true });
+      let gameData = null;
+      try {
+        if (user.game_data) gameData = JSON.parse(user.game_data);
+      } catch (e) {
+        console.error('Failed to parse game data on login:', e);
+      }
+
+      console.log('[TUTORIAL-DEBUG] /auth/login: gameData for', user.username, '=', JSON.stringify({ tutorialComplete: gameData?.tutorialComplete }));
+
+      return res.status(200).json({ success: true, gameData });
     } else {
       let attempts = user.failed_attempts + 1;
       let lockoutTime = 0;
@@ -186,6 +211,114 @@ app.post('/auth/login', async (req, res) => {
     console.error('Login error:', err);
     return res.status(500).json({ error: 'Internal server error' });
   }
+});
+
+app.get('/auth/profile', authMiddleware, async (req, res) => {
+  try {
+    const user = await db.get('SELECT * FROM users WHERE id = ?', [req.user.id]);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    let registeredAt = null;
+    try {
+      if (user.encrypted_data) {
+        const { iv, data, tag } = JSON.parse(user.encrypted_data);
+        const decipher = crypto.createDecipheriv('aes-256-gcm', Buffer.from(AES_SECRET_KEY, 'utf-8'), Buffer.from(iv, 'base64'));
+        decipher.setAuthTag(Buffer.from(tag, 'base64'));
+        let decrypted = decipher.update(data, 'base64', 'utf8');
+        decrypted += decipher.final('utf8');
+        const parsed = JSON.parse(decrypted);
+        registeredAt = parsed.registeredAt;
+      }
+    } catch(e) {
+      console.error('Failed to decrypt user data:', e);
+    }
+
+    return res.status(200).json({
+      username: user.username,
+      accountType: 'Registered',
+      registeredAt: registeredAt
+    });
+  } catch (err) {
+    console.error('Profile error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.post('/auth/save-data', authMiddleware, async (req, res) => {
+  try {
+    const { settings, tutorialComplete, chapterProgress, gestureModel } = req.body;
+    console.log('[TUTORIAL-DEBUG] /auth/save-data received tutorialComplete =', tutorialComplete, 'for user', req.user.username);
+
+    const gameData = {
+      settings,
+      tutorialComplete,
+      chapterProgress,
+      gestureModel
+    };
+
+    await db.run('UPDATE users SET game_data = ? WHERE id = ?', [JSON.stringify(gameData), req.user.id]);
+    console.log('[TUTORIAL-DEBUG] /auth/save-data: DB updated successfully for user', req.user.username);
+
+    return res.status(200).json({ success: true });
+  } catch (err) {
+    console.error('Save data error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.post('/auth/change-password', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { currentPassword, newPassword } = req.body;
+    
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    if (newPassword.length < 8 || newPassword.length > 50) {
+      return res.status(400).json({ error: 'New password must be 8-50 characters' });
+    }
+
+    if (currentPassword === newPassword) {
+      return res.status(400).json({ error: 'New password must be different' });
+    }
+
+    const user = await db.get('SELECT * FROM users WHERE id = ?', [userId]);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const isValid = await bcrypt.compare(currentPassword, user.password_hash);
+    if (!isValid) {
+      return res.status(401).json({ error: 'Incorrect current password' });
+    }
+
+    const salt = await bcrypt.genSalt(12);
+    const newHash = await bcrypt.hash(newPassword, salt);
+
+    await db.run('UPDATE users SET password_hash = ? WHERE id = ?', [newHash, userId]);
+
+    return res.status(200).json({ success: true, message: 'Password changed successfully' });
+  } catch (err) {
+    console.error('Change password error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.post('/auth/logout', authMiddleware, (req, res) => {
+  const token = req.cookies.jwt;
+  if (token) tokenBlacklist.add(token);
+  res.clearCookie('jwt', {
+    httpOnly: true,
+    secure: false,
+    sameSite: 'lax'
+  });
+  return res.status(200).json({ success: true });
+});
+
+app.delete('/auth/guest-scores', (req, res) => {
+  // Placeholder endpoint for guest cleanup
+  return res.status(200).json({ success: true });
 });
 
 // Initialize database and start server

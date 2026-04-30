@@ -118,8 +118,9 @@ export const GestureTraining = {
       this._updateUIFromCounts();
       
       // Show tutorial if gesture setup hasn't been completed yet
-      const tutState = state.get('tutorialComplete') || {};
-      if (!tutState.gestureComplete && !gestureController.isTesting) {
+      const counts = gestureController.getSampleCounts();
+      const hasTrainedGestures = Object.values(counts).some(c => c >= 10);
+      if (!hasTrainedGestures && !gestureController.isTesting) {
         this._startTutorial(el, this.fromPlay);
       }
       
@@ -420,23 +421,24 @@ export const GestureTraining = {
     });
   },
 
-  _skipTutorial(fromPlay) {
+  async _skipTutorial(fromPlay) {
     // Case 1 — user opened Gesture Setup directly: just close the prompt, stay here
-    // Case 2 — user came via Play button and skipped: send to game tutorial instead
+    // Case 2 — user came via Play button and skipped: skip tutorial and go to game
     if (fromPlay) {
+      console.log('[TUTORIAL-DEBUG] GestureTraining._skipTutorial(): setting tutorialComplete = true');
       gestureController.stopCamera();
       window.__screenManager.history = ['main-menu'];
-      window.__screenManager.navigate('tutorial-screen', {}, false);
+      state.set('tutorialComplete', true);
+      await state.saveTutorialState();
+      window.__screenManager.navigate('chapter-select', {}, false);
     }
     // else: do nothing — dialogue already hides itself via TutorialManager.skip()
   },
   
   async _completeTutorial(fromPlay = false) {
     await gestureController.saveModel();
-    const tutState = state.get('tutorialComplete') || {};
-    tutState.gestureComplete = true;
-    state.set('tutorialComplete', tutState);
-    state.saveTutorialState();
+    // We don't set tutorialComplete = true here because the gameplay tutorial is next.
+    // It will be set to true at the end of TutorialScreen.js
 
     if (fromPlay) {
       // Came from Play — proceed to game tutorial

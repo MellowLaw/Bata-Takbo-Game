@@ -204,13 +204,17 @@ export class GestureClassifier {
    * Export all KNN training data as a plain object
    */
   exportData() {
-    const dataset = this.classifier.getClassifierDataset();
-    const data = {};
-    for (const [label, tensor] of Object.entries(dataset)) {
-      data[label] = Array.from(tensor.dataSync());
-      data[label + '_shape'] = tensor.shape;
+    try {
+      const dataset = this.classifier.getClassifierDataset();
+      const data = {};
+      for (const [label, tensor] of Object.entries(dataset)) {
+        data[label] = Array.from(tensor.dataSync());
+        data[label + '_shape'] = tensor.shape;
+      }
+      return data;
+    } catch (e) {
+      return null; // Return null if dataset is empty/uninitialized
     }
-    return data;
   }
 
   /**

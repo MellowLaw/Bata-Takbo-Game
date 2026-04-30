@@ -79,9 +79,9 @@ export const Leaderboard = {
       });
     });
 
-    // Sign in (placeholder)
+    // Sign in
     el.querySelector('#btn-lb-signin').addEventListener('click', () => {
-      alert('Account system coming in Phase 5!');
+      window.__screenManager.navigate('login-screen');
     });
   },
 };

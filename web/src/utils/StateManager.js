@@ -73,9 +73,10 @@ class StateManager {
   /**
    * Save settings to localStorage
    */
-  saveSettings() {
+  async saveSettings(sync = true) {
     try {
       localStorage.setItem('bata_takbo_settings', JSON.stringify(this._state.settings));
+      if (sync) await this._syncToServer();
     } catch (e) {
       console.warn('Failed to save settings:', e);
     }
@@ -127,13 +128,14 @@ class StateManager {
       const saved = localStorage.getItem('bata_takbo_tutorial');
       if (saved) {
         const parsed = JSON.parse(saved);
-        return {
-          gameplayComplete: parsed.gameplayComplete || false,
-          gestureComplete: parsed.gestureComplete || false,
-        };
+        const val = typeof parsed === 'boolean' ? parsed
+          : (typeof parsed === 'object' && parsed !== null ? parsed.gameplayComplete || false : false);
+        console.log('[TUTORIAL-DEBUG] _loadTutorialState from localStorage:', val);
+        return val;
       }
     } catch (e) { /* ignore */ }
-    return { gameplayComplete: false, gestureComplete: false };
+    console.log('[TUTORIAL-DEBUG] _loadTutorialState: no localStorage value, defaulting false');
+    return false;
   }
 
   _loadBestiary() {
@@ -152,24 +154,15 @@ class StateManager {
     return { chaptersUnlocked: [1], chaptersCompleted: [], bestScores: {} };
   }
 
-  saveTutorialState() {
+  async saveTutorialState(sync = true) {
+    console.log('[TUTORIAL-DEBUG] saveTutorialState() called. tutorialComplete =', this._state.tutorialComplete);
     try {
       localStorage.setItem('bata_takbo_tutorial', JSON.stringify(this._state.tutorialComplete));
+      if (sync) await this._syncToServer();
     } catch (e) { /* ignore */ }
   }
 
-  /**
-   * Reset tutorial completion flags — called on fresh login / guest join
-   * so every new account (or re-login) sees the tutorial again.
-   * The trained gesture model is intentionally NOT reset (it's per-device).
-   */
-  resetTutorialState() {
-    this._state.tutorialComplete = { gameplayComplete: false, gestureComplete: false };
-    try {
-      localStorage.removeItem('bata_takbo_tutorial');
-    } catch (e) { /* ignore */ }
-    this.emit('tutorialComplete:changed', { key: 'tutorialComplete', value: this._state.tutorialComplete });
-  }
+
 
   saveBestiary() {
     try {
@@ -177,10 +170,68 @@ class StateManager {
     } catch (e) { /* ignore */ }
   }
 
-  saveChapterProgress() {
+  async saveChapterProgress(sync = true) {
     try {
       localStorage.setItem('bata_takbo_progress', JSON.stringify(this._state.chapterProgress));
+      if (sync) await this._syncToServer();
     } catch (e) { /* ignore */ }
+  }
+
+  async logout() {
+    // ── Step 1: Persist state BEFORE invalidating the JWT ─────────────────
+    // _syncToServer() uses the JWT cookie. If we call /auth/logout first,
+    // the token is blacklisted and the subsequent save will fail with 401.
+    let isRegistered = false;
+    try {
+      const stored = sessionStorage.getItem('guest_session');
+      if (stored) {
+        const session = JSON.parse(stored);
+        if (session && session.is_guest === false) isRegistered = true;
+      }
+    } catch (e) {}
+
+    if (isRegistered) {
+      console.log('[TUTORIAL-DEBUG] logout(): saving state to server BEFORE invalidating JWT. tutorialComplete =', this._state.tutorialComplete);
+      await this._syncToServer(); // await so save completes before JWT is blacklisted
+    } else {
+      try {
+        await fetch('/auth/guest-scores', { method: 'DELETE' });
+      } catch (e) {}
+    }
+
+    // ── Step 2: Invalidate JWT ─────────────────────────────────────────────
+    try {
+      await fetch('/auth/logout', {
+        method: 'POST',
+        credentials: 'include'
+      });
+    } catch (e) {
+      console.warn('Logout request failed:', e);
+    }
+
+    // ── Step 3: Clear local state ──────────────────────────────────────────
+    sessionStorage.removeItem('guest_session');
+    try {
+      localStorage.removeItem('bata_takbo_settings');
+      localStorage.removeItem('bata_takbo_tutorial');
+      localStorage.removeItem('bata_takbo_bestiary');
+      localStorage.removeItem('bata_takbo_progress');
+    } catch(e) {}
+
+    // Reset in-memory state so it doesn't bleed to the next user
+    this._state.settings = this._loadSettings();
+    this._state.tutorialComplete = false;
+    this._state.bestiary = {};
+    this._state.chapterProgress = { chaptersUnlocked: [1], chaptersCompleted: [], bestScores: {} };
+
+
+
+    this.set('isAuthenticated', false);
+    this.set('user', null);
+
+    if (window.__screenManager) {
+      window.__screenManager.navigate('login-screen');
+    }
   }
 
   _deepMerge(target, source) {
@@ -193,6 +244,55 @@ class StateManager {
       }
     }
     return result;
+  }
+
+  _isGuest() {
+    try {
+      const stored = sessionStorage.getItem('guest_session');
+      if (stored) {
+        const session = JSON.parse(stored);
+        if (session && session.is_guest === false) return false;
+      }
+    } catch(e) {}
+    return true;
+  }
+
+  async _syncToServer() {
+    if (this._isGuest()) {
+      console.log('[TUTORIAL-DEBUG] _syncToServer(): skipping — user is guest');
+      return;
+    }
+
+    let gestureModel = null;
+    if (window.__gestureController && window.__gestureController.classifier) {
+      gestureModel = window.__gestureController.classifier.exportData();
+    }
+
+    const payload = {
+      settings: this._state.settings,
+      tutorialComplete: this._state.tutorialComplete,
+      chapterProgress: this._state.chapterProgress,
+      gestureModel
+    };
+
+    console.log('[TUTORIAL-DEBUG] _syncToServer(): sending tutorialComplete =', payload.tutorialComplete);
+
+    try {
+      const res = await fetch('/auth/save-data', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        console.warn('[TUTORIAL-DEBUG] _syncToServer(): server responded', res.status, err);
+      } else {
+        console.log('[TUTORIAL-DEBUG] _syncToServer(): save confirmed by server ✓');
+      }
+    } catch (e) {
+      console.warn('[TUTORIAL-DEBUG] _syncToServer(): fetch failed —', e.message);
+    }
   }
 }
 

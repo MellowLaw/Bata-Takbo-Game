@@ -42,11 +42,17 @@ export const MainMenu = {
             <button class="menu-btn" id="btn-leaderboard" data-screen="leaderboard">
               Leaderboard
             </button>
+            <button class="menu-btn" id="btn-profile" data-screen="profile-screen">
+              Profile
+            </button>
             <button class="menu-btn" id="btn-settings" data-screen="settings">
               Settings
             </button>
             <button class="menu-btn" id="btn-about" data-screen="about">
               About
+            </button>
+            <button class="menu-btn" id="btn-logout">
+              Logout
             </button>
           </nav>
         </div>
@@ -56,7 +62,7 @@ export const MainMenu = {
     `;
   },
 
-  onEnter(el) {
+  onEnter(el, params = {}) {
     // ── Background Music ──────────────────────────────────────────────────
     this._startMusic();
 
@@ -76,24 +82,16 @@ export const MainMenu = {
         if (isPlay) {
           // Fade music out, THEN navigate
           this._fadeOutMusic(800, () => {
-          btn.style.animation = '';
-            const tutState = state.get('tutorialComplete') || {};
-            const isGestureTrained = state.get('gestureModelTrained');
+            btn.style.animation = '';
+            const isTutorialComplete = state.get('tutorialComplete');
 
-            // Returning player who finished both tutorials → straight to chapter select
-            if (tutState.gameplayComplete) {
+            // Returning player who finished the tutorial → straight to chapter select
+            if (isTutorialComplete) {
               window.__screenManager.navigate(targetScreen);
               return;
             }
 
-            // Player already trained gestures AND completed gesture tutorial
-            // → skip the welcome prompt and jump into the gameplay tutorial directly
-            if (isGestureTrained && tutState.gestureComplete) {
-              window.__screenManager.navigate('tutorial-screen');
-              return;
-            }
-
-            // Brand-new player or gesture not trained → show the welcome prompt
+            // Brand-new player or tutorial not complete → show the welcome prompt
             this._showWelcomePrompt();
           });
         } else {
@@ -110,6 +108,17 @@ export const MainMenu = {
         btn.style.transition = 'all 0.15s ease';
       });
     });
+
+    const logoutBtn = el.querySelector('#btn-logout');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', () => {
+        logoutBtn.style.animation = 'flashWhite 0.3s ease';
+        setTimeout(() => {
+          logoutBtn.style.animation = '';
+          state.logout();
+        }, 150);
+      });
+    }
 
     // Particles background effect
     this._createParticles(el);
@@ -181,10 +190,13 @@ export const MainMenu = {
       });
     };
 
-    const skipAll = () => {
-      // Player skipped the welcome prompt — send to game tutorial instead
+    const skipAll = async () => {
+      // Player skipped the welcome prompt — skip all tutorials and go to chapter select
+      console.log('[TUTORIAL-DEBUG] MainMenu.skipAll(): setting tutorialComplete = true');
       cleanup();
-      window.__screenManager.navigate('tutorial-screen');
+      state.set('tutorialComplete', true);
+      await state.saveTutorialState();
+      window.__screenManager.navigate('chapter-select');
     };
 
     step1();

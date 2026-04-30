@@ -184,11 +184,12 @@ export const Settings = {
     });
 
     // Reset tutorial
-    el.querySelector('#btn-reset-tutorial').addEventListener('click', () => {
-      const tutorialState = { gameplayComplete: false, gestureComplete: false };
-      state.set('tutorialComplete', tutorialState);
-      state.saveTutorialState();
-      alert('Tutorial has been reset! Go back and click Play to replay it.');
+    el.querySelector('#btn-reset-tutorial').addEventListener('click', async () => {
+      if (confirm('Are you sure you want to reset the tutorial? It will play again the next time you click Play. Your gesture setup will NOT be affected.')) {
+        state.set('tutorialComplete', false);
+        await state.saveTutorialState();
+        alert('Tutorial has been reset! Go back and click Play to replay it.');
+      }
     });
   },
 
