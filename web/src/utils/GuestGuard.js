@@ -12,7 +12,7 @@
 import { state } from './StateManager.js';
 import { DialogueBox } from './DialogueBox.js';
 
-const PORTRAIT = '/assets/characters/character.png';
+const PORTRAIT = '/assets/entity/character-icon/character.png';
 
 /** True if no registered session is active (guest or signed-out). */
 export function isGuest() {

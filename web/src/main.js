@@ -1,4 +1,4 @@
-/**
+﻿/**
  * main.js — Application entry point
  * Initializes the screen manager and navigates to the main menu
  */
@@ -72,7 +72,7 @@ document.addEventListener('gesturestart', e => e.preventDefault());
 document.addEventListener('gesturechange', e => e.preventDefault());
 
 // Global click sound
-const clickAudio = new Audio('/assets/audios/click_sound.mp3');
+const clickAudio = new Audio('/assets/audio/click_sound.mp3');
 clickAudio.volume = 0.5; // Optional: set a reasonable volume
 document.addEventListener('click', (e) => {
   const target = e.target.closest('button, .menu-btn, .back-btn, .ch-flip-wrapper');
@@ -83,7 +83,7 @@ document.addEventListener('click', (e) => {
 });
 
 // Global hover sound
-const hoverAudio = new Audio('/assets/audios/hovering_sound.mp3');
+const hoverAudio = new Audio('/assets/audio/hovering_sound.mp3');
 hoverAudio.volume = 0.5;
 document.addEventListener('mouseover', (e) => {
   const target = e.target.closest('button, .menu-btn, .back-btn, .ch-flip-wrapper');

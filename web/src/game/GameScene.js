@@ -19,155 +19,155 @@ export class GameScene extends Phaser.Scene {
   preload() {
     this.cameras.main.setBackgroundColor('#0a0a1a');
     if (this.chapterId === 2) {
-      this.load.image('grid_bg', '/assets/gui/grid2.png');
+      this.load.image('grid_bg', '/assets/ui/game-ui/grid2.png');
     } else if (this.chapterId === 3) {
-      this.load.image('grid_bg', '/assets/gui/grid3.png');
+      this.load.image('grid_bg', '/assets/ui/game-ui/grid3.png');
     } else {
-      this.load.image('grid_bg', '/assets/gui/grid.png');
+      this.load.image('grid_bg', '/assets/ui/game-ui/grid.png');
     }
-    this.load.image('grid_panel_bg', '/assets/gui/grid_second_bg.png');
-    this.load.image('boss_frame', '/assets/gui/boss_frame.png');
+    this.load.image('grid_panel_bg', '/assets/ui/game-ui/grid-second-bg.png');
+    this.load.image('boss_frame', '/assets/ui/game-ui/boss-frame.png');
 
     // Player sprites: 384x64 strips = 8 frames of 48x64 each
-    this.load.spritesheet('player_idle_down', '/assets/characters/male/idle/idle_down.png', { frameWidth: 48, frameHeight: 64 });
-    this.load.spritesheet('player_idle_up', '/assets/characters/male/idle/idle_up.png', { frameWidth: 48, frameHeight: 64 });
-    this.load.spritesheet('player_idle_left', '/assets/characters/male/idle/idle_left.png', { frameWidth: 48, frameHeight: 64 });
-    this.load.spritesheet('player_idle_right', '/assets/characters/male/idle/idle_right.png', { frameWidth: 48, frameHeight: 64 });
-    this.load.spritesheet('player_dash_down', '/assets/characters/male/dash/Dash_Down.png', { frameWidth: 48, frameHeight: 64 });
-    this.load.spritesheet('player_dash_up', '/assets/characters/male/dash/Dash_up.png', { frameWidth: 48, frameHeight: 64 });
-    this.load.spritesheet('player_dash_left', '/assets/characters/male/dash/Dash_left_Down.png', { frameWidth: 48, frameHeight: 64 });
-    this.load.spritesheet('player_dash_right', '/assets/characters/male/dash/Dash_right_Down.png', { frameWidth: 48, frameHeight: 64 });
+    this.load.spritesheet('player_idle_down', '/assets/entity/player/male/idle/idle_down.png', { frameWidth: 48, frameHeight: 64 });
+    this.load.spritesheet('player_idle_up', '/assets/entity/player/male/idle/idle_up.png', { frameWidth: 48, frameHeight: 64 });
+    this.load.spritesheet('player_idle_left', '/assets/entity/player/male/idle/idle_left.png', { frameWidth: 48, frameHeight: 64 });
+    this.load.spritesheet('player_idle_right', '/assets/entity/player/male/idle/idle_right.png', { frameWidth: 48, frameHeight: 64 });
+    this.load.spritesheet('player_dash_down', '/assets/entity/player/male/dash/dash-down.png', { frameWidth: 48, frameHeight: 64 });
+    this.load.spritesheet('player_dash_up', '/assets/entity/player/male/dash/dash-up.png', { frameWidth: 48, frameHeight: 64 });
+    this.load.spritesheet('player_dash_left', '/assets/entity/player/male/dash/dash-left-down.png', { frameWidth: 48, frameHeight: 64 });
+    this.load.spritesheet('player_dash_right', '/assets/entity/player/male/dash/dash-right-down.png', { frameWidth: 48, frameHeight: 64 });
 
     // Boss sprite sheets
 
     if (this.chapterId === 1) {
-      this.load.spritesheet('boss_idle', '/assets/characters/boss/Chapter1A/CHAPTER 1 IDLE_sprite.png', { frameWidth: 576, frameHeight: 324 });
-      this.load.spritesheet('boss_cast', '/assets/characters/boss/chapter-1/boss_cast.png', { frameWidth: 122, frameHeight: 110 });
+      this.load.spritesheet('boss_idle', '/assets/entity/boss/chapter1/chapter-1-idle-sprite.png', { frameWidth: 576, frameHeight: 324 });
+      this.load.spritesheet('boss_cast', '/assets/entity/boss/chapter1/boss_cast.png', { frameWidth: 122, frameHeight: 110 });
 
       // Phase 5: Dynamic Loading of Custom Blood/Gore Sequence Projectiles
       for (let i = 0; i <= 14; i++) {
-        this.load.image(`dark_blood_${i}`, `/assets/projectiles/chapter1/dark-blood/1_${i}.png`);
+        this.load.image(`dark_blood_${i}`, `/assets/projectiles/chapter-1/dark-blood/1_${i}.png`);
       }
-      this.load.spritesheet('blood_chem', '/assets/projectiles/chapter1/blood_chem.png', { frameWidth: 1540, frameHeight: 93 });
+      this.load.spritesheet('blood_chem', '/assets/projectiles/chapter-1/blood_chem.png', { frameWidth: 1540, frameHeight: 93 });
       for (let i = 0; i <= 59; i++) {
         const str = i.toString().padStart(3, '0');
-        this.load.image(`blood_splat_${str}`, `/assets/projectiles/chapter1/blood-splat/1_${str}.png`);
+        this.load.image(`blood_splat_${str}`, `/assets/projectiles/chapter-1/blood-splat/1_${str}.png`);
       }
-      this.load.spritesheet('ch1_eye', '/assets/projectiles/chapter1/eye/eyeball.png', { frameWidth: 64, frameHeight: 64 });
+      this.load.spritesheet('ch1_eye', '/assets/projectiles/chapter-1/eye/eyeball.png', { frameWidth: 64, frameHeight: 64 });
       this.load.spritesheet('eye_explosion', '/assets/fx/eye_explosion.png', { frameWidth: 96, frameHeight: 96 });
-      this.load.image('ch1_hand1', '/assets/projectiles/chapter1/hands-1.png');
-      this.load.image('ch1_hand2', '/assets/projectiles/chapter1/hand-2.png');
-      this.load.image('ch1_hand3', '/assets/projectiles/chapter1/hand-3.png');
+      this.load.image('ch1_hand1', '/assets/projectiles/chapter-1/hands-1.png');
+      this.load.image('ch1_hand2', '/assets/projectiles/chapter-1/hand-2.png');
+      this.load.image('ch1_hand3', '/assets/projectiles/chapter-1/hand-3.png');
 
       // Random horizontal projectiles
-      this.load.image('ch1_monster_hand', '/assets/projectiles/monster-hand.png');
-      this.load.image('ch1_monster_finger', '/assets/projectiles/monster-finger.png');
-      this.load.image('ch1_monster_feet', '/assets/projectiles/monster-feet.png');
-      this.load.image('ch1_heart', '/assets/projectiles/heart.png');
-      this.load.image('ch1_brain', '/assets/projectiles/brain.png');
+      this.load.image('ch1_monster_hand', '/assets/projectiles/shared/monster-hand.png');
+      this.load.image('ch1_monster_finger', '/assets/projectiles/shared/monster-finger.png');
+      this.load.image('ch1_monster_feet', '/assets/projectiles/shared/monster-feet.png');
+      this.load.image('ch1_heart', '/assets/projectiles/shared/heart.png');
+      this.load.image('ch1_brain', '/assets/projectiles/shared/brain.png');
 
       // Hit effect for horizontal projectiles
       this.load.spritesheet('moving_hit', '/assets/fx/moving_hit1.png', { frameWidth: 32, frameHeight: 32 });
 
       // Ultimate attack spritesheets (start → loop → end)
-      this.load.spritesheet('ult_start', '/assets/fx/chapter 1/ULTIMATE/attack.png', { frameWidth: 128, frameHeight: 128 });
-      this.load.spritesheet('ult_loop', '/assets/fx/chapter 1/ULTIMATE/loop.png', { frameWidth: 128, frameHeight: 128 });
-      this.load.spritesheet('ult_end', '/assets/fx/chapter 1/ULTIMATE/end.png', { frameWidth: 128, frameHeight: 128 });
+      this.load.spritesheet('ult_start', '/assets/projectiles/chapter-1/ultimate/attack.png', { frameWidth: 128, frameHeight: 128 });
+      this.load.spritesheet('ult_loop', '/assets/projectiles/chapter-1/ultimate/loop.png', { frameWidth: 128, frameHeight: 128 });
+      this.load.spritesheet('ult_end', '/assets/projectiles/chapter-1/ultimate/end.png', { frameWidth: 128, frameHeight: 128 });
 
       // Loot and FX
-      this.load.image('ruby_loot', '/assets/projectiles/ruby.png');
-      this.load.image('diamond_loot', '/assets/projectiles/diamond.png');
+      this.load.image('ruby_loot', '/assets/projectiles/shared/ruby.png');
+      this.load.image('diamond_loot', '/assets/projectiles/shared/diamond.png');
       this.load.spritesheet('lives_up', '/assets/fx/lives_up.png', { frameWidth: 128, frameHeight: 128 });
       this.load.spritesheet('frozen', '/assets/fx/frozen.png', { frameWidth: 128, frameHeight: 128 });
 
     } else if (this.chapterId === 2) {
       // ===== CHAPTER 2: BUNGISNGIS ASSETS =====
-      this.load.spritesheet('boss_idle', '/assets/characters/boss/chapter-2/boss_idle.png', { frameWidth: 87, frameHeight: 110 });
-      this.load.spritesheet('boss_cast', '/assets/characters/boss/chapter-2/boss_idle.png', { frameWidth: 87, frameHeight: 110 });
+      this.load.spritesheet('boss_idle', '/assets/entity/boss/chapter2/boss_idle.png', { frameWidth: 87, frameHeight: 110 });
+      this.load.spritesheet('boss_cast', '/assets/entity/boss/chapter2/boss_idle.png', { frameWidth: 87, frameHeight: 110 });
 
       // Attack projectiles
-      this.load.spritesheet('ch2_beeswarm', '/assets/projectiles/chapter 2/bee-swarm.png', { frameWidth: 192, frameHeight: 192 });
-      this.load.spritesheet('ch2_hibiscus', '/assets/projectiles/chapter 2/hibiscus.png', { frameWidth: 192, frameHeight: 192 });
-      this.load.spritesheet('ch2_hibiscus_burst', '/assets/projectiles/chapter 2/hibiscus-burst.png', { frameWidth: 192, frameHeight: 192 });
-      this.load.spritesheet('ch2_vines', '/assets/projectiles/chapter 2/growing-vines.png', { frameWidth: 192, frameHeight: 192 });
-      this.load.spritesheet('ch2_carrot', '/assets/projectiles/chapter 2/carrot-rain.png', { frameWidth: 192, frameHeight: 192 });
-      this.load.spritesheet('ch2_eggs', '/assets/projectiles/chapter 2/exploding-eggs.png', { frameWidth: 192, frameHeight: 192 });
+      this.load.spritesheet('ch2_beeswarm', '/assets/projectiles/chapter-2/bee-swarm.png', { frameWidth: 192, frameHeight: 192 });
+      this.load.spritesheet('ch2_hibiscus', '/assets/projectiles/chapter-2/hibiscus.png', { frameWidth: 192, frameHeight: 192 });
+      this.load.spritesheet('ch2_hibiscus_burst', '/assets/projectiles/chapter-2/hibiscus-burst.png', { frameWidth: 192, frameHeight: 192 });
+      this.load.spritesheet('ch2_vines', '/assets/projectiles/chapter-2/growing-vines.png', { frameWidth: 192, frameHeight: 192 });
+      this.load.spritesheet('ch2_carrot', '/assets/projectiles/chapter-2/carrot-rain.png', { frameWidth: 192, frameHeight: 192 });
+      this.load.spritesheet('ch2_eggs', '/assets/projectiles/chapter-2/exploding-eggs.png', { frameWidth: 192, frameHeight: 192 });
 
       // Plant entities
-      this.load.spritesheet('ch2_plant_melee', '/assets/projectiles/chapter 2/Plant3_Attack.png', { frameWidth: 64, frameHeight: 64 });
-      this.load.spritesheet('ch2_plant_ranged', '/assets/projectiles/chapter 2/Plant1_Attack.png', { frameWidth: 64, frameHeight: 64 });
+      this.load.spritesheet('ch2_plant_melee', '/assets/projectiles/chapter-2/Plant3_Attack.png', { frameWidth: 64, frameHeight: 64 });
+      this.load.spritesheet('ch2_plant_ranged', '/assets/projectiles/chapter-2/Plant1_Attack.png', { frameWidth: 64, frameHeight: 64 });
 
       // Acid projectile chain
-      this.load.spritesheet('ch2_acid_charge', '/assets/projectiles/chapter 2/Acid-01.png', { frameWidth: 32, frameHeight: 32 });
-      this.load.spritesheet('ch2_acid_travel', '/assets/projectiles/chapter 2/Acid-02Repeatable.png', { frameWidth: 56, frameHeight: 32 });
-      this.load.spritesheet('ch2_acid_end', '/assets/projectiles/chapter 2/Acid-02Ending.png', { frameWidth: 56, frameHeight: 32 });
+      this.load.spritesheet('ch2_acid_charge', '/assets/projectiles/chapter-2/Acid-01.png', { frameWidth: 32, frameHeight: 32 });
+      this.load.spritesheet('ch2_acid_travel', '/assets/projectiles/chapter-2/Acid-02Repeatable.png', { frameWidth: 56, frameHeight: 32 });
+      this.load.spritesheet('ch2_acid_end', '/assets/projectiles/chapter-2/Acid-02Ending.png', { frameWidth: 56, frameHeight: 32 });
 
       // Loot and FX
-      this.load.image('ruby_loot', '/assets/projectiles/ruby.png');
-      this.load.image('diamond_loot', '/assets/projectiles/diamond.png');
+      this.load.image('ruby_loot', '/assets/projectiles/shared/ruby.png');
+      this.load.image('diamond_loot', '/assets/projectiles/shared/diamond.png');
       this.load.spritesheet('lives_up', '/assets/fx/lives_up.png', { frameWidth: 128, frameHeight: 128 });
       this.load.spritesheet('frozen', '/assets/fx/frozen.png', { frameWidth: 128, frameHeight: 128 });
 
     } else if (this.chapterId === 3) {
       // ===== CHAPTER 3: KATAW ASSETS =====
-      this.load.spritesheet('boss_idle', '/assets/characters/boss/chapter-2/boss_idle.png', { frameWidth: 87, frameHeight: 110 }); // Temp fallback
-      this.load.spritesheet('boss_cast', '/assets/characters/boss/chapter-2/boss_idle.png', { frameWidth: 87, frameHeight: 110 });
+      this.load.spritesheet('boss_idle', '/assets/entity/boss/chapter2/boss_idle.png', { frameWidth: 87, frameHeight: 110 }); // Temp fallback
+      this.load.spritesheet('boss_cast', '/assets/entity/boss/chapter2/boss_idle.png', { frameWidth: 87, frameHeight: 110 });
       
       // Blue FX (129x32 strip → 4 frames of 32x32)
-      this.load.spritesheet('ch3_fx_bubble',    '/assets/projectiles/chapter3/blue/blue5.png',  { frameWidth: 32, frameHeight: 32 });
-      this.load.spritesheet('ch3_fx_sonic',     '/assets/projectiles/chapter3/blue/blue3.png',  { frameWidth: 32, frameHeight: 32 });
-      this.load.spritesheet('ch3_fx_fireblade', '/assets/projectiles/chapter3/blue/blue16.png', { frameWidth: 32, frameHeight: 32 });
-      this.load.spritesheet('ch3_fx_darkorbit', '/assets/projectiles/chapter3/blue/blue19.png', { frameWidth: 32, frameHeight: 32 });
-      this.load.spritesheet('ch3_fx_thunder',   '/assets/projectiles/chapter3/blue/blue21.png', { frameWidth: 32, frameHeight: 32 });
-      this.load.spritesheet('ch3_fx_ring',      '/assets/projectiles/chapter3/blue/blue4.png',  { frameWidth: 32, frameHeight: 32 });
-      this.load.spritesheet('ch3_fx_whirl',     '/assets/projectiles/chapter3/blue/blue0.png',  { frameWidth: 32, frameHeight: 32 });
+      this.load.spritesheet('ch3_fx_bubble',    '/assets/projectiles/chapter-3/blue/blue5.png',  { frameWidth: 32, frameHeight: 32 });
+      this.load.spritesheet('ch3_fx_sonic',     '/assets/projectiles/chapter-3/blue/blue3.png',  { frameWidth: 32, frameHeight: 32 });
+      this.load.spritesheet('ch3_fx_fireblade', '/assets/projectiles/chapter-3/blue/blue16.png', { frameWidth: 32, frameHeight: 32 });
+      this.load.spritesheet('ch3_fx_darkorbit', '/assets/projectiles/chapter-3/blue/blue19.png', { frameWidth: 32, frameHeight: 32 });
+      this.load.spritesheet('ch3_fx_thunder',   '/assets/projectiles/chapter-3/blue/blue21.png', { frameWidth: 32, frameHeight: 32 });
+      this.load.spritesheet('ch3_fx_ring',      '/assets/projectiles/chapter-3/blue/blue4.png',  { frameWidth: 32, frameHeight: 32 });
+      this.load.spritesheet('ch3_fx_whirl',     '/assets/projectiles/chapter-3/blue/blue0.png',  { frameWidth: 32, frameHeight: 32 });
 
       // Smoke Spawn/Despawn (832x64 → 13 frames of 64x64)
-      this.load.spritesheet('ch3_smoke_spawn', '/assets/projectiles/chapter3/Smoke-Spawn.png', { frameWidth: 64, frameHeight: 64 });
+      this.load.spritesheet('ch3_smoke_spawn', '/assets/projectiles/chapter-3/Smoke-Spawn.png', { frameWidth: 64, frameHeight: 64 });
 
       // Bat (576x64 → 9 frames for IdleFly; 512x64 → 8 frames for Attack; frame size 64x64)
-      this.load.spritesheet('ch3_bat_fly', '/assets/projectiles/chapter3/Bat/Bat-IdleFly.png', { frameWidth: 64, frameHeight: 64 });
-      this.load.spritesheet('ch3_bat_hit', '/assets/projectiles/chapter3/Bat/Bat-Attack1.png', { frameWidth: 64, frameHeight: 64 });
+      this.load.spritesheet('ch3_bat_fly', '/assets/projectiles/chapter-3/bat/Bat-IdleFly.png', { frameWidth: 64, frameHeight: 64 });
+      this.load.spritesheet('ch3_bat_hit', '/assets/projectiles/chapter-3/bat/Bat-Attack1.png', { frameWidth: 64, frameHeight: 64 });
 
       // Fish King (2000x250 → 8 frames of 250x250)
-      this.load.spritesheet('ch3_fishking_idle',  '/assets/projectiles/chapter3/Fish-king/Idle.png',    { frameWidth: 250, frameHeight: 250 });
-      this.load.spritesheet('ch3_fishking_wand',  '/assets/projectiles/chapter3/Fish-king/Attack1.png', { frameWidth: 250, frameHeight: 250 });
-      this.load.spritesheet('ch3_fishking_spell', '/assets/projectiles/chapter3/Fish-king/Attack2.png', { frameWidth: 250, frameHeight: 250 });
+      this.load.spritesheet('ch3_fishking_idle',  '/assets/projectiles/chapter-3/fish-king/Idle.png',    { frameWidth: 250, frameHeight: 250 });
+      this.load.spritesheet('ch3_fishking_wand',  '/assets/projectiles/chapter-3/fish-king/Attack1.png', { frameWidth: 250, frameHeight: 250 });
+      this.load.spritesheet('ch3_fishking_spell', '/assets/projectiles/chapter-3/fish-king/Attack2.png', { frameWidth: 250, frameHeight: 250 });
 
       // Jellyfish (192x48 → 4 frames of 48x48; Death 288x48 → 6 frames)
-      this.load.spritesheet('ch3_jelly_idle',   '/assets/projectiles/chapter3/JellyFish/Idle.png',   { frameWidth: 48, frameHeight: 48 });
-      this.load.spritesheet('ch3_jelly_walk',   '/assets/projectiles/chapter3/JellyFish/Walk.png',   { frameWidth: 48, frameHeight: 48 });
-      this.load.spritesheet('ch3_jelly_death',  '/assets/projectiles/chapter3/JellyFish/Death.png',  { frameWidth: 48, frameHeight: 48 });
-      this.load.spritesheet('ch3_jelly_attack', '/assets/projectiles/chapter3/JellyFish/Attack.png', { frameWidth: 48, frameHeight: 48 });
+      this.load.spritesheet('ch3_jelly_idle',   '/assets/projectiles/chapter-3/jellyfish/Idle.png',   { frameWidth: 48, frameHeight: 48 });
+      this.load.spritesheet('ch3_jelly_walk',   '/assets/projectiles/chapter-3/jellyfish/Walk.png',   { frameWidth: 48, frameHeight: 48 });
+      this.load.spritesheet('ch3_jelly_death',  '/assets/projectiles/chapter-3/jellyfish/Death.png',  { frameWidth: 48, frameHeight: 48 });
+      this.load.spritesheet('ch3_jelly_attack', '/assets/projectiles/chapter-3/jellyfish/Attack.png', { frameWidth: 48, frameHeight: 48 });
 
       // Shark (192x48 → 4 frames of 48x48; Attack 288x48 → 6 frames)
-      this.load.spritesheet('ch3_shark_idle',   '/assets/projectiles/chapter3/Shark/Idle.png',   { frameWidth: 48, frameHeight: 48 });
-      this.load.spritesheet('ch3_shark_walk',   '/assets/projectiles/chapter3/Shark/Walk.png',   { frameWidth: 48, frameHeight: 48 });
-      this.load.spritesheet('ch3_shark_attack', '/assets/projectiles/chapter3/Shark/Attack.png', { frameWidth: 48, frameHeight: 48 });
+      this.load.spritesheet('ch3_shark_idle',   '/assets/projectiles/chapter-3/shark/Idle.png',   { frameWidth: 48, frameHeight: 48 });
+      this.load.spritesheet('ch3_shark_walk',   '/assets/projectiles/chapter-3/shark/Walk.png',   { frameWidth: 48, frameHeight: 48 });
+      this.load.spritesheet('ch3_shark_attack', '/assets/projectiles/chapter-3/shark/Attack.png', { frameWidth: 48, frameHeight: 48 });
 
       // Angler (192x48 → 4 frames of 48x48) — used in Attack 7
-      this.load.spritesheet('ch3_angler', '/assets/projectiles/chapter3/Angler/Walk.png', { frameWidth: 48, frameHeight: 48 });
+      this.load.spritesheet('ch3_angler', '/assets/projectiles/chapter-3/angler/Walk.png', { frameWidth: 48, frameHeight: 48 });
 
       // Nemo (all sheets are 128x128 → 2x2 = 4 frames of 64x64 each)
-      this.load.spritesheet('ch3_nemo_swim',   '/assets/projectiles/chapter3/Nemo-Fish/Normal Actions/normalswim.png',          { frameWidth: 64, frameHeight: 64 });
-      this.load.spritesheet('ch3_nemo_chomp',  '/assets/projectiles/chapter3/Nemo-Fish/Normal Actions/normalchomp.png',         { frameWidth: 64, frameHeight: 64 });
-      this.load.spritesheet('ch3_nemo_diagdn', '/assets/projectiles/chapter3/Nemo-Fish/Normal Actions/normalswimdiagdown.png',   { frameWidth: 64, frameHeight: 64 });
-      this.load.spritesheet('ch3_nemo_diagup', '/assets/projectiles/chapter3/Nemo-Fish/Normal Actions/normalswimdiagup.png',     { frameWidth: 64, frameHeight: 64 });
+      this.load.spritesheet('ch3_nemo_swim',   '/assets/projectiles/chapter-3/nemo-fish/normal-actions/normalswim.png',          { frameWidth: 64, frameHeight: 64 });
+      this.load.spritesheet('ch3_nemo_chomp',  '/assets/projectiles/chapter-3/nemo-fish/normal-actions/normalchomp.png',         { frameWidth: 64, frameHeight: 64 });
+      this.load.spritesheet('ch3_nemo_diagdn', '/assets/projectiles/chapter-3/nemo-fish/normal-actions/normalswimdiagdown.png',   { frameWidth: 64, frameHeight: 64 });
+      this.load.spritesheet('ch3_nemo_diagup', '/assets/projectiles/chapter-3/nemo-fish/normal-actions/normalswimdiagup.png',     { frameWidth: 64, frameHeight: 64 });
       // Tilt chomps: 256x64 → 4 frames in 1 row of 64x64
-      this.load.spritesheet('ch3_nemo_tiltdn', '/assets/projectiles/chapter3/Nemo-Fish/Normal Actions/normaltiltdownchomp.PNG', { frameWidth: 64, frameHeight: 64 });
-      this.load.spritesheet('ch3_nemo_tiltup', '/assets/projectiles/chapter3/Nemo-Fish/Normal Actions/normaltiltupchomp.png',   { frameWidth: 64, frameHeight: 64 });
+      this.load.spritesheet('ch3_nemo_tiltdn', '/assets/projectiles/chapter-3/nemo-fish/normal-actions/normaltiltdownchomp.PNG', { frameWidth: 64, frameHeight: 64 });
+      this.load.spritesheet('ch3_nemo_tiltup', '/assets/projectiles/chapter-3/nemo-fish/normal-actions/normaltiltupchomp.png',   { frameWidth: 64, frameHeight: 64 });
 
       // Snake (448x128 → 2 rows × 7 cols = 14 frames of 64x64, faces LEFT)
-      this.load.spritesheet('ch3_snake', '/assets/projectiles/chapter3/Snake/snake.png', { frameWidth: 64, frameHeight: 64 });
+      this.load.spritesheet('ch3_snake', '/assets/projectiles/chapter-3/snake/snake.png', { frameWidth: 64, frameHeight: 64 });
 
       // Siren Sisters (128x128 per frame)
-      this.load.spritesheet('ch3_siren1',         '/assets/projectiles/chapter3/Siren1/Idle.png',    { frameWidth: 128, frameHeight: 128 });
-      this.load.spritesheet('ch3_siren2',         '/assets/projectiles/chapter3/Siren2/Idle.png',    { frameWidth: 128, frameHeight: 128 });
-      this.load.spritesheet('ch3_siren3_idle',    '/assets/projectiles/chapter3/Siren3/Idle.png',    { frameWidth: 128, frameHeight: 128 });
-      this.load.spritesheet('ch3_siren3_special', '/assets/projectiles/chapter3/Siren3/Special.png', { frameWidth: 128, frameHeight: 128 });
+      this.load.spritesheet('ch3_siren1',         '/assets/projectiles/chapter-3/siren1/Idle.png',    { frameWidth: 128, frameHeight: 128 });
+      this.load.spritesheet('ch3_siren2',         '/assets/projectiles/chapter-3/siren2/Idle.png',    { frameWidth: 128, frameHeight: 128 });
+      this.load.spritesheet('ch3_siren3_idle',    '/assets/projectiles/chapter-3/siren3/Idle.png',    { frameWidth: 128, frameHeight: 128 });
+      this.load.spritesheet('ch3_siren3_special', '/assets/projectiles/chapter-3/siren3/Special.png', { frameWidth: 128, frameHeight: 128 });
 
       // Cthulhu (2880x784 → 15 cols × 7 rows of 192x112)
-      this.load.spritesheet('ch3_cthulhu', '/assets/projectiles/chapter3/cthulu.png', { frameWidth: 192, frameHeight: 112 });
+      this.load.spritesheet('ch3_cthulhu', '/assets/projectiles/chapter-3/cthulu.png', { frameWidth: 192, frameHeight: 112 });
 
 
 
@@ -180,43 +180,43 @@ export class GameScene extends Phaser.Scene {
       // waterbeam2: 192x32 → 4 frames of 48x32
       // waterburst: 378x48 → 6 frames of 63x48
       // waterspiral: 192x32 → 6 frames of 32x32
-      this.load.spritesheet('ch3_darkbolt',   '/assets/projectiles/chapter3/Water Beams/Dark-Bolt.png',   { frameWidth: 64, frameHeight: 88 });
-      this.load.spritesheet('ch3_firebomb',   '/assets/projectiles/chapter3/Water Beams/Fire-bomb.png',   { frameWidth: 64, frameHeight: 64 });
-      this.load.spritesheet('ch3_lightning',  '/assets/projectiles/chapter3/Water Beams/Lightning.png',   { frameWidth: 64, frameHeight: 128 });
-      this.load.spritesheet('ch3_spark',      '/assets/projectiles/chapter3/Water Beams/spark.png',       { frameWidth: 32, frameHeight: 32 });
-      this.load.spritesheet('ch3_waterspiral','/assets/projectiles/chapter3/Water Beams/water-spiral.png',{ frameWidth: 32, frameHeight: 32 });
-      this.load.spritesheet('ch3_waterbeam',  '/assets/projectiles/chapter3/Water Beams/water-beam.png',  { frameWidth: 63, frameHeight: 32 });
-      this.load.spritesheet('ch3_waterbeam2', '/assets/projectiles/chapter3/Water Beams/water-beam2.png', { frameWidth: 48, frameHeight: 32 });
-      this.load.spritesheet('ch3_waterburst', '/assets/projectiles/chapter3/Water Beams/water-burst.png', { frameWidth: 63, frameHeight: 48 });
+      this.load.spritesheet('ch3_darkbolt',   '/assets/projectiles/chapter-3/water-beams/Dark-Bolt.png',   { frameWidth: 64, frameHeight: 88 });
+      this.load.spritesheet('ch3_firebomb',   '/assets/projectiles/chapter-3/water-beams/Fire-bomb.png',   { frameWidth: 64, frameHeight: 64 });
+      this.load.spritesheet('ch3_lightning',  '/assets/projectiles/chapter-3/water-beams/Lightning.png',   { frameWidth: 64, frameHeight: 128 });
+      this.load.spritesheet('ch3_spark',      '/assets/projectiles/chapter-3/water-beams/spark.png',       { frameWidth: 32, frameHeight: 32 });
+      this.load.spritesheet('ch3_waterspiral','/assets/projectiles/chapter-3/water-beams/water-spiral.png',{ frameWidth: 32, frameHeight: 32 });
+      this.load.spritesheet('ch3_waterbeam',  '/assets/projectiles/chapter-3/water-beams/water-beam.png',  { frameWidth: 63, frameHeight: 32 });
+      this.load.spritesheet('ch3_waterbeam2', '/assets/projectiles/chapter-3/water-beams/water-beam2.png', { frameWidth: 48, frameHeight: 32 });
+      this.load.spritesheet('ch3_waterburst', '/assets/projectiles/chapter-3/water-beams/water-burst.png', { frameWidth: 63, frameHeight: 48 });
       
-      this.load.spritesheet('ch3_explosion_1', '/assets/projectiles/chapter3/EXPLOSIONS/explosion-1-b.png', { frameWidth: 80, frameHeight: 48 });
-      this.load.spritesheet('ch3_explosion_2', '/assets/projectiles/chapter3/EXPLOSIONS/explosion-2-b.png', { frameWidth: 48, frameHeight: 48 });
-      this.load.spritesheet('ch3_explosion_3', '/assets/projectiles/chapter3/EXPLOSIONS/explosion-3-b.png', { frameWidth: 48, frameHeight: 48 });
-      this.load.spritesheet('ch3_explosion_4', '/assets/projectiles/chapter3/EXPLOSIONS/explosion-4-b.png', { frameWidth: 128, frameHeight: 128 });
+      this.load.spritesheet('ch3_explosion_1', '/assets/projectiles/chapter-3/explosions/explosion-1-b.png', { frameWidth: 80, frameHeight: 48 });
+      this.load.spritesheet('ch3_explosion_2', '/assets/projectiles/chapter-3/explosions/explosion-2-b.png', { frameWidth: 48, frameHeight: 48 });
+      this.load.spritesheet('ch3_explosion_3', '/assets/projectiles/chapter-3/explosions/explosion-3-b.png', { frameWidth: 48, frameHeight: 48 });
+      this.load.spritesheet('ch3_explosion_4', '/assets/projectiles/chapter-3/explosions/explosion-4-b.png', { frameWidth: 128, frameHeight: 128 });
       
-      this.load.spritesheet('ch3_explosion_2a', '/assets/projectiles/chapter3/EXPLOSIONS/explosion-2-a.png', { frameWidth: 256, frameHeight: 256 });
-      this.load.spritesheet('ch3_explosion_3a', '/assets/projectiles/chapter3/EXPLOSIONS/explosion-3-a.png', { frameWidth: 256, frameHeight: 256 });
-      this.load.spritesheet('ch3_explosion_4a', '/assets/projectiles/chapter3/EXPLOSIONS/explosion-4-a.png', { frameWidth: 256, frameHeight: 256 });
+      this.load.spritesheet('ch3_explosion_2a', '/assets/projectiles/chapter-3/explosions/explosion-2-a.png', { frameWidth: 256, frameHeight: 256 });
+      this.load.spritesheet('ch3_explosion_3a', '/assets/projectiles/chapter-3/explosions/explosion-3-a.png', { frameWidth: 256, frameHeight: 256 });
+      this.load.spritesheet('ch3_explosion_4a', '/assets/projectiles/chapter-3/explosions/explosion-4-a.png', { frameWidth: 256, frameHeight: 256 });
       
-      this.load.spritesheet('ch3_explosion_1d', '/assets/projectiles/chapter3/EXPLOSIONS/explosion-1-d.png', { frameWidth: 64, frameHeight: 64 });
-      this.load.spritesheet('ch3_explosion_2d', '/assets/projectiles/chapter3/EXPLOSIONS/explosion-2-d.png', { frameWidth: 128, frameHeight: 80 });
-      this.load.spritesheet('ch3_explosion_3d', '/assets/projectiles/chapter3/EXPLOSIONS/explosion-3-d.png', { frameWidth: 192, frameHeight: 192 });
+      this.load.spritesheet('ch3_explosion_1d', '/assets/projectiles/chapter-3/explosions/explosion-1-d.png', { frameWidth: 64, frameHeight: 64 });
+      this.load.spritesheet('ch3_explosion_2d', '/assets/projectiles/chapter-3/explosions/explosion-2-d.png', { frameWidth: 128, frameHeight: 80 });
+      this.load.spritesheet('ch3_explosion_3d', '/assets/projectiles/chapter-3/explosions/explosion-3-d.png', { frameWidth: 192, frameHeight: 192 });
     } else {
       // Default fallback for future chapters
-      this.load.spritesheet('boss_idle', '/assets/characters/boss/chapter-2/boss_idle.png', { frameWidth: 87, frameHeight: 110 });
-      this.load.spritesheet('boss_cast', '/assets/characters/boss/chapter-2/boss_idle.png', { frameWidth: 87, frameHeight: 110 });
+      this.load.spritesheet('boss_idle', '/assets/entity/boss/chapter2/boss_idle.png', { frameWidth: 87, frameHeight: 110 });
+      this.load.spritesheet('boss_cast', '/assets/entity/boss/chapter2/boss_idle.png', { frameWidth: 87, frameHeight: 110 });
     }
 
     // UI elements like Hearts
     this.load.spritesheet('ui_buttons', '/assets/ui/buttons.png', { frameWidth: 16, frameHeight: 16 });
 
     // Projectiles 
-    this.load.image('projectile_1', '/assets/projectiles/bone.png');
-    this.load.image('projectile_2', '/assets/projectiles/knife.png');
-    this.load.image('projectile_3', '/assets/projectiles/red-potion.png');
+    this.load.image('projectile_1', '/assets/projectiles/shared/bone.png');
+    this.load.image('projectile_2', '/assets/projectiles/shared/knife.png');
+    this.load.image('projectile_3', '/assets/projectiles/shared/red-potion.png');
 
     // FX
-    this.load.spritesheet('fx_damage', '/assets/gui/GenericSparks/GenericSparks-Sheet.png', { frameWidth: 32, frameHeight: 32 });
+    this.load.spritesheet('fx_damage', '/assets/ui/game-ui/generic-sparks/GenericSparks-Sheet.png', { frameWidth: 32, frameHeight: 32 });
     this.load.spritesheet('symbol_alert', '/assets/fx/symbol_alert.png', { frameWidth: 80, frameHeight: 80 });
     this.load.spritesheet('symbol_alert2', '/assets/fx/symbol_alert2.png', { frameWidth: 80, frameHeight: 80 });
     this.load.spritesheet('attack_up', '/assets/fx/attack_up.png', { frameWidth: 128, frameHeight: 128 });
@@ -233,22 +233,22 @@ export class GameScene extends Phaser.Scene {
 
     // Power-Up Assets — Chests.png is 288x128 = 9 cols x 4 rows of 32x32 frames
     // Columns 0=Common(green), 1=Rare(blue), 2=Legendary(gold)
-    this.load.spritesheet('powerup_chests', '/assets/powerups/Chests.png', { frameWidth: 32, frameHeight: 32 });
+    this.load.spritesheet('powerup_chests', '/assets/powerups/chests.png', { frameWidth: 32, frameHeight: 32 });
     // 02.png is the placeholder icon sheet for the HUD power-up slot
     this.load.image('powerup_ui', '/assets/powerups/02.png');
 
     this.load.spritesheet('lightning_burst', '/assets/fx/lightning_burst.png', { frameWidth: 64, frameHeight: 64 });
 
     // Boss HP bar — MinimumDamage sheet (64x16, 50 frames: frame 0 = full, frame 49 = empty, top-to-bottom)
-    this.load.spritesheet('boss_hp_bar', '/assets/gui/MinimumDamage/MinimumDamage-Sheet.png', { frameWidth: 64, frameHeight: 16 });
-    this.load.image('inventory_slot', '/assets/gui/Inventory.png');
+    this.load.spritesheet('boss_hp_bar', '/assets/ui/game-ui/minimum-damage/MinimumDamage-Sheet.png', { frameWidth: 64, frameHeight: 16 });
+    this.load.image('inventory_slot', '/assets/ui/game-ui/inventory.png');
     this.load.spritesheet('villain_hp_up', '/assets/fx/villain_hpUP.png', { frameWidth: 64, frameHeight: 64 });
 
     // Blood screen overlays (low HP warnings on right panel)
-    this.load.image('blood_screen_2left', '/assets/gui/blood screen/2left.png');
-    this.load.image('blood_screen_1_5left', '/assets/gui/blood screen/1.5left.png');
-    this.load.image('blood_screen_1left', '/assets/gui/blood screen/1left.png');
-    this.load.image('blood_screen_halfleft', '/assets/gui/blood screen/halfleft.png');
+    this.load.image('blood_screen_2left', '/assets/ui/game-ui/blood-screen/2left.png');
+    this.load.image('blood_screen_1_5left', '/assets/ui/game-ui/blood-screen/1.5left.png');
+    this.load.image('blood_screen_1left', '/assets/ui/game-ui/blood-screen/1left.png');
+    this.load.image('blood_screen_halfleft', '/assets/ui/game-ui/blood-screen/halfleft.png');
   }
 
   create() {

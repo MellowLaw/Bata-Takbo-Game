@@ -360,7 +360,7 @@ export class HUDScene extends Phaser.Scene {
       if (!overlay) {
         overlay = document.createElement('img');
         overlay.id = 'cam-eye-overlay';
-        overlay.src = '/assets/gui/eye_camera.png';
+        overlay.src = '/assets/ui/game-ui/eye-camera.png';
         overlay.style.position = 'absolute';
         overlay.style.pointerEvents = 'none';
         overlay.style.zIndex = '51'; // exactly above pip (50) but below pause menu (100)

@@ -1,19 +1,18 @@
 // Service Worker — Bata, Takbo!
 // Basic cache-first strategy for game assets
 
-const CACHE_NAME = 'bata-takbo-v2';
+const CACHE_NAME = 'bata-takbo-v4';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
-  '/assets/ui/Main_title.png',
-  '/assets/ui/background.gif',
-  '/assets/ui/chapter-1.png',
-  '/assets/ui/chapter-2.png',
-  '/assets/ui/chapter-3.png',
+  '/assets/ui/main-title.png',
+  '/assets/ui/chapter-selection/chapter1.png',
+  '/assets/ui/chapter-selection/chapter2.png',
+  '/assets/ui/chapter-selection/chapter3.png',
   '/assets/fonts/VCRosdNEUE.ttf',
   '/assets/fonts/DirtyHarold.ttf',
-  '/assets/gui/buttons.png',
-  '/assets/gui/GUISprite.png',
+  '/assets/ui/game-ui/buttons.png',
+  '/assets/ui/game-ui/gui-sprite.png',
 ];
 
 // Install — cache core assets

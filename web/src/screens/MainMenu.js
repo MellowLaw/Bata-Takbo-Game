@@ -17,12 +17,12 @@ export const MainMenu = {
   render() {
     return `
       <div class="main-menu screen">
-        <video class="main-menu__video" src="/assets/ui/animated_main_menu.mp4" autoplay loop muted playsinline style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0;"></video>
+        <video class="main-menu__video" src="/assets/ui/backgrounds/animated_main_menu.mp4" autoplay loop muted playsinline style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0;"></video>
         <div class="main-menu__bg" style="background-image: none;"></div>
         <div class="main-menu__content">
           <div class="main-menu__title-wrapper">
             <img 
-              src="/assets/ui/Main_title.png" 
+              src="/assets/ui/main-title.png" 
               alt="Bata, Takbo!" 
               class="main-menu__title"
               id="main-title-img"
@@ -162,7 +162,7 @@ export const MainMenu = {
     this._promptOpen = true;
 
     const dialogue = new DialogueBox('screen-container');
-    const portrait = '/assets/characters/character.png';
+    const portrait = '/assets/entity/character-icon/character.png';
     const portraitFrames = 5;
 
     const cleanup = () => {
@@ -234,7 +234,7 @@ export const MainMenu = {
       return;
     }
 
-    _bgMusic = new Audio('/assets/audios/menu_bg_music.mp3');
+    _bgMusic = new Audio('/assets/audio/menu_bg_music.mp3');
     _bgMusic.loop = true;
     _bgMusic.volume = 0;
     _bgMusic.play().catch(() => {

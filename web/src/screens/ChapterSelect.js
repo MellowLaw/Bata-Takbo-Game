@@ -9,15 +9,15 @@ export const ChapterSelect = {
     const unlocked = progress.chaptersUnlocked || [1];
 
     const chapters = [
-      { id: 1, img: '/assets/ui/chapters/chapter1.png', name: 'Duende' },
-      { id: 2, img: '/assets/ui/chapters/chapter2.png', name: 'Unknown' },
-      { id: 3, img: '/assets/ui/chapters/chapter3.png', name: 'Unknown' },
+      { id: 1, img: '/assets/ui/chapter-selection/chapter1.png', name: 'Duende' },
+      { id: 2, img: '/assets/ui/chapter-selection/chapter2.png', name: 'Unknown' },
+      { id: 3, img: '/assets/ui/chapter-selection/chapter3.png', name: 'Unknown' },
     ];
 
     const cardsHtml = chapters.map((ch, i) => {
       const isUnlocked = unlocked.includes(ch.id);
       // Unlocked → chapter#.png on front, Locked → chapterFront.png (lock art)
-      const frontImg = isUnlocked ? ch.img : '/assets/ui/chapters/chapterFront.png';
+      const frontImg = isUnlocked ? ch.img : '/assets/ui/chapter-selection/chapter-front.png';
 
       return `
         <div class="ch-flip-wrapper ${isUnlocked ? 'unlocked' : 'locked'}"
@@ -26,7 +26,7 @@ export const ChapterSelect = {
           <div class="ch-flip-inner">
             <!-- BACK face (default visible) -->
             <div class="ch-face ch-face--back">
-              <img src="/assets/ui/chapters/chapterBack.png" alt="Chapter Back" />
+              <img src="/assets/ui/chapter-selection/chapter-back.png" alt="Chapter Back" />
             </div>
             <!-- FRONT face (revealed on hover) -->
             <div class="ch-face ch-face--front">
@@ -135,7 +135,7 @@ export const ChapterSelect = {
         const ctx = canvasEl.getContext('2d');
         
         const spriteImg = new Image();
-        spriteImg.src = `/assets/ui/chapters/chapter_select_idle/chapter${chapterId}_idle.png`;
+        spriteImg.src = `/assets/ui/chapter-selection/chapter-select-idle/chapter${chapterId}_idle.png`;
         
         let loaded = false;
         let frameW = 0, frameH = 0;

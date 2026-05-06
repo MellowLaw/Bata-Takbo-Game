@@ -9,7 +9,7 @@ export const ResultsScreen = {
     const s = (result.timeSurvived % 60).toString().padStart(2, '0');
     
     return `
-      <div class="results-screen screen" style="display: flex; flex-direction: column; align-items: center; justify-content: center; background-image: url('/assets/gui/with%20chair.png'); background-size: cover; background-position: center;">
+      <div class="results-screen screen" style="display: flex; flex-direction: column; align-items: center; justify-content: center; background-image: url('/assets/ui/game-ui/with-chair.png'); background-size: cover; background-position: center;">
         <h1 class="screen-title" style="color: ${result.isVictory ? 'var(--accent-gold)' : 'var(--accent-gold)'}; animation: scaleIn 0.5s ease;">
           ${result.isVictory ? 'CHAPTER CLEARED' : 'GAME OVER'}
         </h1>

@@ -78,7 +78,7 @@ export class TutorialManager {
     const config = {
       text: step.text,
       subtext: step.subtext || `Step ${this.currentStep + 1} / ${this.steps.length}`,
-      portrait: step.portrait || '/assets/characters/character.png',
+      portrait: step.portrait || '/assets/entity/character-icon/character.png',
       portraitFrames: step.portraitFrames != null ? step.portraitFrames : 5,
       position: step.position || 'bottom',
       highlight: step.highlight,

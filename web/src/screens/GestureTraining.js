@@ -52,7 +52,7 @@ export const GestureTraining = {
             <span class="gesture-dir-btn__count">0</span>
           </button>
           <button class="gesture-dir-btn" data-dir="idle" id="dir-idle">
-            <span class="gesture-dir-btn__arrow"><img src="/assets/ui/bone-hand.png" alt="Rest" class="gesture-dir-btn__icon" /></span>
+            <span class="gesture-dir-btn__arrow"><img src="/assets/ui/gesture-setup/bone-hand.png" alt="Rest" class="gesture-dir-btn__icon" /></span>
             <span class="gesture-dir-btn__label">REST</span>
             <span class="gesture-dir-btn__count">0</span>
           </button>
@@ -321,7 +321,7 @@ export const GestureTraining = {
 
   _startTutorial(el, fromPlay = false) {
     this.tutorialManager = new TutorialManager('screen-container');
-    const portrait = '/assets/characters/character.png';
+    const portrait = '/assets/entity/character-icon/character.png';
     
     const steps = [
       {

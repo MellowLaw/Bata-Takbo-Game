@@ -20,8 +20,8 @@ export const Spellbook = {
           { name: 'Diagonal Rain', desc: 'Items rain along diagonals' },
           { name: 'Center Blast', desc: 'Explosive blast in center area' },
         ],
-        imgUnlocked: '/assets/ui/chapters/chapter1a.png',
-        imgLocked: '/assets/ui/chapters/chapterBack.png',
+        imgUnlocked: '/assets/ui/chapter-selection/chapter1a.png',
+        imgLocked: '/assets/ui/chapter-selection/chapter-back.png',
       },
       {
         id: 'boss2',
@@ -37,8 +37,8 @@ export const Spellbook = {
           { name: 'Snapping Flora', desc: 'Melee trap clamping on adjacent tiles' },
           { name: 'Acid Spitter', desc: 'Plants shooting horizontal lines of acid' },
         ],
-        imgUnlocked: '/assets/ui/chapters/chapter2a.png',
-        imgLocked: '/assets/ui/chapters/chapterBack.png',
+        imgUnlocked: '/assets/ui/chapter-selection/chapter2a.png',
+        imgLocked: '/assets/ui/chapter-selection/chapter-back.png',
       },
       {
         id: 'boss3',
@@ -46,8 +46,8 @@ export const Spellbook = {
         name: "???",
         desc: "A terror that awaits only the most skilled survivors...",
         attacks: [],
-        imgUnlocked: '/assets/ui/chapters/chapterBack.png',
-        imgLocked: '/assets/ui/chapters/chapterBack.png',
+        imgUnlocked: '/assets/ui/chapter-selection/chapter-back.png',
+        imgLocked: '/assets/ui/chapter-selection/chapter-back.png',
       },
     ];
 

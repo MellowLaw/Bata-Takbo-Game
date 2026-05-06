@@ -17,7 +17,7 @@ export const TutorialScreen = {
     await GameScreen.onEnter(el, { chapterId: 1, isTutorial: true });
 
     this.tutorialManager = new TutorialManager('screen-container');
-    const portrait = '/assets/characters/character.png';
+    const portrait = '/assets/entity/character-icon/character.png';
 
     // ── Tutorial Steps ──────────────────────────────────────────────────────
     const steps = [
