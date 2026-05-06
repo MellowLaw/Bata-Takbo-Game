@@ -437,6 +437,12 @@ export const GestureTraining = {
   
   async _completeTutorial(fromPlay = false) {
     await gestureController.saveModel();
+
+    // Mark gesture setup as complete so the welcome prompt skips this step
+    // on subsequent plays. Persist + sync to server (no-op for guests).
+    state.set('gestureSetupComplete', true);
+    await state.saveGestureSetupState();
+
     // We don't set tutorialComplete = true here because the gameplay tutorial is next.
     // It will be set to true at the end of TutorialScreen.js
 

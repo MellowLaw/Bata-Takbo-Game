@@ -1279,10 +1279,26 @@ export class GameScene extends Phaser.Scene {
 
       // Unlock next chapter permanently on victory
       if (isVictory) {
-        let progress = state.get('chapterProgress') || { chaptersUnlocked: [1] };
+        let progress = state.get('chapterProgress') || { chaptersUnlocked: [1], chaptersCompleted: [], bestScores: {} };
+        let progressChanged = false;
         if (!progress.chaptersUnlocked.includes(this.chapterId + 1)) {
           progress.chaptersUnlocked.push(this.chapterId + 1);
+          progressChanged = true;
+        }
+        if (!progress.chaptersCompleted) progress.chaptersCompleted = [];
+        if (!progress.chaptersCompleted.includes(this.chapterId)) {
+          progress.chaptersCompleted.push(this.chapterId);
+          progressChanged = true;
+        }
+        if (!progress.bestScores) progress.bestScores = {};
+        if ((progress.bestScores[this.chapterId] || 0) < finalScore) {
+          progress.bestScores[this.chapterId] = finalScore;
+          progressChanged = true;
+        }
+        if (progressChanged) {
           state.set('chapterProgress', progress);
+          // Persist to localStorage AND server (fire-and-forget; results screen does not depend on it)
+          state.saveChapterProgress().catch(e => console.warn('Failed to save chapter progress:', e));
         }
 
         // Unlock boss bestiary entry upon defeat

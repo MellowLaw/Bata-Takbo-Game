@@ -12,6 +12,7 @@ class StateManager {
       user: null,
       isAuthenticated: false,
       tutorialComplete: this._loadTutorialState(),
+      gestureSetupComplete: this._loadGestureSetupState(),
       bestiary: this._loadBestiary(),
       chapterProgress: this._loadChapterProgress(),
     };
@@ -138,6 +139,21 @@ class StateManager {
     return false;
   }
 
+  _loadGestureSetupState() {
+    try {
+      const saved = localStorage.getItem('bata_takbo_gesture_setup');
+      if (saved) return JSON.parse(saved) === true;
+    } catch (e) { /* ignore */ }
+    return false;
+  }
+
+  async saveGestureSetupState(sync = true) {
+    try {
+      localStorage.setItem('bata_takbo_gesture_setup', JSON.stringify(this._state.gestureSetupComplete));
+      if (sync) await this._syncToServer();
+    } catch (e) { /* ignore */ }
+  }
+
   _loadBestiary() {
     try {
       const saved = localStorage.getItem('bata_takbo_bestiary');
@@ -164,9 +180,10 @@ class StateManager {
 
 
 
-  saveBestiary() {
+  async saveBestiary(sync = true) {
     try {
       localStorage.setItem('bata_takbo_bestiary', JSON.stringify(this._state.bestiary));
+      if (sync) await this._syncToServer();
     } catch (e) { /* ignore */ }
   }
 
@@ -218,9 +235,14 @@ class StateManager {
       localStorage.removeItem('bata_takbo_progress');
     } catch(e) {}
 
+    try {
+      localStorage.removeItem('bata_takbo_gesture_setup');
+    } catch(e) {}
+
     // Reset in-memory state so it doesn't bleed to the next user
     this._state.settings = this._loadSettings();
     this._state.tutorialComplete = false;
+    this._state.gestureSetupComplete = false;
     this._state.bestiary = {};
     this._state.chapterProgress = { chaptersUnlocked: [1], chaptersCompleted: [], bestScores: {} };
 
@@ -259,7 +281,7 @@ class StateManager {
 
   async _syncToServer() {
     if (this._isGuest()) {
-      console.log('[TUTORIAL-DEBUG] _syncToServer(): skipping — user is guest');
+      console.log('[SAVE] skip — guest session');
       return;
     }
 
@@ -271,11 +293,13 @@ class StateManager {
     const payload = {
       settings: this._state.settings,
       tutorialComplete: this._state.tutorialComplete,
+      gestureSetupComplete: this._state.gestureSetupComplete,
       chapterProgress: this._state.chapterProgress,
+      bestiary: this._state.bestiary,
       gestureModel
     };
 
-    console.log('[TUTORIAL-DEBUG] _syncToServer(): sending tutorialComplete =', payload.tutorialComplete);
+    console.log(`[SAVE] sending tutorialComplete=${payload.tutorialComplete} gestureSetupComplete=${payload.gestureSetupComplete} chaptersUnlocked=${payload.chapterProgress?.chaptersUnlocked}`);
 
     try {
       const res = await fetch('/auth/save-data', {
@@ -286,12 +310,93 @@ class StateManager {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        console.warn('[TUTORIAL-DEBUG] _syncToServer(): server responded', res.status, err);
-      } else {
-        console.log('[TUTORIAL-DEBUG] _syncToServer(): save confirmed by server ✓');
+        console.warn(`[SAVE] FAILED status=${res.status}`, err);
+        return;
       }
+      // Server echoes back the stored gameData so we can verify.
+      const body = await res.json().catch(() => ({}));
+      const stored = body && body.gameData;
+      console.log(`[SAVE] OK — server stored tutorialComplete=${stored?.tutorialComplete} gestureSetupComplete=${stored?.gestureSetupComplete} chaptersUnlocked=${stored?.chapterProgress?.chaptersUnlocked}`);
     } catch (e) {
-      console.warn('[TUTORIAL-DEBUG] _syncToServer(): fetch failed —', e.message);
+      console.warn('[SAVE] network error —', e.message);
+    }
+  }
+
+  /**
+   * Reset all per-account state to defaults. Called before hydrating from
+   * the server so we never leak values across accounts.
+   */
+  _resetAccountState() {
+    this._state.tutorialComplete = false;
+    this._state.gestureSetupComplete = false;
+    this._state.chapterProgress = { chaptersUnlocked: [1], chaptersCompleted: [], bestScores: {} };
+    this._state.bestiary = {};
+    // settings deliberately not reset — user UI prefs persist across accounts on same device.
+  }
+
+  /**
+   * Authoritative load: hits GET /auth/me and applies whatever the server
+   * has stored for this account. Called by LoginScreen after a successful
+   * login to override anything that may have leaked from a previous session.
+   */
+  async hydrateFromServer() {
+    if (this._isGuest()) {
+      console.log('[LOAD] skip — guest session');
+      return;
+    }
+
+    // Wipe any leftover state so a stale value can never satisfy `state.get(...)`.
+    this._resetAccountState();
+
+    try {
+      const res = await fetch('/auth/me', { method: 'GET', credentials: 'include' });
+      if (!res.ok) {
+        console.warn(`[LOAD] /auth/me FAILED status=${res.status}`);
+        return;
+      }
+      const { gameData } = await res.json();
+      console.log(`[LOAD] /auth/me received: tutorialComplete=${gameData?.tutorialComplete} gestureSetupComplete=${gameData?.gestureSetupComplete} chaptersUnlocked=${gameData?.chapterProgress?.chaptersUnlocked} hasModel=${!!gameData?.gestureModel}`);
+
+      if (!gameData) return; // brand-new account — defaults are correct
+
+      // Strict boolean coercion
+      const tutorialComplete = gameData.tutorialComplete === true || gameData.tutorialComplete === 'true';
+      const hasGestureModel = !!gameData.gestureModel;
+      const gestureSetupComplete =
+        gameData.gestureSetupComplete === true ||
+        gameData.gestureSetupComplete === 'true' ||
+        hasGestureModel; // legacy: if a model exists, gestures are set up
+
+      this.set('tutorialComplete', tutorialComplete);
+      this.set('gestureSetupComplete', gestureSetupComplete);
+
+      if (gameData.chapterProgress) this.set('chapterProgress', gameData.chapterProgress);
+      if (gameData.bestiary) this.set('bestiary', gameData.bestiary);
+      if (gameData.settings) {
+        this.set('settings', this._deepMerge(this._state.settings, gameData.settings));
+      }
+
+      if (gameData.gestureModel && window.__gestureController) {
+        try {
+          window.__gestureController.classifier.importData(gameData.gestureModel);
+          await window.__gestureController.saveModel();
+        } catch (e) {
+          console.error('[LOAD] failed to import gesture model:', e);
+        }
+      }
+
+      // Mirror to localStorage WITHOUT triggering another server round-trip.
+      try {
+        localStorage.setItem('bata_takbo_tutorial', JSON.stringify(this._state.tutorialComplete));
+        localStorage.setItem('bata_takbo_gesture_setup', JSON.stringify(this._state.gestureSetupComplete));
+        localStorage.setItem('bata_takbo_progress', JSON.stringify(this._state.chapterProgress));
+        localStorage.setItem('bata_takbo_bestiary', JSON.stringify(this._state.bestiary));
+        localStorage.setItem('bata_takbo_settings', JSON.stringify(this._state.settings));
+      } catch (e) { /* ignore */ }
+
+      console.log(`[LOAD] applied — tutorialComplete=${this._state.tutorialComplete} gestureSetupComplete=${this._state.gestureSetupComplete}`);
+    } catch (e) {
+      console.warn('[LOAD] network error —', e.message);
     }
   }
 }

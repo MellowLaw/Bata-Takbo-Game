@@ -18,7 +18,8 @@ app.use(cors({
   credentials: true
 }));
 
-app.use(express.json());
+// Raise body limit so the gesture model (KNN tensor data) fits.
+app.use(express.json({ limit: '10mb' }));
 app.use(cookieParser());
 
 // Rate Limiting: 25 requests per minute for auth endpoints
@@ -191,7 +192,7 @@ app.post('/auth/login', async (req, res) => {
         console.error('Failed to parse game data on login:', e);
       }
 
-      console.log('[TUTORIAL-DEBUG] /auth/login: gameData for', user.username, '=', JSON.stringify({ tutorialComplete: gameData?.tutorialComplete }));
+      console.log(`[LOGIN] user=${user.username} returning: tutorialComplete=${gameData?.tutorialComplete} gestureSetupComplete=${gameData?.gestureSetupComplete} chaptersUnlocked=${gameData?.chapterProgress?.chaptersUnlocked} hasModel=${!!gameData?.gestureModel}`);
 
       return res.status(200).json({ success: true, gameData });
     } else {
@@ -246,22 +247,64 @@ app.get('/auth/profile', authMiddleware, async (req, res) => {
 
 app.post('/auth/save-data', authMiddleware, async (req, res) => {
   try {
-    const { settings, tutorialComplete, chapterProgress, gestureModel } = req.body;
-    console.log('[TUTORIAL-DEBUG] /auth/save-data received tutorialComplete =', tutorialComplete, 'for user', req.user.username);
+    const { settings, tutorialComplete, gestureSetupComplete, chapterProgress, bestiary, gestureModel } = req.body;
+    console.log(`[SAVE] user=${req.user.username} id=${req.user.id} incoming: tutorialComplete=${tutorialComplete} gestureSetupComplete=${gestureSetupComplete} chaptersUnlocked=${chapterProgress?.chaptersUnlocked}`);
+
+    // Merge with existing game_data so partial saves don't wipe other fields.
+    let existing = {};
+    try {
+      const row = await db.get('SELECT game_data FROM users WHERE id = ?', [req.user.id]);
+      if (row && row.game_data) existing = JSON.parse(row.game_data) || {};
+    } catch (e) { /* ignore */ }
 
     const gameData = {
-      settings,
-      tutorialComplete,
-      chapterProgress,
-      gestureModel
+      ...existing,
+      ...(settings !== undefined ? { settings } : {}),
+      ...(tutorialComplete !== undefined ? { tutorialComplete } : {}),
+      ...(gestureSetupComplete !== undefined ? { gestureSetupComplete } : {}),
+      ...(chapterProgress !== undefined ? { chapterProgress } : {}),
+      ...(bestiary !== undefined ? { bestiary } : {}),
+      ...(gestureModel !== undefined && gestureModel !== null ? { gestureModel } : {})
     };
 
     await db.run('UPDATE users SET game_data = ? WHERE id = ?', [JSON.stringify(gameData), req.user.id]);
-    console.log('[TUTORIAL-DEBUG] /auth/save-data: DB updated successfully for user', req.user.username);
 
-    return res.status(200).json({ success: true });
+    // Read it back to confirm what's actually persisted.
+    const verifyRow = await db.get('SELECT game_data FROM users WHERE id = ?', [req.user.id]);
+    let stored = null;
+    try { stored = verifyRow && verifyRow.game_data ? JSON.parse(verifyRow.game_data) : null; } catch(e) {}
+    console.log(`[SAVE] user=${req.user.username} stored: tutorialComplete=${stored?.tutorialComplete} gestureSetupComplete=${stored?.gestureSetupComplete} chaptersUnlocked=${stored?.chapterProgress?.chaptersUnlocked}`);
+
+    // Echo the persisted state back so the client can verify.
+    return res.status(200).json({ success: true, gameData: stored });
   } catch (err) {
     console.error('Save data error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * GET /auth/me — authoritative load of the player's saved game state.
+ * The login endpoint also returns gameData inline, but using this endpoint
+ * after login gives us a clean, verifiable second pass and avoids any race
+ * between cookie set and state hydration.
+ */
+app.get('/auth/me', authMiddleware, async (req, res) => {
+  try {
+    const row = await db.get('SELECT username, game_data FROM users WHERE id = ?', [req.user.id]);
+    if (!row) return res.status(404).json({ error: 'User not found' });
+
+    let gameData = null;
+    try {
+      if (row.game_data) gameData = JSON.parse(row.game_data);
+    } catch(e) {
+      console.error('[ME] Failed to parse game_data for', row.username, e);
+    }
+    console.log(`[ME] user=${row.username} returning: tutorialComplete=${gameData?.tutorialComplete} gestureSetupComplete=${gameData?.gestureSetupComplete} chaptersUnlocked=${gameData?.chapterProgress?.chaptersUnlocked} hasModel=${!!gameData?.gestureModel}`);
+
+    return res.status(200).json({ username: row.username, gameData });
+  } catch (err) {
+    console.error('/auth/me error:', err);
     return res.status(500).json({ error: 'Internal server error' });
   }
 });

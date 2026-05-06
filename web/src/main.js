@@ -18,6 +18,7 @@ import { LoginScreen } from './screens/LoginScreen.js';
 import { TutorialScreen } from './screens/TutorialScreen.js';
 import { ProfileScreen } from './screens/ProfileScreen.js';
 import { gestureController } from './gesture/GestureController.js';
+import { installBeforeUnloadGuard } from './utils/GuestGuard.js';
 
 // Initialize screen manager
 const screenManager = new ScreenManager('screen-container');
@@ -109,6 +110,9 @@ if ('serviceWorker' in navigator) {
       .catch(err => console.log('SW registration failed:', err));
   });
 }
+
+// Warn guests about losing progress on tab close / refresh
+installBeforeUnloadGuard();
 
 // Start the app
 init();

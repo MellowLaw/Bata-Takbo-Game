@@ -6,6 +6,7 @@
  */
 import { state } from '../utils/StateManager.js';
 import { DialogueBox } from '../utils/DialogueBox.js';
+import { isGuest, confirmGuestLeave } from '../utils/GuestGuard.js';
 
 // Module-level audio instance so music persists while browsing sub-menus
 let _bgMusic = null;
@@ -84,6 +85,8 @@ export const MainMenu = {
           this._fadeOutMusic(800, () => {
             btn.style.animation = '';
             const isTutorialComplete = state.get('tutorialComplete');
+            const isGestureSetupComplete = state.get('gestureSetupComplete');
+            console.log(`[PLAY] tutorialComplete=${isTutorialComplete} gestureSetupComplete=${isGestureSetupComplete}`);
 
             // Returning player who finished the tutorial → straight to chapter select
             if (isTutorialComplete) {
@@ -91,7 +94,14 @@ export const MainMenu = {
               return;
             }
 
-            // Brand-new player or tutorial not complete → show the welcome prompt
+            // Gesture model already trained → skip the gesture-setup step
+            // and go straight to the gameplay tutorial.
+            if (isGestureSetupComplete) {
+              window.__screenManager.navigate('tutorial-screen');
+              return;
+            }
+
+            // Brand-new player → show the welcome prompt (gesture setup + tutorial)
             this._showWelcomePrompt();
           });
         } else {
@@ -115,7 +125,19 @@ export const MainMenu = {
         logoutBtn.style.animation = 'flashWhite 0.3s ease';
         setTimeout(() => {
           logoutBtn.style.animation = '';
-          state.logout();
+
+          // Guest with progress → warn before clearing.
+          if (isGuest()) {
+            confirmGuestLeave({
+              onLeave: () => state.logout(),
+              onConnect: () => {
+                // Go straight to login screen so they can register.
+                if (window.__screenManager) window.__screenManager.navigate('login-screen');
+              }
+            });
+          } else {
+            state.logout();
+          }
         }, 150);
       });
     }

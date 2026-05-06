@@ -214,8 +214,8 @@ export const LoginScreen = {
             console.error('Failed to encrypt session:', err);
           }
 
-          // Fresh guest session → tutorial not yet done
-          state.set('tutorialComplete', false);
+          // Fresh guest session — wipe any leftover state from a previous account.
+          state._resetAccountState();
 
           if (window.__screenManager) {
             window.__screenManager.navigate('main-menu');
@@ -313,43 +313,9 @@ export const LoginScreen = {
         if (res.ok && data.success) {
           sessionStorage.setItem('guest_session', JSON.stringify({ is_guest: false, username }));
 
-          // Determine tutorial state from server data
-          let tutorialComplete = false;
-
-          if (data.gameData) {
-            if (data.gameData.settings) {
-              const currentSettings = state.get('settings');
-              const mergedSettings = state._deepMerge(currentSettings, data.gameData.settings);
-              state.set('settings', mergedSettings);
-            }
-
-            // Explicitly read tutorialComplete — false/missing means show tutorial
-            tutorialComplete = data.gameData.tutorialComplete === true || data.gameData.tutorialComplete === 'true';
-            console.log('[TUTORIAL-DEBUG] LoginScreen: data.gameData.tutorialComplete =', data.gameData.tutorialComplete, '→ resolved:', tutorialComplete);
-            state.set('tutorialComplete', tutorialComplete);
-
-            if (data.gameData.chapterProgress) {
-              state.set('chapterProgress', data.gameData.chapterProgress);
-            }
-
-            if (data.gameData.gestureModel && window.__gestureController) {
-              try {
-                window.__gestureController.classifier.importData(data.gameData.gestureModel);
-                await window.__gestureController.saveModel();
-              } catch(e) {
-                console.error('Failed to import gesture model', e);
-              }
-            }
-
-            // Sync to local storage only (prevent redundant server roundtrips)
-            state.saveSettings(false);
-            state.saveTutorialState(false);
-            state.saveChapterProgress(false);
-          } else {
-            // No saved game data at all — fresh account, show tutorial
-            tutorialComplete = false;
-            state.set('tutorialComplete', false);
-          }
+          // Authoritative load from /auth/me — overrides any stale in-memory
+          // or localStorage values that may have leaked from a previous session.
+          await state.hydrateFromServer();
 
           if (window.__screenManager) {
             window.__screenManager.navigate('main-menu');
@@ -454,10 +420,11 @@ export const LoginScreen = {
         
         if (res.ok && data.success) {
           sessionStorage.setItem('guest_session', JSON.stringify({ is_guest: false, username }));
-          // New account → tutorial not yet done
-          state.set('tutorialComplete', false);
+          // Fresh account: clear all per-account state so nothing leaks from a previous session.
+          state._resetAccountState();
+          // Persist the cleared defaults to the server immediately so /auth/me has a row to read.
+          await state._syncToServer();
           if (window.__screenManager) {
-            // Auto-start tutorial since this is a brand new account
             window.__screenManager.navigate('main-menu');
           }
         } else {
