@@ -1,4 +1,5 @@
 import { state } from '../utils/StateManager.js';
+import { DialogueBox } from '../utils/DialogueBox.js';
 
 export const ProfileScreen = {
   render() {
@@ -19,19 +20,29 @@ export const ProfileScreen = {
             <h2 id="profile-username" style="color: var(--text-primary); margin-bottom: var(--space-xs);">Loading...</h2>
             <p id="profile-account-type" style="color: var(--text-dim); font-size: var(--text-sm); margin-bottom: var(--space-md);"></p>
             
-            <div class="setting-row" style="justify-content: space-between;">
-              <span class="setting-row__label">Member Since</span>
-              <span class="slider-value" id="profile-date">-</span>
+            <div id="profile-stats-container">
+              <div class="setting-row" style="justify-content: space-between;">
+                <span class="setting-row__label">Member Since</span>
+                <span class="slider-value" id="profile-date">-</span>
+              </div>
+              
+              <div class="setting-row" style="justify-content: space-between;">
+                <span class="setting-row__label">Games Played</span>
+                <span class="slider-value" id="profile-games">-</span>
+              </div>
+              
+              <div class="setting-row" style="justify-content: space-between;">
+                <span class="setting-row__label">Total Score</span>
+                <span class="slider-value" id="profile-score">-</span>
+              </div>
             </div>
-            
-            <div class="setting-row" style="justify-content: space-between;">
-              <span class="setting-row__label">Games Played</span>
-              <span class="slider-value" id="profile-games">-</span>
-            </div>
-            
-            <div class="setting-row" style="justify-content: space-between;">
-              <span class="setting-row__label">Total Score</span>
-              <span class="slider-value" id="profile-score">-</span>
+
+            <div id="profile-guest-promo" style="display: none; padding: var(--space-md); background: rgba(0,0,0,0.3); border-radius: 8px; border: 1px dashed var(--accent-orange); margin-top: var(--space-md);">
+              <h3 style="color: var(--accent-orange); font-family: 'GigaSaturn', sans-serif; font-size: 1.5rem; margin-bottom: 0.5rem; letter-spacing: 1px;">CREATE AN ACCOUNT</h3>
+              <p style="color: white; font-size: 0.85rem; line-height: 1.4; margin-bottom: 1rem;">
+                Guest progress is only saved locally. Register a full account to track your stats, appear on the leaderboard, and keep your progress safe!
+              </p>
+              <button id="btn-profile-register" class="login-card__join-btn" style="padding: var(--space-sm) var(--space-md); font-size: 1rem; border-radius: 4px; font-family: 'GigaSaturn', sans-serif; letter-spacing: 2px;">REGISTER NOW</button>
             </div>
           </div>
           
@@ -65,8 +76,10 @@ export const ProfileScreen = {
 
     let isRegistered = false;
     let fallbackUsername = '';
+    let isGuest = false;
+
     try {
-      const stored = sessionStorage.getItem('guest_session');
+      const stored = localStorage.getItem('guest_session');
       if (stored) {
         try {
           const session = JSON.parse(stored);
@@ -74,47 +87,80 @@ export const ProfileScreen = {
             isRegistered = true;
             fallbackUsername = session.username || '';
           }
-        } catch(e) {}
+        } catch(e) {
+          // Encrypted guest blob
+          isGuest = true;
+          try {
+            const secretKeyStr = "BATA_TAKBO_SECRET_KEY_256BIT_000";
+            const enc = new TextEncoder();
+            const keyData = enc.encode(secretKeyStr);
+            const key = await window.crypto.subtle.importKey("raw", keyData, { name: "AES-GCM" }, false, ["decrypt"]);
+            
+            const encryptedBase64 = stored;
+            const combined = new Uint8Array(atob(encryptedBase64).split('').map(c => c.charCodeAt(0)));
+            const iv = combined.slice(0, 12);
+            const data = combined.slice(12);
+            
+            const decryptedBuffer = await window.crypto.subtle.decrypt({ name: "AES-GCM", iv: iv }, key, data);
+            const dec = new TextDecoder();
+            const session = JSON.parse(dec.decode(decryptedBuffer));
+            if (session && session.is_guest) {
+              fallbackUsername = session.username || 'Guest';
+            }
+          } catch(decErr) {
+            console.error('Failed to decrypt guest session', decErr);
+            fallbackUsername = 'Guest';
+          }
+        }
       }
     } catch (e) {}
 
-    if (!isRegistered) {
-      window.__screenManager.navigate('main-menu');
-      return;
+    let username = fallbackUsername;
+    let accountType = isGuest ? 'Guest' : 'Registered';
+    let registeredAt = null;
+
+    if (isRegistered) {
+      try {
+        const res = await fetch('/auth/profile', {
+          method: 'GET',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          username = data.username || fallbackUsername;
+          if (data.accountType) accountType = data.accountType;
+          registeredAt = data.registeredAt;
+        }
+      } catch (err) {
+        console.error('Failed to load profile details:', err);
+      }
     }
 
-    try {
-      const res = await fetch('/auth/profile', {
-        method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-      const data = await res.json();
-      
-      const username = data.username || fallbackUsername;
-      
-      const pAvatar = el.querySelector('#profile-avatar-container');
-      if (pAvatar && username) {
-        pAvatar.innerHTML = `
-          <div style="width: 80px; height: 80px; background-color: var(--accent-orange); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 3rem; color: #111; margin: 0 auto var(--space-md); font-weight: bold; text-transform: uppercase;">
-            ${username.charAt(0)}
-          </div>
-        `;
-      }
-      
-      const pUser = el.querySelector('#profile-username');
-      if (pUser) pUser.textContent = username;
-      
-      const pType = el.querySelector('#profile-account-type');
-      if (pType) pType.textContent = 'Account Type: ' + (data.accountType || 'Registered');
-      
-      const pDate = el.querySelector('#profile-date');
-      if (pDate && data.registeredAt) {
-        const d = new Date(data.registeredAt);
-        pDate.textContent = d.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
-      }
+    const pAvatar = el.querySelector('#profile-avatar-container');
+    if (pAvatar && username) {
+      pAvatar.innerHTML = `
+        <div style="width: 80px; height: 80px; background-color: var(--accent-orange); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 3rem; color: #111; margin: 0 auto var(--space-md); font-weight: bold; text-transform: uppercase;">
+          ${username.charAt(0)}
+        </div>
+      `;
+    }
+    
+    const pUser = el.querySelector('#profile-username');
+    if (pUser) pUser.textContent = username;
+    
+    const pType = el.querySelector('#profile-account-type');
+    if (pType) pType.textContent = 'Account Type: ' + accountType;
+    
+    const pDate = el.querySelector('#profile-date');
+    if (pDate && registeredAt) {
+      const d = new Date(registeredAt);
+      pDate.textContent = d.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+    } else if (pDate) {
+      pDate.textContent = '-';
+    }
 
       // Compute stats
       const progress = state.get('chapterProgress');
@@ -134,6 +180,27 @@ export const ProfileScreen = {
       const pScore = el.querySelector('#profile-score');
       if (pScore) pScore.textContent = totalScore.toString();
       
+      const statsContainer = el.querySelector('#profile-stats-container');
+      const guestPromoContainer = el.querySelector('#profile-guest-promo');
+      const cpGroup = el.querySelectorAll('.settings-group')[1];
+
+      if (isGuest) {
+        if (statsContainer) statsContainer.style.display = 'none';
+        if (guestPromoContainer) guestPromoContainer.style.display = 'block';
+        if (cpGroup) cpGroup.style.display = 'none';
+      } else {
+        if (statsContainer) statsContainer.style.display = 'block';
+        if (guestPromoContainer) guestPromoContainer.style.display = 'none';
+        if (cpGroup) cpGroup.style.display = 'block';
+      }
+
+      const btnPromoReg = el.querySelector('#btn-profile-register');
+      if (btnPromoReg) {
+        btnPromoReg.addEventListener('click', () => {
+          state.logout();
+        });
+      }
+
       // Change Password Logic
       const cpBtn = el.querySelector('#btn-save-password');
       const cpCurrent = el.querySelector('#cp-current');
@@ -217,18 +284,30 @@ export const ProfileScreen = {
         });
       }
       
-    } catch (err) {
-      console.error('Failed to load profile details:', err);
-      const pUser = el.querySelector('#profile-username');
-      if (pUser) pUser.textContent = fallbackUsername;
-      const pType = el.querySelector('#profile-account-type');
-      if (pType) pType.textContent = 'Account Type: Registered';
-    }
+      // Remove the catch block that was here previously for the fetch
 
     const pLogoutBtn = el.querySelector('#btn-profile-logout');
     if (pLogoutBtn) {
       pLogoutBtn.addEventListener('click', () => {
-        state.logout();
+        const dialogue = new DialogueBox('screen-container');
+        dialogue.show({
+          text: "Are you sure you want to log out?",
+          subtext: 'You will need to log back in to play.',
+          portrait: '/assets/entity/character-icon/character.png',
+          portraitFrames: 5,
+          position: 'center',
+          overlay: true,
+          typewriter: true,
+          buttons: [
+            { label: 'Yes, Log Out', action: 'logout' },
+            { label: 'Cancel', action: 'cancel', style: 'subtle' }
+          ]
+        }, (action) => {
+          dialogue.hide();
+          if (action === 'logout') {
+            state.logout();
+          }
+        });
       });
     }
   },

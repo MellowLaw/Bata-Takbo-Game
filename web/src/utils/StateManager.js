@@ -200,7 +200,7 @@ class StateManager {
     // the token is blacklisted and the subsequent save will fail with 401.
     let isRegistered = false;
     try {
-      const stored = sessionStorage.getItem('guest_session');
+      const stored = localStorage.getItem('guest_session');
       if (stored) {
         const session = JSON.parse(stored);
         if (session && session.is_guest === false) isRegistered = true;
@@ -227,7 +227,7 @@ class StateManager {
     }
 
     // ── Step 3: Clear local state ──────────────────────────────────────────
-    sessionStorage.removeItem('guest_session');
+    localStorage.removeItem('guest_session');
     try {
       localStorage.removeItem('bata_takbo_settings');
       localStorage.removeItem('bata_takbo_tutorial');
@@ -270,7 +270,7 @@ class StateManager {
 
   _isGuest() {
     try {
-      const stored = sessionStorage.getItem('guest_session');
+      const stored = localStorage.getItem('guest_session');
       if (stored) {
         const session = JSON.parse(stored);
         if (session && session.is_guest === false) return false;
@@ -352,12 +352,12 @@ class StateManager {
       const res = await fetch('/auth/me', { method: 'GET', credentials: 'include' });
       if (!res.ok) {
         console.warn(`[LOAD] /auth/me FAILED status=${res.status}`);
-        return;
+        return false;
       }
       const { gameData } = await res.json();
       console.log(`[LOAD] /auth/me received: tutorialComplete=${gameData?.tutorialComplete} gestureSetupComplete=${gameData?.gestureSetupComplete} chaptersUnlocked=${gameData?.chapterProgress?.chaptersUnlocked} hasModel=${!!gameData?.gestureModel}`);
 
-      if (!gameData) return; // brand-new account — defaults are correct
+      if (!gameData) return true; // brand-new account — defaults are correct
 
       // Strict boolean coercion
       const tutorialComplete = gameData.tutorialComplete === true || gameData.tutorialComplete === 'true';
@@ -395,8 +395,10 @@ class StateManager {
       } catch (e) { /* ignore */ }
 
       console.log(`[LOAD] applied — tutorialComplete=${this._state.tutorialComplete} gestureSetupComplete=${this._state.gestureSetupComplete}`);
+      return true;
     } catch (e) {
       console.warn('[LOAD] network error —', e.message);
+      return false;
     }
   }
 }

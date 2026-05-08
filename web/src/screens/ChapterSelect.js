@@ -24,11 +24,11 @@ export const ChapterSelect = {
              data-chapter="${ch.id}"
              style="animation-delay: ${i * 0.12}s">
           <div class="ch-flip-inner">
-            <!-- BACK face (default visible) -->
+            <!-- Legacy back face kept for asset compatibility; hover no longer flips cards. -->
             <div class="ch-face ch-face--back">
               <img src="/assets/ui/chapter-selection/chapter-back.png" alt="Chapter Back" />
             </div>
-            <!-- FRONT face (revealed on hover) -->
+            <!-- FRONT face (default visible) -->
             <div class="ch-face ch-face--front">
               <img src="${frontImg}" alt="${ch.name}" />
             </div>
@@ -76,19 +76,6 @@ export const ChapterSelect = {
       window.__screenManager.back();
     });
 
-    // All cards hover flip tracking (via JS classes for smooth reverse)
-    el.querySelectorAll('.ch-flip-wrapper').forEach(card => {
-      const inner = card.querySelector('.ch-flip-inner');
-      card.addEventListener('mouseenter', () => {
-        inner.classList.remove('is-unflipped');
-        inner.classList.add('is-flipped');
-      });
-      card.addEventListener('mouseleave', () => {
-        inner.classList.remove('is-flipped');
-        inner.classList.add('is-unflipped');
-      });
-    });
-
     // Click on any UNLOCKED card → navigate to game
     el.querySelectorAll('.ch-flip-wrapper.unlocked').forEach(card => {
       card.addEventListener('click', () => {
@@ -104,75 +91,5 @@ export const ChapterSelect = {
       });
     });
 
-    // Chapter Hover Animations (Spritesheet)
-    el.querySelectorAll('.ch-flip-wrapper.unlocked').forEach(card => {
-      const chapterId = card.dataset.chapter;
-      const frontFace = card.querySelector('.ch-face--front');
-      const frontImgEl = frontFace.querySelector('img');
-      const baseSrc = frontImgEl.src;
-      let frameIndex = 0;
-      let animInterval = null;
-      let canvasEl = null;
-
-      const playAnimation = () => {
-        if (animInterval) clearInterval(animInterval);
-        
-        // Hide the base image
-        frontImgEl.style.opacity = '0';
-        
-        if (!canvasEl) {
-          canvasEl = document.createElement('canvas');
-          canvasEl.style.position = 'absolute';
-          canvasEl.style.top = '0';
-          canvasEl.style.left = '0';
-          canvasEl.style.width = '100%';
-          canvasEl.style.height = '100%';
-          canvasEl.style.objectFit = 'contain';
-          canvasEl.style.pointerEvents = 'none';
-          frontFace.appendChild(canvasEl);
-        }
-        canvasEl.style.display = 'block';
-        const ctx = canvasEl.getContext('2d');
-        
-        const spriteImg = new Image();
-        spriteImg.src = `/assets/ui/chapter-selection/chapter-select-idle/chapter${chapterId}_idle.png`;
-        
-        let loaded = false;
-        let frameW = 0, frameH = 0;
-        
-        spriteImg.onload = () => {
-          loaded = true;
-          frameW = spriteImg.width / 11;
-          frameH = spriteImg.height / 10;
-          canvasEl.width = frameW;
-          canvasEl.height = frameH;
-        };
-
-        animInterval = setInterval(() => {
-          if (!loaded) return;
-          frameIndex = (frameIndex + 1) % 102; // Total 102 frames
-          const c = frameIndex % 11;
-          const r = Math.floor(frameIndex / 11);
-          
-          ctx.clearRect(0, 0, frameW, frameH);
-          ctx.drawImage(spriteImg, c * frameW, r * frameH, frameW, frameH, 0, 0, frameW, frameH);
-        }, 1000 / 24); // 24 fps
-      };
-
-      const stopAnimation = () => {
-        if (animInterval) clearInterval(animInterval);
-        animInterval = null;
-        frameIndex = 0;
-        
-        // Restore base image
-        frontImgEl.style.opacity = '1';
-        if (canvasEl) {
-          canvasEl.style.display = 'none';
-        }
-      };
-
-      card.addEventListener('mouseenter', playAnimation);
-      card.addEventListener('mouseleave', stopAnimation);
-    });
   },
 };

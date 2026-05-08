@@ -17,7 +17,7 @@ const PORTRAIT = '/assets/entity/character-icon/character.png';
 /** True if no registered session is active (guest or signed-out). */
 export function isGuest() {
   try {
-    const stored = sessionStorage.getItem('guest_session');
+    const stored = localStorage.getItem('guest_session');
     if (stored) {
       const session = JSON.parse(stored);
       if (session && session.is_guest === false) return false;

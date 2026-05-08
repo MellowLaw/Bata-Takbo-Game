@@ -100,6 +100,18 @@ app.post('/auth/register', async (req, res) => {
       return res.status(400).json({ error: 'Password must be between 8 and 50 characters' });
     }
 
+    if (!/\d/.test(password)) {
+      return res.status(400).json({ error: 'Password must contain at least one number' });
+    }
+
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+      return res.status(400).json({ error: 'Password must contain at least one special character' });
+    }
+
+    if (/\s/.test(password)) {
+      return res.status(400).json({ error: 'Password cannot contain spaces' });
+    }
+
     const sanitizedUsername = username.trim();
 
     // Check if user already exists
@@ -131,11 +143,11 @@ app.post('/auth/register', async (req, res) => {
     );
 
     // After success, instantly log them in using identically constructed JWT token logic 
-    const token = jwt.sign({ id: result.lastID, username: sanitizedUsername }, JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign({ id: result.lastID, username: sanitizedUsername }, JWT_SECRET, { expiresIn: '30d' });
       
     res.cookie('jwt', token, {
       httpOnly: true,
-      maxAge: 3600000,
+      maxAge: 2592000000,
       secure: false,
       sameSite: 'lax'
     });
@@ -175,12 +187,12 @@ app.post('/auth/login', async (req, res) => {
       await db.run('UPDATE users SET failed_attempts = 0, lockout_time = 0 WHERE id = ?', [user.id]);
       
       // Issue a signed JWT token
-      const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '1h' });
+      const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '30d' });
       
       // Store JWT in an HttpOnly secure cookie
       res.cookie('jwt', token, {
         httpOnly: true,
-        maxAge: 3600000, // 1 hour
+        maxAge: 2592000000, // 1 hour
         secure: false, // Requires HTTPS in production
         sameSite: 'lax'
       });

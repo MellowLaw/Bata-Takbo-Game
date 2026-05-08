@@ -25,8 +25,15 @@ export class GameScene extends Phaser.Scene {
     } else {
       this.load.image('grid_bg', '/assets/ui/game-ui/grid.png');
     }
-    this.load.image('grid_panel_bg', '/assets/ui/game-ui/grid-second-bg.png');
+    if (this.chapterId === 2) {
+      this.load.image('grid_panel_bg', '/assets/ui/game-ui/grid-second-bg-chapter2.png');
+    } else if (this.chapterId === 3) {
+      this.load.image('grid_panel_bg', '/assets/ui/game-ui/grid-second-bg-chapter3.png');
+    } else {
+      this.load.image('grid_panel_bg', '/assets/ui/game-ui/grid-second-bg.png');
+    }
     this.load.image('boss_frame', '/assets/ui/game-ui/boss-frame.png');
+    this.load.image('red_tile', '/assets/ui/game-ui/red_tile.png');
 
     // Player sprites: 384x64 strips = 8 frames of 48x64 each
     this.load.spritesheet('player_idle_down', '/assets/entity/player/male/idle/idle_down.png', { frameWidth: 48, frameHeight: 64 });
@@ -77,8 +84,6 @@ export class GameScene extends Phaser.Scene {
       // Loot and FX
       this.load.image('ruby_loot', '/assets/projectiles/shared/ruby.png');
       this.load.image('diamond_loot', '/assets/projectiles/shared/diamond.png');
-      this.load.spritesheet('lives_up', '/assets/fx/lives_up.png', { frameWidth: 128, frameHeight: 128 });
-      this.load.spritesheet('frozen', '/assets/fx/frozen.png', { frameWidth: 128, frameHeight: 128 });
 
     } else if (this.chapterId === 2) {
       // ===== CHAPTER 2: BUNGISNGIS ASSETS =====
@@ -92,6 +97,11 @@ export class GameScene extends Phaser.Scene {
       this.load.spritesheet('ch2_vines', '/assets/projectiles/chapter-2/growing-vines.png', { frameWidth: 192, frameHeight: 192 });
       this.load.spritesheet('ch2_carrot', '/assets/projectiles/chapter-2/carrot-rain.png', { frameWidth: 192, frameHeight: 192 });
       this.load.spritesheet('ch2_eggs', '/assets/projectiles/chapter-2/exploding-eggs.png', { frameWidth: 192, frameHeight: 192 });
+      this.load.spritesheet('ch2_note_burst', '/assets/projectiles/chapter-2/note-burst.png', { frameWidth: 128, frameHeight: 128 });
+      this.load.spritesheet('ch2_bunnies', '/assets/projectiles/chapter-2/bunnies.png', { frameWidth: 192, frameHeight: 192 });
+      this.load.spritesheet('ch2_golem_attack', '/assets/projectiles/chapter-2/Golem_1_attack.png', { frameWidth: 90, frameHeight: 64 });
+      this.load.spritesheet('ch2_golem_die', '/assets/projectiles/chapter-2/Golem_1_die.png', { frameWidth: 90, frameHeight: 64 });
+      this.load.spritesheet('ch2_notes', '/assets/projectiles/chapter-2/notes.png', { frameWidth: 128, frameHeight: 128 });
 
       // Plant entities
       this.load.spritesheet('ch2_plant_melee', '/assets/projectiles/chapter-2/Plant3_Attack.png', { frameWidth: 64, frameHeight: 64 });
@@ -105,8 +115,6 @@ export class GameScene extends Phaser.Scene {
       // Loot and FX
       this.load.image('ruby_loot', '/assets/projectiles/shared/ruby.png');
       this.load.image('diamond_loot', '/assets/projectiles/shared/diamond.png');
-      this.load.spritesheet('lives_up', '/assets/fx/lives_up.png', { frameWidth: 128, frameHeight: 128 });
-      this.load.spritesheet('frozen', '/assets/fx/frozen.png', { frameWidth: 128, frameHeight: 128 });
 
     } else if (this.chapterId === 3) {
       // ===== CHAPTER 3: KATAW ASSETS =====
@@ -167,7 +175,7 @@ export class GameScene extends Phaser.Scene {
       this.load.spritesheet('ch3_siren3_special', '/assets/projectiles/chapter-3/siren3/Special.png', { frameWidth: 128, frameHeight: 128 });
 
       // Cthulhu (2880x784 → 15 cols × 7 rows of 192x112)
-      this.load.spritesheet('ch3_cthulhu', '/assets/projectiles/chapter-3/cthulu.png', { frameWidth: 192, frameHeight: 112 });
+      this.load.spritesheet('ch3_cthulhu', '/assets/projectiles/chapter-3/cthulu.png', { frameWidth: 96, frameHeight: 56 });
 
 
 
@@ -194,9 +202,9 @@ export class GameScene extends Phaser.Scene {
       this.load.spritesheet('ch3_explosion_3', '/assets/projectiles/chapter-3/explosions/explosion-3-b.png', { frameWidth: 48, frameHeight: 48 });
       this.load.spritesheet('ch3_explosion_4', '/assets/projectiles/chapter-3/explosions/explosion-4-b.png', { frameWidth: 128, frameHeight: 128 });
       
-      this.load.spritesheet('ch3_explosion_2a', '/assets/projectiles/chapter-3/explosions/explosion-2-a.png', { frameWidth: 256, frameHeight: 256 });
-      this.load.spritesheet('ch3_explosion_3a', '/assets/projectiles/chapter-3/explosions/explosion-3-a.png', { frameWidth: 256, frameHeight: 256 });
-      this.load.spritesheet('ch3_explosion_4a', '/assets/projectiles/chapter-3/explosions/explosion-4-a.png', { frameWidth: 256, frameHeight: 256 });
+      this.load.spritesheet('ch3_explosion_2a', '/assets/projectiles/chapter-3/explosions/explosion-2-a.png', { frameWidth: 128, frameHeight: 128 });
+      this.load.spritesheet('ch3_explosion_3a', '/assets/projectiles/chapter-3/explosions/explosion-3-a.png', { frameWidth: 128, frameHeight: 128 });
+      this.load.spritesheet('ch3_explosion_4a', '/assets/projectiles/chapter-3/explosions/explosion-4-a.png', { frameWidth: 128, frameHeight: 128 });
       
       this.load.spritesheet('ch3_explosion_1d', '/assets/projectiles/chapter-3/explosions/explosion-1-d.png', { frameWidth: 64, frameHeight: 64 });
       this.load.spritesheet('ch3_explosion_2d', '/assets/projectiles/chapter-3/explosions/explosion-2-d.png', { frameWidth: 128, frameHeight: 80 });
@@ -306,14 +314,18 @@ export class GameScene extends Phaser.Scene {
       }
 
       // Power Up Chest Animations (Vertical animation mapping across 9 columns where rarity defines the column index)
-      const activeChests = [0, 1, 2, 8];
-      for (let i of activeChests) {
-        this.anims.create({
-          key: `chest_open_${i}`,
-          frames: [{ key: 'powerup_chests', frame: i }, { key: 'powerup_chests', frame: i + 9 }, { key: 'powerup_chests', frame: i + 18 }],
-          frameRate: 12,
-          repeat: 0
-        });
+      if (this.textures.exists('powerup_chests') && this.textures.get('powerup_chests').frameTotal >= 27) {
+        const activeChests = [0, 1, 2, 8];
+        for (let i of activeChests) {
+          this.anims.create({
+            key: `chest_open_${i}`,
+            frames: [{ key: 'powerup_chests', frame: i }, { key: 'powerup_chests', frame: i + 9 }, { key: 'powerup_chests', frame: i + 18 }],
+            frameRate: 12,
+            repeat: 0
+          });
+        }
+      } else {
+        console.warn('powerup_chests texture or frames missing, skipping chest animations');
       }
 
       // Compile Phase 5 Chapter 1 Blood Sequences into Animations
@@ -346,6 +358,11 @@ export class GameScene extends Phaser.Scene {
         this.anims.create({ key: 'anim_ch2_vines_shrink', frames: this.anims.generateFrameNumbers('ch2_vines', { start: 18, end: 24 }), frameRate: 15, repeat: 0 });
         this.anims.create({ key: 'anim_ch2_carrot', frames: this.anims.generateFrameNumbers('ch2_carrot', { start: 0, end: 27 }), frameRate: 20, repeat: 0 });
         this.anims.create({ key: 'anim_ch2_eggs', frames: this.anims.generateFrameNumbers('ch2_eggs', { start: 0, end: 39 }), frameRate: 18, repeat: 0 });
+        this.anims.create({ key: 'anim_ch2_note_burst', frames: this.anims.generateFrameNumbers('ch2_note_burst', { start: 0, end: 20 }), frameRate: 24, repeat: 0 });
+        this.anims.create({ key: 'anim_ch2_bunnies', frames: this.anims.generateFrameNumbers('ch2_bunnies', { start: 0, end: 29 }), frameRate: 18, repeat: -1 });
+        this.anims.create({ key: 'anim_ch2_golem_attack', frames: this.anims.generateFrameNumbers('ch2_golem_attack', { start: 0, end: 10 }), frameRate: 12, repeat: -1 });
+        this.anims.create({ key: 'anim_ch2_golem_die', frames: this.anims.generateFrameNumbers('ch2_golem_die', { start: 0, end: 12 }), frameRate: 14, repeat: 0 });
+        this.anims.create({ key: 'anim_ch2_notes', frames: this.anims.generateFrameNumbers('ch2_notes', { start: 0, end: 16 }), frameRate: 18, repeat: 0 });
 
         // Plant melee — Plant3_Attack.png row order:
         // Row 1 (0-6)  = down, Row 2 (7-13) = UP, Row 3 (14-20) = left, Row 4 (21-27) = right
@@ -788,7 +805,41 @@ export class GameScene extends Phaser.Scene {
     this.horizontalProjectiles = this.add.group();
     this._horizontalProjectilesStarted = false;
 
+    // --- KILL CAM LOGIC ---
+    state.set('killCamImages', []);
+    this.time.addEvent({
+      delay: 5000,
+      loop: true,
+      callback: () => {
+        if (this.isGameOver) return;
+        
+        // Capture the webcam feed instead of the game screen
+        const videoEl = document.getElementById('game-video');
+        if (videoEl && videoEl.videoWidth > 0) {
+          const canvas = document.createElement('canvas');
+          canvas.width = videoEl.videoWidth;
+          canvas.height = videoEl.videoHeight;
+          const ctx = canvas.getContext('2d');
+          // Mirror horizontally so the output matches natural selfie orientation
+          ctx.translate(canvas.width, 0);
+          ctx.scale(-1, 1);
+          ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+          // Reset transform before any further drawing
+          ctx.setTransform(1, 0, 0, 1, 0, 0);
+          const dataUrl = canvas.toDataURL('image/png');
+          
+          let images = state.get('killCamImages') || [];
+          images.push(dataUrl);
+          if (images.length > 4) {
+            images.shift();
+          }
+          state.set('killCamImages', images);
+        }
+      }
+    });
+
     console.log('[GameScene] Ready.');
+    state.emit('game:scene_created');
   }
 
   handleGesture(direction) {
@@ -1312,7 +1363,7 @@ export class GameScene extends Phaser.Scene {
         if (this.chapterId === 1) {
             bestiary[bossId].attacksSeen = ['Scatter Shot', 'Column Drop', 'Row Sweep', 'Diagonal Rain', 'Center Blast'];
         } else if (this.chapterId === 2) {
-            bestiary[bossId].attacksSeen = ['Beeswarm', 'Pollen Burst', 'Strangling Vines', 'Carrot Rain', 'Exploding Seeds', 'Snapping Flora', 'Acid Spitter'];
+            bestiary[bossId].attacksSeen = ['Beeswarm', 'Pollen Burst', 'Strangling Vines', 'Carrot Rain', 'Exploding Seeds', 'Snapping Flora', 'Acid Spitter', 'Golem Quake Notes', 'Note Burst Spiral', 'Bunny Stampede'];
         }
         
         state.set('bestiary', bestiary);

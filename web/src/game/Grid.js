@@ -491,23 +491,22 @@ export class Grid {
     const x = this.offsetX + col * this.tileSize;
     const y = this.offsetY + row * this.tileSize;
 
-    // Create a dedicated temporary graphics object for this telegraph
-    const tempGfx = this.scene.add.graphics();
-    tempGfx.fillStyle(0xff0000, 0.5);
-    tempGfx.fillRect(x, y, this.tileSize, this.tileSize);
+    const tempTile = this.scene.add.image(x + this.tileSize / 2, y + this.tileSize / 2, 'red_tile');
+    tempTile.setDisplaySize(this.tileSize, this.tileSize);
+    tempTile.setDepth(5); // Render behind player (depth 10) but above grid background (depth 0)
+    // Set initial alpha (mostly solid)
+    tempTile.setAlpha(0.85);
 
-    // Pulse animation to make it visually obvious
+    // Stay solid for most of the duration, then fade out quickly at the end
     this.scene.tweens.add({
-      targets: tempGfx,
-      alpha: 0.3,
-      yoyo: true,
-      repeat: 3,
-      duration: durationMs / 6,
-    });
-
-    // Auto-destroy after the warning period
-    this.scene.time.delayedCall(durationMs, () => {
-      tempGfx.destroy();
+      targets: tempTile,
+      alpha: 0,
+      delay: durationMs * 0.75,
+      duration: durationMs * 0.25,
+      ease: 'Linear',
+      onComplete: () => {
+        if (tempTile && tempTile.active) tempTile.destroy();
+      }
     });
   }
 
