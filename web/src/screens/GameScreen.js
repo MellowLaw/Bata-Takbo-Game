@@ -5,12 +5,14 @@ import * as Phaser from 'phaser';
 import { state } from '../utils/StateManager.js';
 import { GameScene } from '../game/GameScene.js';
 import { HUDScene } from '../game/HUDScene.js';
+import { ChapterLoadingScreen } from './ChapterLoadingScreen.js';
 import { gestureController } from '../gesture/GestureController.js';
 
 export const GameScreen = {
   render() {
     return `
       <div class="game-screen screen">
+        ${ChapterLoadingScreen.render()}
         <!-- Phaser engine mounts here -->
         <div id="phaser-container" style="width: 100%; height: 100%;"></div>
         
@@ -48,37 +50,72 @@ export const GameScreen = {
 
         <!-- Pause / Exit Button overlay is removed from DOM (now in HUDScene) -->
 
+        <!-- ⚠️ DEBUG ONLY — Remove before release -->
+        <div id="debug-toolbar" style="
+          position: absolute;
+          top: 10px;
+          right: 10px;
+          z-index: 9999;
+          display: flex;
+          gap: 8px;
+        ">
+          <button id="btn-debug-lose" style="
+            font-family: monospace;
+            font-size: 11px;
+            padding: 4px 10px;
+            background: rgba(180,0,0,0.85);
+            color: white;
+            border: 1px solid red;
+            cursor: pointer;
+            border-radius: 4px;
+          ">💀 FORCE LOSE</button>
+          <button id="btn-debug-win" style="
+            font-family: monospace;
+            font-size: 11px;
+            padding: 4px 10px;
+            background: rgba(0,140,0,0.85);
+            color: white;
+            border: 1px solid lime;
+            cursor: pointer;
+            border-radius: 4px;
+          ">🏆 FORCE WIN</button>
+        </div>
+
         <div id="pause-menu" class="hidden" style="
           position: absolute;
           top: 0; left: 0; right: 0; bottom: 0;
-          background: var(--bg-overlay);
-          backdrop-filter: blur(5px);
+          background-image: url('/assets/ui/backgrounds/paused_background.png');
+          background-size: cover;
+          background-position: center;
           z-index: 100;
           display: flex;
-          flex-direction: column;
           align-items: center;
-          justify-content: center;
-          gap: var(--space-lg);
+          padding-left: 12%;
         ">
-          <h2 class="screen-title" style="font-size: var(--text-2xl);">PAUSED</h2>
-          
-          <div style="background: rgba(0,0,0,0.5); padding: var(--space-md); border-radius: var(--radius-lg); width: 80%; max-width: 400px; display: flex; flex-direction: column; gap: var(--space-sm);">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-               <span style="color: var(--text-muted); font-size: var(--text-sm);">Gesture Sensitivity</span>
-               <span id="pause-val-sensitivity" style="color: var(--primary);">${Math.round(state.get('settings').gesture.sensitivity * 100)}%</span>
-            </div>
-            <input type="range" class="slider" id="pause-slider-sensitivity" min="40" max="95" value="${Math.round(state.get('settings').gesture.sensitivity * 100)}" style="width: 100%;">
+          <div class="pause-content" style="display: flex; flex-direction: column; align-items: flex-start; width: 450px; z-index: 2;">
+            <h2 class="pause-title" style="font-family: 'DirtyHarold', sans-serif; font-size: 8rem; color: white; margin-bottom: 2rem; margin-left: 10px; text-shadow: 4px 4px 0px #000, 0 0 20px rgba(255,255,255,0.2); letter-spacing: 2px; line-height: 1;">PAUSED</h2>
             
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: var(--space-sm);">
-               <span style="color: var(--text-muted); font-size: var(--text-sm);">Gesture Debounce</span>
-               <span id="pause-val-debounce" style="color: var(--primary);">${state.get('settings').gesture.debounce}ms</span>
+            <div class="pause-btn-group" style="display: flex; flex-direction: column; align-items: flex-start; gap: 0.2rem; margin-bottom: 2rem;">
+              <button class="menu-btn" id="btn-resume" style="padding: 0.2rem 0 !important; padding-left: 0 !important; margin: 0 !important; text-align: left !important; font-size: 1.5rem; color: white; text-shadow: 1px 1px 2px #000; letter-spacing: 1px; min-width: 0;">RESUME</button>
+              <button class="menu-btn" id="btn-restart" style="padding: 0.2rem 0 !important; padding-left: 0 !important; margin: 0 !important; text-align: left !important; font-size: 1.5rem; color: white; text-shadow: 1px 1px 2px #000; letter-spacing: 1px; min-width: 0;">RESTART</button>
+              <button class="menu-btn" id="btn-quit" style="padding: 0.2rem 0 !important; padding-left: 0 !important; margin: 0 !important; text-align: left !important; font-size: 1.5rem; color: white; text-shadow: 1px 1px 2px #000; letter-spacing: 1px; min-width: 0;">QUIT TO MENU</button>
             </div>
-            <input type="range" class="slider" id="pause-slider-debounce" min="50" max="300" step="10" value="${state.get('settings').gesture.debounce}" style="width: 100%;">
-          </div>
 
-          <button class="menu-btn active" id="btn-resume">RESUME</button>
-          <button class="menu-btn" id="btn-restart" style="color: var(--accent-gold);">RESTART</button>
-          <button class="menu-btn text-red" id="btn-quit">QUIT TO MENU</button>
+            <!-- Settings Panel -->
+            <div class="pause-settings" style="width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: var(--space-md); padding-left: 0;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                 <span style="color: white; font-family: var(--font-display); font-size: var(--text-sm); letter-spacing: 1px;">Gesture Sensitivity</span>
+                 <span id="pause-val-sensitivity" style="color: white; font-family: var(--font-display); font-size: var(--text-sm); font-weight: bold;">${Math.round(state.get('settings').gesture.sensitivity * 100)}%</span>
+              </div>
+              <input type="range" class="slider" id="pause-slider-sensitivity" min="40" max="95" value="${Math.round(state.get('settings').gesture.sensitivity * 100)}" style="width: 100%;">
+              
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-top: var(--space-xs);">
+                 <span style="color: white; font-family: var(--font-display); font-size: var(--text-sm); letter-spacing: 1px;">Gesture Debounce</span>
+                 <span id="pause-val-debounce" style="color: white; font-family: var(--font-display); font-size: var(--text-sm); font-weight: bold;">${state.get('settings').gesture.debounce}ms</span>
+              </div>
+              <input type="range" class="slider" id="pause-slider-debounce" min="50" max="300" step="10" value="${state.get('settings').gesture.debounce}" style="width: 100%;">
+            </div>
+          </div>
         </div>
       </div>
     `;
@@ -90,6 +127,21 @@ export const GameScreen = {
     this.canvasEl = el.querySelector('#game-canvas');
     this.pauseMenu = el.querySelector('#pause-menu');
     this.isPaused = false;
+    
+    // Set random loading tip for the overlay
+    const tipEl = el.querySelector('#loading-tip-chapter');
+    if (tipEl) {
+      tipEl.textContent = ChapterLoadingScreen.tips[Math.floor(Math.random() * ChapterLoadingScreen.tips.length)];
+    }
+
+    // Hide overlay when Phaser is completely ready and assets are loaded
+    this.unsubGameReady = state.on('game:scene_created', () => {
+      const overlay = el.querySelector('#game-loading-overlay');
+      if (overlay) {
+        overlay.style.opacity = '0';
+        setTimeout(() => overlay.remove(), 500);
+      }
+    });
     
     const chapterId = params.chapterId || 1;
     const isTutorial = params.isTutorial || false;
@@ -142,6 +194,16 @@ export const GameScreen = {
     // 4. Bind UI Controls
     this.unsubGamePause = state.on('game:pause', () => this.togglePause(true));
     el.querySelector('#btn-resume').addEventListener('click', () => this.togglePause(false));
+
+    // ⚠️ DEBUG — Force lose/win for testing results screen
+    el.querySelector('#btn-debug-lose').addEventListener('click', () => {
+      const gs = this.game && this.game.scene.getScene('GameScene');
+      if (gs && !gs.isGameOver) gs.showGameOver(false);
+    });
+    el.querySelector('#btn-debug-win').addEventListener('click', () => {
+      const gs = this.game && this.game.scene.getScene('GameScene');
+      if (gs && !gs.isGameOver) gs.showGameOver(true);
+    });
     
     // Wire up Pause Menu Live Setting Sliders
     const sensSlider = el.querySelector('#pause-slider-sensitivity');
@@ -179,6 +241,10 @@ export const GameScreen = {
   },
 
   onLeave() {
+    if (this.unsubGameReady) {
+      this.unsubGameReady();
+      this.unsubGameReady = null;
+    }
     if (this.unsubGamePause) {
       this.unsubGamePause();
       this.unsubGamePause = null;
@@ -196,12 +262,17 @@ export const GameScreen = {
     
     if (shouldPause) {
       this.pauseMenu.classList.remove('hidden');
+      // Trigger entrance animation
+      this.pauseMenu.classList.remove('animating-in');
+      void this.pauseMenu.offsetWidth; // force reflow to restart animation
+      this.pauseMenu.classList.add('animating-in');
       if (this.game) {
         this.game.scene.pause('GameScene');
         this.game.scene.pause('HUDScene');
       }
     } else {
       this.pauseMenu.classList.add('hidden');
+      this.pauseMenu.classList.remove('animating-in');
       if (this.game) {
         this.game.scene.resume('GameScene');
         this.game.scene.resume('HUDScene');

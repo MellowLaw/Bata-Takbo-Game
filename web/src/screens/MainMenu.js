@@ -43,9 +43,7 @@ export const MainMenu = {
             <button class="menu-btn" id="btn-leaderboard" data-screen="leaderboard">
               Leaderboard
             </button>
-            <button class="menu-btn" id="btn-profile" data-screen="profile-screen">
-              Profile
-            </button>
+
             <button class="menu-btn" id="btn-settings" data-screen="settings">
               Settings
             </button>
@@ -59,6 +57,13 @@ export const MainMenu = {
         </div>
 
         <div class="main-menu__version">v0.1.0</div>
+
+        <img 
+          src="/assets/ui/user_logo.png" 
+          alt="Profile" 
+          id="icon-profile" 
+          style="position: absolute; top: var(--space-lg); right: var(--space-lg); width: 48px; height: 48px; cursor: pointer; z-index: 10;"
+        />
       </div>
     `;
   },
@@ -112,11 +117,6 @@ export const MainMenu = {
           }, 150);
         }
       });
-
-      // Add subtle sound-like feedback on hover via animation
-      btn.addEventListener('mouseenter', () => {
-        btn.style.transition = 'all 0.15s ease';
-      });
     });
 
     const logoutBtn = el.querySelector('#btn-logout');
@@ -136,9 +136,34 @@ export const MainMenu = {
               }
             });
           } else {
-            state.logout();
+            const dialogue = new DialogueBox('screen-container');
+            dialogue.show({
+              text: "Are you sure you want to log out?",
+              subtext: 'You will need to log back in to play.',
+              portrait: '/assets/entity/character-icon/character.png',
+              portraitFrames: 5,
+              position: 'center',
+              overlay: true,
+              typewriter: true,
+              buttons: [
+                { label: 'Yes, Log Out', action: 'logout' },
+                { label: 'Cancel', action: 'cancel', style: 'subtle' }
+              ]
+            }, (action) => {
+              dialogue.hide();
+              if (action === 'logout') {
+                state.logout();
+              }
+            });
           }
         }, 150);
+      });
+    }
+
+    const profileIcon = el.querySelector('#icon-profile');
+    if (profileIcon) {
+      profileIcon.addEventListener('click', () => {
+        window.__screenManager.navigate('profile-screen');
       });
     }
 

@@ -18,6 +18,8 @@ import { LoginScreen } from './screens/LoginScreen.js';
 import { TutorialScreen } from './screens/TutorialScreen.js';
 import { ProfileScreen } from './screens/ProfileScreen.js';
 import { AdminDashboard } from './screens/AdminDashboard.js';
+import { TermsScreen } from './screens/TermsScreen.js';
+import { LoadingScreen } from './screens/LoadingScreen.js';
 import { gestureController } from './gesture/GestureController.js';
 import { installBeforeUnloadGuard } from './utils/GuestGuard.js';
 
@@ -42,6 +44,8 @@ screenManager.register('login-screen', LoginScreen);
 screenManager.register('tutorial-screen', TutorialScreen);
 screenManager.register('profile-screen', ProfileScreen);
 screenManager.register('admin-dashboard', AdminDashboard);
+screenManager.register('terms-screen', TermsScreen);
+screenManager.register('loading-screen', LoadingScreen);
 
 async function init() {
   // Small delay for font loading
@@ -54,8 +58,33 @@ async function init() {
     console.warn('Gesture controller background initialization error:', e);
   }
 
-  // Navigate to login screen
-  await screenManager.navigate('login-screen', {}, false);
+  // Check if session exists
+  const sessionData = localStorage.getItem('guest_session');
+  if (sessionData) {
+    let isValid = true;
+    try {
+      const parsed = JSON.parse(sessionData);
+      if (parsed && parsed.is_guest === false) {
+        // Registered user: attempt to hydrate. If it fails (e.g. 401), we should clear session and login.
+        const hydrated = await state.hydrateFromServer();
+        if (hydrated === false) {
+          isValid = false;
+        }
+      }
+    } catch(e) {
+      // It's an encrypted guest session string, which is always valid locally
+    }
+
+    if (isValid) {
+      await screenManager.navigate('main-menu', {}, false);
+    } else {
+      localStorage.removeItem('guest_session');
+      await screenManager.navigate('login-screen', {}, false);
+    }
+  } else {
+    // Navigate to login screen
+    await screenManager.navigate('login-screen', {}, false);
+  }
   
   // Hide loading overlay
   const loadingOverlay = document.getElementById('loading-overlay');

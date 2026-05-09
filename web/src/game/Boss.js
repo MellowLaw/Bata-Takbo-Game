@@ -185,13 +185,13 @@ export class Boss {
       } else if (this.scene.chapterId === 2) {
         this.scene.events.emit('boss:attack');
 
-        // 7 unique attack patterns with anti-repeat and anti-pair logic
+        // 8 unique attack patterns with anti-repeat and anti-pair logic
         // Beeswarm (0) and Hibiscus (1) must NEVER be consecutive in either order
         const BEESWARM = 0, HIBISCUS = 1;
         let pattern;
         let safetyCounter = 0;
         do {
-          pattern = Phaser.Math.Between(0, 6);
+          pattern = Phaser.Math.Between(0, 7);
           safetyCounter++;
           // Block: same as last, OR beeswarm↔hibiscus adjacent pair
           const isBadPair = (pattern === BEESWARM && this.lastAttackId === HIBISCUS) ||
@@ -209,7 +209,8 @@ export class Boss {
         else if (pattern === 3) currentAttackDuration = this.ch2AttackCarrotRain();
         else if (pattern === 4) currentAttackDuration = this.ch2AttackExplodingEggs();
         else if (pattern === 5) currentAttackDuration = this.ch2AttackSnappingFlora();
-        else currentAttackDuration = this.ch2AttackAcidSpitter();
+        else if (pattern === 6) currentAttackDuration = this.ch2AttackAcidSpitter();
+        else currentAttackDuration = this.ch2AttackGolemQuakeNotes();
       } else if (this.scene.chapterId === 3) {
         this.scene.events.emit('boss:attack');
         // 11 Unique attacks with anti-repeat
@@ -255,21 +256,22 @@ export class Boss {
           r: Phaser.Math.Between(0, this.grid.rows - 1)
         });
       }
-      // Tell HUDScene to play boss attack animation (for chapters that use generic projectiles)
-      if (this.scene.chapterId !== 1 && this.scene.chapterId !== 2) this.scene.events.emit('boss:attack');
+      if (targets.length > 0) {
+        // Tell HUDScene to play boss attack animation for legacy projectile attacks.
+        this.scene.events.emit('boss:attack');
 
-      // Unleash generic projectiles with strict Fairness Rule (legacy format)
-      const telegraphTime = Phaser.Math.Between(1500, 2000);
-      currentAttackDuration = telegraphTime + 500; // Track the legacy duration logic
+        const telegraphTime = Phaser.Math.Between(1500, 2000);
+        currentAttackDuration = telegraphTime + 500;
 
-      targets.forEach(t => {
-        this.grid.telegraph(t.c, t.r, telegraphTime);
-        this.scene.time.delayedCall(telegraphTime, () => {
-          if (this.hp > 0) {
-            new Projectile(this.scene, this.grid, t.c, t.r);
-          }
+        targets.forEach(t => {
+          this.grid.telegraph(t.c, t.r, telegraphTime);
+          this.scene.time.delayedCall(telegraphTime, () => {
+            if (this.hp > 0) {
+              new Projectile(this.scene, this.grid, t.c, t.r);
+            }
+          });
         });
-      });
+      }
     }
 
     // Dynamic Cascading Pause Scheduler setup
@@ -884,7 +886,7 @@ export class Boss {
   }
 
   /** Attack 4: Carrot Rain — Line Attack */
-  ch2AttackCarrotRain() {
+  _ch2AttackCarrotRainLegacy() {
     // Pick 1 to 3 distinct rows OR distinct columns (NO diagonals)
     const isRow = Math.random() > 0.5;
     const numLines = Phaser.Math.Between(1, 3);
@@ -942,6 +944,116 @@ export class Boss {
   }
 
   /** Attack 5: Exploding Eggs — Spot Hazard */
+  /** Attack 4: Carrot Rain - staged meteor barrage with safe gaps */
+  ch2AttackCarrotRain() {
+    const carrotScale = this.grid.tileSize * 1.45;
+    const telegraphMs = 850;
+    const impactDamageMs = 900;
+
+    const pickUnique = (max, count) => {
+      const values = Array.from({ length: max }, (_, i) => i);
+      Phaser.Utils.Array.Shuffle(values);
+      return values.slice(0, count);
+    };
+
+    const makeHorizontalLane = (row) => {
+      const gap = Phaser.Math.Clamp(this.scene.player.col + Phaser.Math.Between(-1, 1), 0, this.grid.cols - 1);
+      const tiles = [];
+      for (let c = 0; c < this.grid.cols; c++) {
+        if (c !== gap) tiles.push({ c, r: row });
+      }
+      return tiles;
+    };
+
+    const makeVerticalLane = (col) => {
+      const gap = Phaser.Math.Clamp(this.scene.player.row + Phaser.Math.Between(-1, 1), 0, this.grid.rows - 1);
+      const tiles = [];
+      for (let r = 0; r < this.grid.rows; r++) {
+        if (r !== gap) tiles.push({ c: col, r });
+      }
+      return tiles;
+    };
+
+    const dropCarrot = (tile, index, fromRight = true) => {
+      const dest = this.grid.getPixelPosition(tile.c, tile.r);
+      const startX = dest.x + (fromRight ? 260 : -260) + Phaser.Math.Between(-35, 35);
+      const startY = dest.y - 390 - Phaser.Math.Between(0, 80);
+      const carrot = this.scene.add.sprite(startX, startY, 'ch2_carrot')
+        .setDisplaySize(carrotScale, carrotScale)
+        .setDepth(40 + (index % 5))
+        .setRotation(fromRight ? -0.75 : 0.75);
+
+      const ring = this.scene.add.graphics().setDepth(39);
+      ring.lineStyle(3, 0xff7a18, 0.9);
+      ring.strokeCircle(dest.x, dest.y, this.grid.tileSize * 0.42);
+      this.scene.tweens.add({
+        targets: ring,
+        alpha: 0,
+        scaleX: 1.7,
+        scaleY: 1.7,
+        duration: 360,
+        ease: 'Quad.easeOut',
+        onComplete: () => ring.destroy()
+      });
+
+      this.scene.tweens.add({
+        targets: carrot,
+        x: dest.x,
+        y: dest.y,
+        rotation: 0,
+        duration: 310,
+        ease: 'Cubic.easeIn',
+        onComplete: () => {
+          carrot.play('anim_ch2_carrot');
+          carrot.once('animationcomplete', () => carrot.destroy());
+          this.scene.cameras.main.shake(80, 0.006);
+          this.createDamageZone([{ c: tile.c, r: tile.r }], impactDamageMs);
+        }
+      });
+    };
+
+    const scheduleWave = (tiles, waveDelay, staggerMs, fromRight = true) => {
+      this.scene.time.delayedCall(waveDelay, () => {
+        if (this.hp <= 0 || this.scene.isGameOver) return;
+        tiles.forEach(tile => this.grid.telegraph(tile.c, tile.r, telegraphMs));
+      });
+
+      tiles.forEach((tile, i) => {
+        this.scene.time.delayedCall(waveDelay + telegraphMs + i * staggerMs, () => {
+          if (this.hp <= 0 || this.scene.isGameOver) return;
+          dropCarrot(tile, i, fromRight);
+        });
+      });
+    };
+
+    const rowTiles = pickUnique(this.grid.rows, 2).flatMap(makeHorizontalLane);
+    const colTiles = pickUnique(this.grid.cols, 2).flatMap(makeVerticalLane);
+
+    scheduleWave(rowTiles, 0, 75, true);
+    scheduleWave(colTiles, 1450, 65, false);
+
+    this.scene.time.delayedCall(2850, () => {
+      if (this.hp <= 0 || this.scene.isGameOver) return;
+      const pc = this.scene.player.col;
+      const pr = this.scene.player.row;
+      const finaleTiles = [];
+
+      for (let dc = -1; dc <= 1; dc++) {
+        for (let dr = -1; dr <= 1; dr++) {
+          const c = pc + dc;
+          const r = pr + dr;
+          if (c < 0 || c >= this.grid.cols || r < 0 || r >= this.grid.rows) continue;
+          if (c === pc && r === pr) continue;
+          finaleTiles.push({ c, r });
+        }
+      }
+
+      scheduleWave(finaleTiles, 0, 55, Math.random() > 0.5);
+    });
+
+    return 5200;
+  }
+
   ch2AttackExplodingEggs() {
     const numEggs = Phaser.Math.Between(5, 10);
     const chosen = [];
@@ -1027,17 +1139,17 @@ export class Boss {
       const gridBottom = this.grid.offsetY + this.grid.rows * this.grid.tileSize;
 
       const dangerZone = this.scene.add.graphics();
-      dangerZone.fillStyle(0xff0000, 0.25); // faint red
+      // dangerZone.fillStyle(0xff0000, 0.25); // faint red
 
       // Horizontal bar: clamp left/right edges to grid bounds
       const hLeft  = Math.max(gridLeft,  pos.x - size * 1.5);
       const hRight = Math.min(gridRight, pos.x + size * 1.5);
-      dangerZone.fillRect(hLeft, pos.y - size * 0.5, hRight - hLeft, size);
+      // dangerZone.fillRect(hLeft, pos.y - size * 0.5, hRight - hLeft, size);
 
       // Vertical bar: clamp top/bottom edges to grid bounds
       const vTop    = Math.max(gridTop,    pos.y - size * 1.5);
       const vBottom = Math.min(gridBottom, pos.y + size * 1.5);
-      dangerZone.fillRect(pos.x - size * 0.5, vTop, size, vBottom - vTop);
+      // dangerZone.fillRect(pos.x - size * 0.5, vTop, size, vBottom - vTop);
 
       dangerZone.setDepth(15);
       dangerZone.setAlpha(0);
@@ -1207,6 +1319,275 @@ export class Boss {
     return totalDuration + 500;
   }
 
+  /** Attack 8: Golem Quake Notes - side golems shake note bursts across full rows */
+  ch2AttackGolemQuakeNotes() {
+    const TELEGRAPH_MS = 1000;
+    const STEP_MS = 180;
+    const NOTE_DAMAGE_MS = 420;
+    const noteSize = this.grid.tileSize * 1.45;
+    const golemScale = this.grid.tileSize / 90 * 1.05;
+
+    const lanes = [];
+    const targetCount = Phaser.Math.Between(2, 3);
+    while (lanes.length < targetCount) {
+      const row = Phaser.Math.Between(0, this.grid.rows - 1);
+      if (!lanes.some(lane => lane.row === row)) {
+        lanes.push({ row, fromLeft: lanes.length % 2 === 0 });
+      }
+    }
+
+    const golems = [];
+    const spawnGolem = (lane) => {
+      const { row, fromLeft } = lane;
+      const sideCol = fromLeft ? 0 : this.grid.cols - 1;
+      const pos = this.grid.getPixelPosition(sideCol, row);
+      const golem = this.scene.add.sprite(pos.x, pos.y, 'ch2_golem_attack')
+        .setScale(0)
+        .setDepth(43)
+        .setAlpha(1)
+        .setFlipX(!fromLeft)
+        .play('anim_ch2_golem_attack');
+
+      this.scene.tweens.add({
+        targets: golem,
+        scale: golemScale,
+        duration: 240,
+        ease: 'Back.easeOut'
+      });
+
+      golems.push(golem);
+    };
+
+    lanes.forEach(spawnGolem);
+
+    lanes.forEach(({ row, fromLeft }) => {
+      for (let step = 0; step < this.grid.cols - 1; step++) {
+        const c = fromLeft ? step + 1 : this.grid.cols - 2 - step;
+        this.grid.telegraph(c, row, TELEGRAPH_MS + step * STEP_MS);
+      }
+    });
+
+    this.scene.time.delayedCall(TELEGRAPH_MS, () => {
+      if (this.hp <= 0 || this.scene.isGameOver) return;
+      this.scene.cameras.main.shake(600, 0.02);
+
+      lanes.forEach(({ row, fromLeft }, laneIndex) => {
+        for (let step = 0; step < this.grid.cols - 1; step++) {
+          const c = fromLeft ? step + 1 : this.grid.cols - 2 - step;
+          this.scene.time.delayedCall(laneIndex * 120 + step * STEP_MS, () => {
+            if (this.hp <= 0 || this.scene.isGameOver) return;
+
+            const pos = this.grid.getPixelPosition(c, row);
+            const notes = this.scene.add.sprite(pos.x, pos.y, 'ch2_notes')
+              .setDisplaySize(noteSize, noteSize)
+              .setDepth(44)
+              .setFlipX(!fromLeft)
+              .play('anim_ch2_notes');
+
+            notes.once('animationcomplete', () => notes.destroy());
+            this.createDamageZone([{ c, r: row }], NOTE_DAMAGE_MS);
+          });
+        }
+      });
+    });
+
+    const totalDuration = TELEGRAPH_MS + (this.grid.cols - 1) * STEP_MS + lanes.length * 120 + 900;
+    this.scene.time.delayedCall(totalDuration - 500, () => {
+      golems.forEach(golem => {
+        if (!golem.active) return;
+        golem.setTexture('ch2_golem_die');
+        golem.play('anim_ch2_golem_die');
+        golem.once('animationcomplete', () => golem.destroy());
+      });
+    });
+
+    return totalDuration;
+  }
+
+  /** Chapter 2 ultimate: Note Burst Spiral — edge tiles collapse inward to the center */
+  ch2AttackNoteBurstUltimate() {
+    if (this.scene.isGameOver || this.hp <= 0 || this._ch2UltimateActive) return 0;
+
+    this._ch2UltimateActive = true;
+    this.scene.events.emit('boss:attack');
+    this.scene.cameras.main.shake(350, 0.012);
+
+    const spiralTiles = this._buildInwardSpiralTiles();
+    const START_DELAY = 450;
+    const STEP_MS = 115;
+    const TELEGRAPH_MS = 650;
+    const BURST_DAMAGE_MS = 420;
+    const burstSize = this.grid.tileSize * 1.55;
+
+    spiralTiles.forEach((tile, index) => {
+      const warnDelay = START_DELAY + index * STEP_MS;
+      const hitDelay = warnDelay + TELEGRAPH_MS;
+
+      this.scene.time.delayedCall(warnDelay, () => {
+        if (this.hp <= 0 || this.scene.isGameOver) return;
+        this.grid.telegraph(tile.c, tile.r, TELEGRAPH_MS);
+      });
+
+      this.scene.time.delayedCall(hitDelay, () => {
+        if (this.hp <= 0 || this.scene.isGameOver) return;
+
+        const pos = this.grid.getPixelPosition(tile.c, tile.r);
+        const burst = this.scene.add.sprite(pos.x, pos.y, 'ch2_note_burst')
+          .setDisplaySize(burstSize, burstSize)
+          .setDepth(45)
+          .setAngle(index * 24);
+
+        burst.play('anim_ch2_note_burst');
+        burst.once('animationcomplete', () => burst.destroy());
+        this.createDamageZone([{ c: tile.c, r: tile.r }], BURST_DAMAGE_MS);
+      });
+    });
+
+    const totalDuration = START_DELAY + spiralTiles.length * STEP_MS + TELEGRAPH_MS + BURST_DAMAGE_MS + 300;
+    this.scene.time.delayedCall(totalDuration, () => {
+      this._ch2UltimateActive = false;
+    });
+
+    return totalDuration;
+  }
+
+  /** Chapter 2 ultimate: Bunny Stampede — mirrored zig-zag lanes from both board edges */
+  ch2AttackBunnyStampedeUltimate() {
+    if (this.scene.isGameOver || this.hp <= 0 || this._ch2UltimateActive) return 0;
+
+    this._ch2UltimateActive = true;
+    this.scene.events.emit('boss:attack');
+    this.scene.cameras.main.shake(450, 0.018);
+
+    const WAVE_COUNT = 4;
+    const WAVE_GAP_MS = 850;
+    const TELEGRAPH_MS = 700;
+    const HOP_MS = 170;
+    const DAMAGE_MS = 360;
+    const bunnySize = this.grid.tileSize * 1.7;
+    const gridLeft = this.grid.offsetX;
+    const gridRight = this.grid.offsetX + this.grid.cols * this.grid.tileSize;
+
+    for (let wave = 0; wave < WAVE_COUNT; wave++) {
+      const waveDelay = wave * WAVE_GAP_MS;
+      const fromLeft = wave % 2 === 0;
+      const rows = this._pickUniqueRows(3);
+
+      rows.forEach((row, laneIndex) => {
+        const path = this._buildBunnyZigZagPath(row, fromLeft, laneIndex + wave);
+
+        this.scene.time.delayedCall(waveDelay, () => {
+          if (this.hp <= 0 || this.scene.isGameOver) return;
+          path.forEach(tile => this.grid.telegraph(tile.c, tile.r, TELEGRAPH_MS));
+        });
+
+        this.scene.time.delayedCall(waveDelay + TELEGRAPH_MS, () => {
+          if (this.hp <= 0 || this.scene.isGameOver) return;
+
+          const first = path[0];
+          const firstPos = this.grid.getPixelPosition(first.c, first.r);
+          const bunny = this.scene.add.sprite(
+            fromLeft ? gridLeft - this.grid.tileSize : gridRight + this.grid.tileSize,
+            firstPos.y,
+            'ch2_bunnies'
+          )
+            .setDisplaySize(bunnySize, bunnySize)
+            .setDepth(48 + laneIndex)
+            .setFlipX(!fromLeft)
+            .play('anim_ch2_bunnies');
+
+          path.forEach((tile, stepIndex) => {
+            this.scene.time.delayedCall(stepIndex * HOP_MS, () => {
+              if (!bunny.active || this.hp <= 0 || this.scene.isGameOver) return;
+
+              const pos = this.grid.getPixelPosition(tile.c, tile.r);
+              this.scene.tweens.add({
+                targets: bunny,
+                x: pos.x,
+                y: pos.y - this.grid.tileSize * 0.1,
+                duration: HOP_MS * 0.75,
+                ease: 'Sine.easeInOut'
+              });
+
+              this.createDamageZone([{ c: tile.c, r: tile.r }], DAMAGE_MS);
+            });
+          });
+
+          const exitX = fromLeft ? gridRight + this.grid.tileSize : gridLeft - this.grid.tileSize;
+          const last = path[path.length - 1];
+          const lastPos = this.grid.getPixelPosition(last.c, last.r);
+          this.scene.time.delayedCall(path.length * HOP_MS, () => {
+            if (!bunny.active) return;
+            this.scene.tweens.add({
+              targets: bunny,
+              x: exitX,
+              y: lastPos.y,
+              alpha: 0,
+              duration: 260,
+              ease: 'Power2',
+              onComplete: () => bunny.destroy()
+            });
+          });
+        });
+      });
+    }
+
+    const totalDuration = (WAVE_COUNT - 1) * WAVE_GAP_MS + TELEGRAPH_MS + this.grid.cols * HOP_MS + 700;
+    this.scene.time.delayedCall(totalDuration, () => {
+      this._ch2UltimateActive = false;
+    });
+
+    return totalDuration;
+  }
+
+  _pickUniqueRows(count) {
+    const rows = Array.from({ length: this.grid.rows }, (_, r) => r);
+    Phaser.Utils.Array.Shuffle(rows);
+    return rows.slice(0, Math.min(count, rows.length));
+  }
+
+  _buildBunnyZigZagPath(startRow, fromLeft, seed) {
+    const path = [];
+    const rowDir = seed % 2 === 0 ? 1 : -1;
+
+    for (let step = 0; step < this.grid.cols; step++) {
+      const c = fromLeft ? step : this.grid.cols - 1 - step;
+      const rowOffset = (step % 3) - 1;
+      const r = Phaser.Math.Clamp(startRow + rowOffset * rowDir, 0, this.grid.rows - 1);
+      path.push({ c, r });
+    }
+
+    return path;
+  }
+
+  _buildInwardSpiralTiles() {
+    const tiles = [];
+    let left = 0;
+    let right = this.grid.cols - 1;
+    let top = 0;
+    let bottom = this.grid.rows - 1;
+
+    while (left <= right && top <= bottom) {
+      for (let c = left; c <= right; c++) tiles.push({ c, r: top });
+      for (let r = top + 1; r <= bottom; r++) tiles.push({ c: right, r });
+
+      if (top < bottom) {
+        for (let c = right - 1; c >= left; c--) tiles.push({ c, r: bottom });
+      }
+
+      if (left < right) {
+        for (let r = bottom - 1; r > top; r--) tiles.push({ c: left, r });
+      }
+
+      left++;
+      right--;
+      top++;
+      bottom--;
+    }
+
+    return tiles;
+  }
+
   spawnDamageTile() {
     // Fairness Rule #3: Spawn relatively close to player (within 2-3 tiles)
     // Retry up to 10 times to avoid landing on a cell that already has a chest
@@ -1256,6 +1637,13 @@ export class Boss {
 
     if (this.hp <= 0) {
       this.die();
+    } else if (!this.isTutorial && this.scene.chapterId === 2) {
+      if (this.attackTimer) this.attackTimer.remove();
+      this._ch2UltimateCount = (this._ch2UltimateCount || 0) + 1;
+      const ultimateDuration = this._ch2UltimateCount % 2 === 0
+        ? this.ch2AttackBunnyStampedeUltimate()
+        : this.ch2AttackNoteBurstUltimate();
+      this.attackTimer = this.scene.time.delayedCall(ultimateDuration + 3000, this.executeAttack, [], this);
     }
   }
 
@@ -1363,6 +1751,9 @@ R8: P P P P P P P P P
 
   _executeSpecificExplosionSequence(steps, scaleOverrides) {
     const ts = this.grid.tileSize;
+    const maxSpritesPerBurst = 18;
+    const visualBatchSize = 6;
+    const visualBatchDelay = 45;
     let currentSpawnTime = 1100;
     let maxAttackDuration = currentSpawnTime;
 
@@ -1374,30 +1765,36 @@ R8: P P P P P P P P P
       let duration = step.duration;
       let scaleMultiplier = scaleOverrides[step.type] || 1.2;
 
-      const tiles = step.tiles;
+      const tiles = step.tiles.filter(t =>
+        t.c >= 0 && t.c < this.grid.cols && t.r >= 0 && t.r < this.grid.rows
+      );
 
       this.scene.time.delayedCall(telegraphTime, () => {
         if (this.hp <= 0 || this.scene.isGameOver) return;
         tiles.forEach(t => {
-          if (t.c >= 0 && t.c < this.grid.cols && t.r >= 0 && t.r < this.grid.rows) {
-            this.grid.telegraph(t.c, t.r, 1100);
-          }
+          this.grid.telegraph(t.c, t.r, 1100);
         });
       });
 
       this.scene.time.delayedCall(currentSpawnTime, () => {
         if (this.hp <= 0 || this.scene.isGameOver) return;
-        tiles.forEach(t => {
-          if (t.c >= 0 && t.c < this.grid.cols && t.r >= 0 && t.r < this.grid.rows) {
+
+        const playerOnDangerTile = tiles.some(t =>
+          this.scene.player.col === t.c && this.scene.player.row === t.r
+        );
+        if (playerOnDangerTile) {
+          this.scene.player.takeDamage();
+        }
+
+        const visualTiles = this._pickExplosionVisualTiles(tiles, maxSpritesPerBurst);
+        visualTiles.forEach((t, index) => {
+          this.scene.time.delayedCall(Math.floor(index / visualBatchSize) * visualBatchDelay, () => {
+            if (this.hp <= 0 || this.scene.isGameOver) return;
             const pix = this.grid.getPixelPosition(t.c, t.r);
             const exp = this.scene.add.sprite(pix.x, pix.y, animKey.replace('anim_', ''))
               .setDepth(60).setDisplaySize(ts * scaleMultiplier, ts * scaleMultiplier).play(animKey);
             exp.once('animationcomplete', () => exp.destroy());
-
-            if (this.scene.player.col === t.c && this.scene.player.row === t.r) {
-              this.scene.player.takeDamage();
-            }
-          }
+          });
         });
       });
 
@@ -1406,6 +1803,43 @@ R8: P P P P P P P P P
     });
 
     return maxAttackDuration + 500;
+  }
+
+  _pickExplosionVisualTiles(tiles, maxSprites) {
+    if (tiles.length <= maxSprites) return tiles;
+
+    const selected = [];
+    const seen = new Set();
+    const playerTileIndex = tiles.findIndex(t =>
+      this.scene.player.col === t.c && this.scene.player.row === t.r
+    );
+
+    if (playerTileIndex >= 0) {
+      const playerTile = tiles[playerTileIndex];
+      selected.push(playerTile);
+      seen.add(`${playerTile.c},${playerTile.r}`);
+    }
+
+    const stride = tiles.length / maxSprites;
+    for (let i = 0; selected.length < maxSprites && i < maxSprites; i++) {
+      const tile = tiles[Math.floor(i * stride)];
+      const key = `${tile.c},${tile.r}`;
+      if (!seen.has(key)) {
+        selected.push(tile);
+        seen.add(key);
+      }
+    }
+
+    for (let i = 0; selected.length < maxSprites && i < tiles.length; i++) {
+      const tile = tiles[i];
+      const key = `${tile.c},${tile.r}`;
+      if (!seen.has(key)) {
+        selected.push(tile);
+        seen.add(key);
+      }
+    }
+
+    return selected;
   }
 
   // ─── ABYSSAL CROSS ───────────────────────────
@@ -2384,7 +2818,7 @@ R8: . . . . Y . . . .
       if (this.hp <= 0 || this.scene.isGameOver) return;
 
       const cthulhu = this.scene.add.sprite(spawnPix.x, spawnPix.y, 'ch3_cthulhu')
-        .setDepth(80).setScale(1.5).play('anim_ch3_cthulhu_idle');
+        .setDepth(80).setScale(3).play('anim_ch3_cthulhu_idle');
 
       const ringSize = ts * 3;
       const ring = this.scene.add.sprite(spawnPix.x, spawnPix.y, 'ch3_fx_ring')

@@ -8,7 +8,6 @@ export class HUDScene extends Phaser.Scene {
 
   init(data) {
     this.chapterId = data.chapterId;
-    this.startTime = Date.now();
     this.elapsed = 0;
   }
 
@@ -175,7 +174,10 @@ export class HUDScene extends Phaser.Scene {
           () => boss.ch2AttackCarrotRain(),
           () => boss.ch2AttackExplodingEggs(),
           () => boss.ch2AttackSnappingFlora(),
-          () => boss.ch2AttackAcidSpitter()
+          () => boss.ch2AttackAcidSpitter(),
+          () => boss.ch2AttackGolemQuakeNotes(),
+          () => boss.ch2AttackNoteBurstUltimate(),
+          () => boss.ch2AttackBunnyStampedeUltimate()
         ];
 
         const runNext = (idx) => {
@@ -422,7 +424,7 @@ export class HUDScene extends Phaser.Scene {
     const hexStr = ['#aaaaaa', '#44aaff', '#ffdd00'];
     const frames = [0, 1, 2]; // Chests.png column per rarity
     this._puActive = true;
-    this._puEndTime = Date.now() + durationMs;
+    this._puEndTime = this.elapsed + durationMs;
     this._puDuration = durationMs;
     this._puColor = colors[rarity] ?? 0x888888;
     this.puIcon.setFrame(frames[rarity] ?? 0).setAlpha(1);
@@ -598,7 +600,7 @@ export class HUDScene extends Phaser.Scene {
   }
 
   update(time, delta) {
-    this.elapsed = Date.now() - this.startTime;
+    this.elapsed += delta;
     const seconds = Math.floor(this.elapsed / 1000);
     const minutes = Math.floor(seconds / 60);
     const displaySecs = seconds % 60;
@@ -608,7 +610,7 @@ export class HUDScene extends Phaser.Scene {
 
     // Live power-up timer bar drain
     if (this._puActive && this.puBarFill) {
-      const remaining = Math.max(0, this._puEndTime - Date.now());
+      const remaining = Math.max(0, this._puEndTime - this.elapsed);
       const ratio = remaining / this._puDuration;
       this.puBarFill.clear();
       this.puBarFill.fillStyle(this._puColor, 1);

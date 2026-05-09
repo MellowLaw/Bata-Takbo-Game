@@ -36,6 +36,7 @@ export class Player {
     const scale = (grid.tileSize * 1.4) / 48;
     this.sprite.setScale(scale);
     this.sprite.setOrigin(0.5, 0.55); // Bottom-center anchor
+    this.sprite.setDepth(10); // Ensure player is rendered above background/indicators
 
     // Create directional animations — 8 frames each (0 to 7)
     if (!this.scene.anims.exists('idle_down')) {
