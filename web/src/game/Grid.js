@@ -168,6 +168,8 @@ export class Grid {
    * Power Up Logistics
    */
   spawnChest(col, row, rarityIndex) {
+     // DISABLED: Chests/powerups removed for rework from scratch
+     return;
      if (!this.chests) this.chests = {};
      const key = `${col}_${row}`;
      if (this.chests[key]) return; // already a chest

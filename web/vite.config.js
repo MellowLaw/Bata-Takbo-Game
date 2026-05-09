@@ -14,7 +14,8 @@ export default defineConfig({
     port: 5173,
     open: true,
     proxy: {
-      '/auth': 'http://localhost:3001'
+      '/auth': 'http://localhost:3001',
+      '/admin': 'http://localhost:3001'
     }
   },
 });

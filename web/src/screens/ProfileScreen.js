@@ -51,6 +51,7 @@ export const ProfileScreen = {
           </div>
 
           <div class="settings-group" style="animation: fadeInUp 0.4s ease forwards; animation-delay: 0.3s; opacity: 0; padding: var(--space-lg) var(--space-md); margin-top: var(--space-md);">
+            <button id="btn-admin-panel" class="login-card__join-btn" style="padding: var(--space-sm); font-size: var(--text-base); background: var(--accent-gold); margin-bottom: var(--space-sm); display: none;">ADMIN PANEL</button>
             <button id="btn-profile-logout" class="login-card__join-btn" style="padding: var(--space-sm); font-size: var(--text-base);">LOGOUT</button>
           </div>
         </div>
@@ -223,6 +224,26 @@ export const ProfileScreen = {
       if (pUser) pUser.textContent = fallbackUsername;
       const pType = el.querySelector('#profile-account-type');
       if (pType) pType.textContent = 'Account Type: Registered';
+    }
+
+    // Check admin status and show/hide admin button
+    try {
+      console.log('[PROFILE] Checking admin status...');
+      const adminRes = await fetch('/admin/check', { credentials: 'include' });
+      const adminData = await adminRes.json();
+      console.log('[PROFILE] Admin check response:', adminData);
+      const adminBtn = el.querySelector('#btn-admin-panel');
+      console.log('[PROFILE] Admin button found:', !!adminBtn);
+      if (adminBtn && adminData.isAdmin) {
+        console.log('[PROFILE] Showing admin button');
+        adminBtn.style.display = 'block';
+        adminBtn.addEventListener('click', () => {
+          window.__screenManager.navigate('admin-dashboard');
+        });
+      }
+    } catch (e) {
+      console.log('[PROFILE] Admin check failed:', e);
+      // Not an admin or error, button stays hidden
     }
 
     const pLogoutBtn = el.querySelector('#btn-profile-logout');

@@ -17,6 +17,7 @@ import { ResultsScreen } from './screens/ResultsScreen.js';
 import { LoginScreen } from './screens/LoginScreen.js';
 import { TutorialScreen } from './screens/TutorialScreen.js';
 import { ProfileScreen } from './screens/ProfileScreen.js';
+import { AdminDashboard } from './screens/AdminDashboard.js';
 import { gestureController } from './gesture/GestureController.js';
 import { installBeforeUnloadGuard } from './utils/GuestGuard.js';
 
@@ -40,6 +41,7 @@ screenManager.register('results-screen', ResultsScreen);
 screenManager.register('login-screen', LoginScreen);
 screenManager.register('tutorial-screen', TutorialScreen);
 screenManager.register('profile-screen', ProfileScreen);
+screenManager.register('admin-dashboard', AdminDashboard);
 
 async function init() {
   // Small delay for font loading

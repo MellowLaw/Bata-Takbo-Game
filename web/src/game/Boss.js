@@ -136,38 +136,36 @@ export class Boss {
       const targets = [];
       this.attackCycleCount++;
 
-      // Boss Phase 4 Loot Logistics: Spawn a drop every 5 attacks
-      if (this.attackCycleCount % 5 === 0 && this.grid.spawnChest) {
-        const gt = this.scene.goldenTile; // active attack tile position
-        const freeSpots = [];
-        for (let r = 0; r < this.grid.rows; r++) {
-          for (let c = 0; c < this.grid.cols; c++) {
-            if (this.grid.cells[r][c].status === 'safe' &&
-              (c !== this.scene.player.col || r !== this.scene.player.row) &&
-              !(gt && gt.col === c && gt.row === r) &&
-              !this.grid.hasChestAt(c, r)) {
-              freeSpots.push({ c, r });
-            }
-          }
-        }
-        if (freeSpots.length > 0) {
-          const spot = Phaser.Math.RND.pick(freeSpots);
-          const roll = Math.random();
-
-          if (roll > 0.85) {
-            this.grid.spawnRuby(spot.c, spot.r);
-          } else if (roll > 0.70) {
-            this.grid.spawnDiamond(spot.c, spot.r);
-          } else {
-            let rarity = 0; // Common Green
-            if (roll > 0.50) rarity = 8; // Cursed skull chest
-            else if (roll > 0.40) rarity = 2; // Legendary Gold
-            else if (roll > 0.20) rarity = 1; // Rare Blue
-
-            this.grid.spawnChest(spot.c, spot.r, rarity);
-          }
-        }
-      }
+      // DISABLED: Boss Phase 4 Loot Logistics - chests removed for rework
+      // if (this.attackCycleCount % 5 === 0 && this.grid.spawnChest) {
+      //   const gt = this.scene.goldenTile;
+      //   const freeSpots = [];
+      //   for (let r = 0; r < this.grid.rows; r++) {
+      //     for (let c = 0; c < this.grid.cols; c++) {
+      //       if (this.grid.cells[r][c].status === 'safe' &&
+      //         (c !== this.scene.player.col || r !== this.scene.player.row) &&
+      //         !(gt && gt.col === c && gt.row === r) &&
+      //         !this.grid.hasChestAt(c, r)) {
+      //         freeSpots.push({ c, r });
+      //       }
+      //     }
+      //   }
+      //   if (freeSpots.length > 0) {
+      //     const spot = Phaser.Math.RND.pick(freeSpots);
+      //     const roll = Math.random();
+      //     if (roll > 0.85) {
+      //       this.grid.spawnRuby(spot.c, spot.r);
+      //     } else if (roll > 0.70) {
+      //       this.grid.spawnDiamond(spot.c, spot.r);
+      //     } else {
+      //       let rarity = 0;
+      //       if (roll > 0.50) rarity = 8;
+      //       else if (roll > 0.40) rarity = 2;
+      //       else if (roll > 0.20) rarity = 1;
+      //       this.grid.spawnChest(spot.c, spot.r, rarity);
+      //     }
+      //   }
+      // }
 
       // Chapter 1 Specific Attack Routing
       if (this.scene.chapterId === 1) {
@@ -312,39 +310,37 @@ export class Boss {
       duration = 3500;
     }
 
-    // Spawn 2 chests every 2 cycles instead of 1 chest every 5
-    if (this.attackCycleCount % 2 === 0 && this.grid.spawnChest) {
-      const gt = this.scene.goldenTile;
-      const freeSpots = [];
-      for (let r = 0; r < this.grid.rows; r++) {
-        for (let c = 0; c < this.grid.cols; c++) {
-          if (this.grid.cells[r][c].status === 'safe' &&
-            (c !== this.scene.player.col || r !== this.scene.player.row) &&
-            !(gt && gt.col === c && gt.row === r) &&
-            !this.grid.hasChestAt(c, r)) {
-            freeSpots.push({ c, r });
-          }
-        }
-      }
-      // Spawn up to 2 chests from random free spots
-      for (let i = 0; i < 2 && freeSpots.length > 0; i++) {
-        const idx = Phaser.Math.Between(0, freeSpots.length - 1);
-        const spot = freeSpots.splice(idx, 1)[0];
-        const roll = Math.random();
-
-        if (roll > 0.85) {
-          this.grid.spawnRuby(spot.c, spot.r);
-        } else if (roll > 0.70) {
-          this.grid.spawnDiamond(spot.c, spot.r);
-        } else {
-          let rarity = 0;
-          if (roll > 0.50) rarity = 8; // Cursed chest
-          else if (roll > 0.40) rarity = 2;
-          else if (roll > 0.20) rarity = 1;
-          this.grid.spawnChest(spot.c, spot.r, rarity);
-        }
-      }
-    }
+    // DISABLED: Cheat wave chest spawning removed for rework
+    // if (this.attackCycleCount % 2 === 0 && this.grid.spawnChest) {
+    //   const gt = this.scene.goldenTile;
+    //   const freeSpots = [];
+    //   for (let r = 0; r < this.grid.rows; r++) {
+    //     for (let c = 0; c < this.grid.cols; c++) {
+    //       if (this.grid.cells[r][c].status === 'safe' &&
+    //         (c !== this.scene.player.col || r !== this.scene.player.row) &&
+    //         !(gt && gt.col === c && gt.row === r) &&
+    //         !this.grid.hasChestAt(c, r)) {
+    //         freeSpots.push({ c, r });
+    //       }
+    //     }
+    //   }
+    //   for (let i = 0; i < 2 && freeSpots.length > 0; i++) {
+    //     const idx = Phaser.Math.Between(0, freeSpots.length - 1);
+    //     const spot = freeSpots.splice(idx, 1)[0];
+    //     const roll = Math.random();
+    //     if (roll > 0.85) {
+    //       this.grid.spawnRuby(spot.c, spot.r);
+    //     } else if (roll > 0.70) {
+    //       this.grid.spawnDiamond(spot.c, spot.r);
+    //     } else {
+    //       let rarity = 0;
+    //       if (roll > 0.50) rarity = 8;
+    //       else if (roll > 0.40) rarity = 2;
+    //       else if (roll > 0.20) rarity = 1;
+    //       this.grid.spawnChest(spot.c, spot.r, rarity);
+    //     }
+    //   }
+    // }
 
     // Schedule next cheat wave (faster cycle — 1s breather)
     if (this.hp > 0) {
@@ -1242,6 +1238,14 @@ export class Boss {
   }
 
   takeDamage() {
+    // Admin one-hit kill mode
+    if (this.oneHitKill) {
+      this.hp = 0;
+      this.scene.events.emit('boss:damaged', 0, this.maxHp);
+      this.die();
+      return;
+    }
+    
     this.hp--;
     this.scene.cameras.main.shake(200, 0.02);
     this.scene.events.emit('boss:damaged', this.hp, this.maxHp);

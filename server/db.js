@@ -23,7 +23,12 @@ export async function initDb() {
       encrypted_data TEXT,
       game_data TEXT,
       failed_attempts INTEGER DEFAULT 0,
-      lockout_time INTEGER DEFAULT 0
+      lockout_time INTEGER DEFAULT 0,
+      is_admin INTEGER DEFAULT 0,
+      banned INTEGER DEFAULT 0,
+      ban_reason TEXT,
+      cheat_score REAL DEFAULT 0,
+      last_login INTEGER
     )
   `);
 
@@ -31,14 +36,21 @@ export async function initDb() {
   try { await db.exec('ALTER TABLE users ADD COLUMN game_data TEXT'); } catch(e) {}
   try { await db.exec('ALTER TABLE users ADD COLUMN failed_attempts INTEGER DEFAULT 0'); } catch(e) {}
   try { await db.exec('ALTER TABLE users ADD COLUMN lockout_time INTEGER DEFAULT 0'); } catch(e) {}
+  try { await db.exec('ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0'); } catch(e) {}
+  try { await db.exec('ALTER TABLE users ADD COLUMN banned INTEGER DEFAULT 0'); } catch(e) {}
+  try { await db.exec('ALTER TABLE users ADD COLUMN ban_reason TEXT'); } catch(e) {}
+  try { await db.exec('ALTER TABLE users ADD COLUMN cheat_score REAL DEFAULT 0'); } catch(e) {}
+  try { await db.exec('ALTER TABLE users ADD COLUMN last_login INTEGER'); } catch(e) {}
 
   // Seed data for testing (password is 'password' for all)
   try {
     const salt = bcrypt.genSaltSync(10);
     const hash = bcrypt.hashSync('password', salt);
-    await db.run('INSERT OR IGNORE INTO users (username, password_hash, encrypted_data) VALUES (?, ?, ?)', ['ADMIN', hash, null]);
+    await db.run('INSERT OR IGNORE INTO users (username, password_hash, encrypted_data, is_admin) VALUES (?, ?, ?, ?)', ['ADMIN', hash, null, 1]);
     await db.run('INSERT OR IGNORE INTO users (username, password_hash, encrypted_data) VALUES (?, ?, ?)', ['PLAYER1', hash, null]);
     await db.run('INSERT OR IGNORE INTO users (username, password_hash, encrypted_data) VALUES (?, ?, ?)', ['TESTER', hash, null]);
+    // Update existing ADMIN to have is_admin=1
+    await db.run('UPDATE users SET is_admin = 1 WHERE username = ?', ['ADMIN']);
   } catch (e) {
     console.error('Error seeding data:', e);
   }

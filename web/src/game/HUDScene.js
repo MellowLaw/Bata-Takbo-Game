@@ -301,27 +301,30 @@ export class HUDScene extends Phaser.Scene {
     const puBoxH = 50;
     const puBoxY = puY + 16;
 
+    // DISABLED: Power-up / chest system removed for rework from scratch
     // Inventory slot background image instead of drawn box
     this.inventoryBg = this.add.sprite(boxPadX, puBoxY, 'inventory_slot');
     this.inventoryBg.setOrigin(0, 0);
     this.inventoryBg.setDisplaySize(puBoxH, puBoxH);
+    this.inventoryBg.setAlpha(0); // Hidden for rework
 
-    // Chest icon (frame will change by rarity)
+    // Chest icon (frame will change by rarity) - DISABLED
     this.puIcon = this.add.sprite(boxPadX + puBoxH / 2, puBoxY + puBoxH / 2, 'powerup_chests', 0);
     this.puIcon.setScale(1.4).setAlpha(0);
 
-    // Power-up name label (shifted right of the square slot)
+    // Power-up name label (shifted right of the square slot) - DISABLED
     const labelX = boxPadX + puBoxH + 12;
-    this.puLabel = this.add.text(labelX, puBoxY + 6, ' — ', {
+    this.puLabel = this.add.text(labelX, puBoxY + 6, '', {
       fontFamily: 'VCR', fontSize: '13px', color: '#666688'
     });
+    this.puLabel.setAlpha(0);
 
-    // Timer bar background
+    // Timer bar background - DISABLED
     const puBarY = puBoxY + puBoxH - 8;
-    this.panelBg.fillStyle(0x1a1a33, 1);
-    this.panelBg.fillRect(labelX, puBarY, bossBoxW - puBoxH - 12, 5);
+    // this.panelBg.fillStyle(0x1a1a33, 1);
+    // this.panelBg.fillRect(labelX, puBarY, bossBoxW - puBoxH - 12, 5);
 
-    // Timer bar fill (redrawn every update)
+    // Timer bar fill (redrawn every update) - DISABLED
     this.puBarFill = this.add.graphics();
     this.puBarMaxW = bossBoxW - puBoxH - 12;
     this.puBarX = labelX;

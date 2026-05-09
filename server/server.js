@@ -49,7 +49,28 @@ const authMiddleware = (req, res, next) => {
   }
 };
 
+// Admin middleware - checks if user is admin
+const adminMiddleware = async (req, res, next) => {
+  try {
+    const user = await db.get('SELECT is_admin, banned FROM users WHERE id = ?', [req.user.id]);
+    if (!user || !user.is_admin) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+    if (user.banned) {
+      return res.status(403).json({ error: 'Account banned' });
+    }
+    next();
+  } catch (err) {
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
 let db;
+
+// DEBUG: Simple test endpoint to verify server is running updated code
+app.get('/test', (req, res) => {
+  return res.json({ message: 'Server is running updated code', timestamp: Date.now() });
+});
 
 // Basic validation for username
 // A-Z, a-z, 0-9, _, - and length 3-20
@@ -362,6 +383,153 @@ app.post('/auth/logout', authMiddleware, (req, res) => {
 app.delete('/auth/guest-scores', (req, res) => {
   // Placeholder endpoint for guest cleanup
   return res.status(200).json({ success: true });
+});
+
+// ========== ADMIN ENDPOINTS ==========
+
+// Check if current user is admin
+app.get('/admin/check', authMiddleware, async (req, res) => {
+  try {
+    const user = await db.get('SELECT is_admin, banned FROM users WHERE id = ?', [req.user.id]);
+    if (!user || user.banned) {
+      return res.status(403).json({ isAdmin: false, error: 'Account banned' });
+    }
+    return res.status(200).json({ isAdmin: !!user.is_admin });
+  } catch (err) {
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get all users (admin only)
+app.get('/admin/users', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const users = await db.all(`
+      SELECT id, username, is_admin, banned, ban_reason, cheat_score, last_login,
+             CASE WHEN game_data IS NOT NULL THEN 1 ELSE 0 END as has_game_data
+      FROM users
+      ORDER BY id DESC
+    `);
+    return res.status(200).json({ users });
+  } catch (err) {
+    console.error('Admin get users error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Ban/unban user (admin only)
+app.post('/admin/ban', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const { userId, banned, reason } = req.body;
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID required' });
+    }
+    
+    // Prevent banning yourself
+    if (parseInt(userId) === req.user.id) {
+      return res.status(400).json({ error: 'Cannot ban yourself' });
+    }
+    
+    await db.run(
+      'UPDATE users SET banned = ?, ban_reason = ? WHERE id = ?',
+      [banned ? 1 : 0, reason || null, userId]
+    );
+    
+    return res.status(200).json({ 
+      success: true, 
+      message: banned ? 'User banned' : 'User unbanned',
+      userId 
+    });
+  } catch (err) {
+    console.error('Admin ban error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Reset user progress (admin only)
+app.post('/admin/reset-progress', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const { userId } = req.body;
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID required' });
+    }
+    
+    // Reset game_data to null (will use defaults on next login)
+    await db.run('UPDATE users SET game_data = NULL WHERE id = ?', [userId]);
+    
+    return res.status(200).json({ 
+      success: true, 
+      message: 'User progress reset',
+      userId 
+    });
+  } catch (err) {
+    console.error('Admin reset error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get leaderboard with cheat scores (admin only)
+app.get('/admin/leaderboard', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const users = await db.all(`
+      SELECT id, username, cheat_score, banned, ban_reason,
+             game_data
+      FROM users
+      WHERE game_data IS NOT NULL
+      ORDER BY cheat_score DESC
+    `);
+    
+    // Parse scores and detect anomalies
+    const leaderboard = users.map(u => {
+      let scores = [];
+      try {
+        const data = JSON.parse(u.game_data);
+        if (data.chapterProgress?.bestScores) {
+          scores = Object.entries(data.chapterProgress.bestScores).map(([ch, score]) => ({
+            chapter: ch,
+            score: score
+          }));
+        }
+      } catch (e) {}
+      
+      // Flag suspicious scores (e.g., impossibly high or rapid completion)
+      const suspicious = u.cheat_score > 50 || scores.some(s => s.score > 100000);
+      
+      return {
+        id: u.id,
+        username: u.username,
+        cheatScore: u.cheat_score,
+        banned: u.banned,
+        banReason: u.ban_reason,
+        scores,
+        suspicious
+      };
+    });
+    
+    return res.status(200).json({ leaderboard });
+  } catch (err) {
+    console.error('Admin leaderboard error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Mark suspicious user (admin only)
+app.post('/admin/mark-cheat', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const { userId, cheatScore, reason } = req.body;
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID required' });
+    }
+    
+    await db.run(
+      'UPDATE users SET cheat_score = cheat_score + ?, ban_reason = COALESCE(ban_reason, ?) WHERE id = ?',
+      [cheatScore || 10, reason || 'Suspicious activity', userId]
+    );
+    
+    return res.status(200).json({ success: true, message: 'User marked' });
+  } catch (err) {
+    console.error('Admin mark cheat error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 // Initialize database and start server

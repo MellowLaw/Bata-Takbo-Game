@@ -126,45 +126,45 @@ export class GameScene extends Phaser.Scene {
       this.load.spritesheet('ch3_smoke_spawn', '/assets/projectiles/chapter-3/Smoke-Spawn.png', { frameWidth: 64, frameHeight: 64 });
 
       // Bat (576x64 → 9 frames for IdleFly; 512x64 → 8 frames for Attack; frame size 64x64)
-      this.load.spritesheet('ch3_bat_fly', '/assets/projectiles/chapter-3/bat/Bat-IdleFly.png', { frameWidth: 64, frameHeight: 64 });
-      this.load.spritesheet('ch3_bat_hit', '/assets/projectiles/chapter-3/bat/Bat-Attack1.png', { frameWidth: 64, frameHeight: 64 });
+      this.load.spritesheet('ch3_bat_fly', '/assets/projectiles/chapter-3/Bat/Bat-IdleFly.png', { frameWidth: 64, frameHeight: 64 });
+      this.load.spritesheet('ch3_bat_hit', '/assets/projectiles/chapter-3/Bat/Bat-Attack1.png', { frameWidth: 64, frameHeight: 64 });
 
       // Fish King (2000x250 → 8 frames of 250x250)
-      this.load.spritesheet('ch3_fishking_idle',  '/assets/projectiles/chapter-3/fish-king/Idle.png',    { frameWidth: 250, frameHeight: 250 });
-      this.load.spritesheet('ch3_fishking_wand',  '/assets/projectiles/chapter-3/fish-king/Attack1.png', { frameWidth: 250, frameHeight: 250 });
-      this.load.spritesheet('ch3_fishking_spell', '/assets/projectiles/chapter-3/fish-king/Attack2.png', { frameWidth: 250, frameHeight: 250 });
+      this.load.spritesheet('ch3_fishking_idle',  '/assets/projectiles/chapter-3/Fish-king/Idle.png',    { frameWidth: 250, frameHeight: 250 });
+      this.load.spritesheet('ch3_fishking_wand',  '/assets/projectiles/chapter-3/Fish-king/Attack1.png', { frameWidth: 250, frameHeight: 250 });
+      this.load.spritesheet('ch3_fishking_spell', '/assets/projectiles/chapter-3/Fish-king/Attack2.png', { frameWidth: 250, frameHeight: 250 });
 
       // Jellyfish (192x48 → 4 frames of 48x48; Death 288x48 → 6 frames)
-      this.load.spritesheet('ch3_jelly_idle',   '/assets/projectiles/chapter-3/jellyfish/Idle.png',   { frameWidth: 48, frameHeight: 48 });
-      this.load.spritesheet('ch3_jelly_walk',   '/assets/projectiles/chapter-3/jellyfish/Walk.png',   { frameWidth: 48, frameHeight: 48 });
-      this.load.spritesheet('ch3_jelly_death',  '/assets/projectiles/chapter-3/jellyfish/Death.png',  { frameWidth: 48, frameHeight: 48 });
-      this.load.spritesheet('ch3_jelly_attack', '/assets/projectiles/chapter-3/jellyfish/Attack.png', { frameWidth: 48, frameHeight: 48 });
+      this.load.spritesheet('ch3_jelly_idle',   '/assets/projectiles/chapter-3/JellyFish/Idle.png',   { frameWidth: 48, frameHeight: 48 });
+      this.load.spritesheet('ch3_jelly_walk',   '/assets/projectiles/chapter-3/JellyFish/Walk.png',   { frameWidth: 48, frameHeight: 48 });
+      this.load.spritesheet('ch3_jelly_death',  '/assets/projectiles/chapter-3/JellyFish/Death.png',  { frameWidth: 48, frameHeight: 48 });
+      this.load.spritesheet('ch3_jelly_attack', '/assets/projectiles/chapter-3/JellyFish/Attack.png', { frameWidth: 48, frameHeight: 48 });
 
       // Shark (192x48 → 4 frames of 48x48; Attack 288x48 → 6 frames)
-      this.load.spritesheet('ch3_shark_idle',   '/assets/projectiles/chapter-3/shark/Idle.png',   { frameWidth: 48, frameHeight: 48 });
-      this.load.spritesheet('ch3_shark_walk',   '/assets/projectiles/chapter-3/shark/Walk.png',   { frameWidth: 48, frameHeight: 48 });
-      this.load.spritesheet('ch3_shark_attack', '/assets/projectiles/chapter-3/shark/Attack.png', { frameWidth: 48, frameHeight: 48 });
+      this.load.spritesheet('ch3_shark_idle',   '/assets/projectiles/chapter-3/Shark/Idle.png',   { frameWidth: 48, frameHeight: 48 });
+      this.load.spritesheet('ch3_shark_walk',   '/assets/projectiles/chapter-3/Shark/Walk.png',   { frameWidth: 48, frameHeight: 48 });
+      this.load.spritesheet('ch3_shark_attack', '/assets/projectiles/chapter-3/Shark/Attack.png', { frameWidth: 48, frameHeight: 48 });
 
       // Angler (192x48 → 4 frames of 48x48) — used in Attack 7
       this.load.spritesheet('ch3_angler', '/assets/projectiles/chapter-3/angler/Walk.png', { frameWidth: 48, frameHeight: 48 });
 
       // Nemo (all sheets are 128x128 → 2x2 = 4 frames of 64x64 each)
-      this.load.spritesheet('ch3_nemo_swim',   '/assets/projectiles/chapter-3/nemo-fish/normal-actions/normalswim.png',          { frameWidth: 64, frameHeight: 64 });
-      this.load.spritesheet('ch3_nemo_chomp',  '/assets/projectiles/chapter-3/nemo-fish/normal-actions/normalchomp.png',         { frameWidth: 64, frameHeight: 64 });
-      this.load.spritesheet('ch3_nemo_diagdn', '/assets/projectiles/chapter-3/nemo-fish/normal-actions/normalswimdiagdown.png',   { frameWidth: 64, frameHeight: 64 });
-      this.load.spritesheet('ch3_nemo_diagup', '/assets/projectiles/chapter-3/nemo-fish/normal-actions/normalswimdiagup.png',     { frameWidth: 64, frameHeight: 64 });
+      this.load.spritesheet('ch3_nemo_swim',   '/assets/projectiles/chapter-3/Nemo-Fish/normal-actions/normalswim.png',          { frameWidth: 64, frameHeight: 64 });
+      this.load.spritesheet('ch3_nemo_chomp',  '/assets/projectiles/chapter-3/Nemo-Fish/normal-actions/normalchomp.png',         { frameWidth: 64, frameHeight: 64 });
+      this.load.spritesheet('ch3_nemo_diagdn', '/assets/projectiles/chapter-3/Nemo-Fish/normal-actions/normalswimdiagdown.png',   { frameWidth: 64, frameHeight: 64 });
+      this.load.spritesheet('ch3_nemo_diagup', '/assets/projectiles/chapter-3/Nemo-Fish/normal-actions/normalswimdiagup.png',     { frameWidth: 64, frameHeight: 64 });
       // Tilt chomps: 256x64 → 4 frames in 1 row of 64x64
-      this.load.spritesheet('ch3_nemo_tiltdn', '/assets/projectiles/chapter-3/nemo-fish/normal-actions/normaltiltdownchomp.PNG', { frameWidth: 64, frameHeight: 64 });
-      this.load.spritesheet('ch3_nemo_tiltup', '/assets/projectiles/chapter-3/nemo-fish/normal-actions/normaltiltupchomp.png',   { frameWidth: 64, frameHeight: 64 });
+      this.load.spritesheet('ch3_nemo_tiltdn', '/assets/projectiles/chapter-3/Nemo-Fish/normal-actions/normaltiltdownchomp.PNG', { frameWidth: 64, frameHeight: 64 });
+      this.load.spritesheet('ch3_nemo_tiltup', '/assets/projectiles/chapter-3/Nemo-Fish/normal-actions/normaltiltupchomp.png',   { frameWidth: 64, frameHeight: 64 });
 
       // Snake (448x128 → 2 rows × 7 cols = 14 frames of 64x64, faces LEFT)
-      this.load.spritesheet('ch3_snake', '/assets/projectiles/chapter-3/snake/snake.png', { frameWidth: 64, frameHeight: 64 });
+      this.load.spritesheet('ch3_snake', '/assets/projectiles/chapter-3/Snake/snake.png', { frameWidth: 64, frameHeight: 64 });
 
       // Siren Sisters (128x128 per frame)
-      this.load.spritesheet('ch3_siren1',         '/assets/projectiles/chapter-3/siren1/Idle.png',    { frameWidth: 128, frameHeight: 128 });
-      this.load.spritesheet('ch3_siren2',         '/assets/projectiles/chapter-3/siren2/Idle.png',    { frameWidth: 128, frameHeight: 128 });
-      this.load.spritesheet('ch3_siren3_idle',    '/assets/projectiles/chapter-3/siren3/Idle.png',    { frameWidth: 128, frameHeight: 128 });
-      this.load.spritesheet('ch3_siren3_special', '/assets/projectiles/chapter-3/siren3/Special.png', { frameWidth: 128, frameHeight: 128 });
+      this.load.spritesheet('ch3_siren1',         '/assets/projectiles/chapter-3/Siren1/Idle.png',    { frameWidth: 128, frameHeight: 128 });
+      this.load.spritesheet('ch3_siren2',         '/assets/projectiles/chapter-3/Siren2/Idle.png',    { frameWidth: 128, frameHeight: 128 });
+      this.load.spritesheet('ch3_siren3_idle',    '/assets/projectiles/chapter-3/Siren3/Idle.png',    { frameWidth: 128, frameHeight: 128 });
+      this.load.spritesheet('ch3_siren3_special', '/assets/projectiles/chapter-3/Siren3/Special.png', { frameWidth: 128, frameHeight: 128 });
 
       // Cthulhu (2880x784 → 15 cols × 7 rows of 192x112)
       this.load.spritesheet('ch3_cthulhu', '/assets/projectiles/chapter-3/cthulu.png', { frameWidth: 192, frameHeight: 112 });
@@ -189,18 +189,18 @@ export class GameScene extends Phaser.Scene {
       this.load.spritesheet('ch3_waterbeam2', '/assets/projectiles/chapter-3/water-beams/water-beam2.png', { frameWidth: 48, frameHeight: 32 });
       this.load.spritesheet('ch3_waterburst', '/assets/projectiles/chapter-3/water-beams/water-burst.png', { frameWidth: 63, frameHeight: 48 });
       
-      this.load.spritesheet('ch3_explosion_1', '/assets/projectiles/chapter-3/explosions/explosion-1-b.png', { frameWidth: 80, frameHeight: 48 });
-      this.load.spritesheet('ch3_explosion_2', '/assets/projectiles/chapter-3/explosions/explosion-2-b.png', { frameWidth: 48, frameHeight: 48 });
-      this.load.spritesheet('ch3_explosion_3', '/assets/projectiles/chapter-3/explosions/explosion-3-b.png', { frameWidth: 48, frameHeight: 48 });
-      this.load.spritesheet('ch3_explosion_4', '/assets/projectiles/chapter-3/explosions/explosion-4-b.png', { frameWidth: 128, frameHeight: 128 });
+      this.load.spritesheet('ch3_explosion_1', '/assets/projectiles/chapter-3/EXPLOSIONS/explosion-1-b.png', { frameWidth: 80, frameHeight: 48 });
+      this.load.spritesheet('ch3_explosion_2', '/assets/projectiles/chapter-3/EXPLOSIONS/explosion-2-b.png', { frameWidth: 48, frameHeight: 48 });
+      this.load.spritesheet('ch3_explosion_3', '/assets/projectiles/chapter-3/EXPLOSIONS/explosion-3-b.png', { frameWidth: 48, frameHeight: 48 });
+      this.load.spritesheet('ch3_explosion_4', '/assets/projectiles/chapter-3/EXPLOSIONS/explosion-4-b.png', { frameWidth: 128, frameHeight: 128 });
       
-      this.load.spritesheet('ch3_explosion_2a', '/assets/projectiles/chapter-3/explosions/explosion-2-a.png', { frameWidth: 256, frameHeight: 256 });
-      this.load.spritesheet('ch3_explosion_3a', '/assets/projectiles/chapter-3/explosions/explosion-3-a.png', { frameWidth: 256, frameHeight: 256 });
-      this.load.spritesheet('ch3_explosion_4a', '/assets/projectiles/chapter-3/explosions/explosion-4-a.png', { frameWidth: 256, frameHeight: 256 });
+      this.load.spritesheet('ch3_explosion_2a', '/assets/projectiles/chapter-3/EXPLOSIONS/explosion-2-a.png', { frameWidth: 256, frameHeight: 256 });
+      this.load.spritesheet('ch3_explosion_3a', '/assets/projectiles/chapter-3/EXPLOSIONS/explosion-3-a.png', { frameWidth: 256, frameHeight: 256 });
+      this.load.spritesheet('ch3_explosion_4a', '/assets/projectiles/chapter-3/EXPLOSIONS/explosion-4-a.png', { frameWidth: 256, frameHeight: 256 });
       
-      this.load.spritesheet('ch3_explosion_1d', '/assets/projectiles/chapter-3/explosions/explosion-1-d.png', { frameWidth: 64, frameHeight: 64 });
-      this.load.spritesheet('ch3_explosion_2d', '/assets/projectiles/chapter-3/explosions/explosion-2-d.png', { frameWidth: 128, frameHeight: 80 });
-      this.load.spritesheet('ch3_explosion_3d', '/assets/projectiles/chapter-3/explosions/explosion-3-d.png', { frameWidth: 192, frameHeight: 192 });
+      this.load.spritesheet('ch3_explosion_1d', '/assets/projectiles/chapter-3/EXPLOSIONS/explosion-1-d.png', { frameWidth: 64, frameHeight: 64 });
+      this.load.spritesheet('ch3_explosion_2d', '/assets/projectiles/chapter-3/EXPLOSIONS/explosion-2-d.png', { frameWidth: 128, frameHeight: 80 });
+      this.load.spritesheet('ch3_explosion_3d', '/assets/projectiles/chapter-3/EXPLOSIONS/explosion-3-d.png', { frameWidth: 192, frameHeight: 192 });
     } else {
       // Default fallback for future chapters
       this.load.spritesheet('boss_idle', '/assets/entity/boss/chapter2/boss_idle.png', { frameWidth: 87, frameHeight: 110 });
@@ -277,6 +277,9 @@ export class GameScene extends Phaser.Scene {
     if (this.isTutorial) {
       this.player.isInvincible = true;
     }
+
+    // Admin Test Mode: Enable invincibility, one-hit kill, etc.
+    this._checkAdminTestMode();
 
     // 3. Initialize Boss (attack logic only — sprite lives in HUDScene)
     this.boss = new Boss(this, this.grid, this.isTutorial);
@@ -1327,6 +1330,38 @@ export class GameScene extends Phaser.Scene {
         window.__screenManager.navigate('results-screen', {}, false);
       }
     });
+  }
+
+  /**
+   * Admin Test Mode: Check sessionStorage for admin test settings
+   * Enables invincibility, one-hit kill, etc. for testing
+   */
+  _checkAdminTestMode() {
+    try {
+      const testMode = sessionStorage.getItem('admin_test_mode');
+      if (!testMode) return;
+      
+      const settings = JSON.parse(testMode);
+      console.log('[ADMIN] Test mode activated:', settings.mode);
+      
+      // Apply invincibility
+      if (settings.invincible) {
+        this.player.isInvincible = true;
+        this.player.sprite.setTint(0xffdd00); // Gold tint for admin mode
+        console.log('[ADMIN] Invincibility enabled');
+      }
+      
+      // Apply one-hit kill (boss dies in one hit)
+      if (settings.oneHitKill) {
+        this.boss.oneHitKill = true;
+        console.log('[ADMIN] One-hit kill enabled');
+      }
+      
+      // Clear the test mode so it doesn't persist on restart
+      sessionStorage.removeItem('admin_test_mode');
+    } catch (e) {
+      console.error('[ADMIN] Failed to parse test mode settings:', e);
+    }
   }
 
   shutdown() {
