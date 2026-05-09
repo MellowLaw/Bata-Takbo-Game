@@ -67,11 +67,6 @@ const adminMiddleware = async (req, res, next) => {
 
 let db;
 
-// DEBUG: Simple test endpoint to verify server is running updated code
-app.get('/test', (req, res) => {
-  return res.json({ message: 'Server is running updated code', timestamp: Date.now() });
-});
-
 // Basic validation for username
 // A-Z, a-z, 0-9, _, - and length 3-20
 function isValidUsername(username) {
@@ -213,7 +208,7 @@ app.post('/auth/login', async (req, res) => {
       // Store JWT in an HttpOnly secure cookie
       res.cookie('jwt', token, {
         httpOnly: true,
-        maxAge: 2592000000, // 1 hour
+        maxAge: 2592000000, // 30 days
         secure: false, // Requires HTTPS in production
         sameSite: 'lax'
       });

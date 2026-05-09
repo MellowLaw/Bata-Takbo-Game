@@ -37,6 +37,10 @@ export class Boss {
 
     this.cheatMode = false; // Activated by the secret cheat code
     
+    // Chapter 2 ultimate attack tracking
+    this._ch2UltimateActive = false;
+    this._ch2UltimateCount = 0;
+    
     if (this.isTutorial) {
       // In tutorial, don't start the normal attack loop.
       // We will listen for specific tutorial events to trigger simple attacks.
@@ -535,113 +539,142 @@ export class Boss {
     return (numShots - 1) * 1300 + 1200;
   }
 
-  // ================= CHAPTER 2: BUNGISNGIS MECHANICS =================
-
-  /** Attack 1: The Beeswarm — Diagonal Sweep */
-  ch2AttackBeeswarm() {
-    // X pattern: Sweep 1 (TL->BR) then Sweep 2 (TR->BL)
-    const tiles1 = [];
-    const tiles2 = [];
-    const tilesByRow1 = {};
-    const tilesByRow2 = {};
+  /** Chapter 1 Ultimate: Blood Vortex - Pulls player to center grid but deals NO damage */
+  ch1AttackBloodVortexPull() {
+    const centerCol = Math.floor(this.grid.cols / 2);
+    const centerRow = Math.floor(this.grid.rows / 2);
+    const centerPos = this.grid.getPixelPosition(centerCol, centerRow);
     
-    for (let c = 0; c < this.grid.cols; c++) {
-      for (let r = 0; r < this.grid.rows; r++) {
-        if (Math.abs(r - c) <= 1) {
-          tiles1.push({ c, r });
-          if (!tilesByRow1[r]) tilesByRow1[r] = [];
-          tilesByRow1[r].push({ c, r });
-        }
-        if (Math.abs(r - (this.grid.cols - 1 - c)) <= 1) {
-          tiles2.push({ c, r });
-          if (!tilesByRow2[r]) tilesByRow2[r] = [];
-          tilesByRow2[r].push({ c, r });
-        }
-      }
+    // Visual: Blood vortex forms at center
+    const vortex = this.scene.add.sprite(centerPos.x, centerPos.y, 'ult_start')
+      .setScale(0.5)
+      .setDepth(50)
+      .play('anim_ult_start');
+    
+    // Shake camera during vortex formation
+    this.scene.cameras.main.shake(1000, 0.02);
+    
+    // Loop the vortex animation
+    vortex.once('animationcomplete', () => {
+      vortex.play('anim_ult_loop');
+    });
+    
+    // Pull effect: Step the player one tile at a time toward center
+    const pullDuration = 1500;
+    const player = this.scene.player;
+
+    // Compute step sequence (one tile per step toward center)
+    const steps = [];
+    let curCol = player.col;
+    let curRow = player.row;
+    while (curCol !== centerCol || curRow !== centerRow) {
+      const dCol = curCol < centerCol ? 1 : (curCol > centerCol ? -1 : 0);
+      const dRow = curRow < centerRow ? 1 : (curRow > centerRow ? -1 : 0);
+      steps.push({ dCol, dRow });
+      curCol += dCol;
+      curRow += dRow;
+      if (steps.length > 20) break; // safety
     }
 
-    const scale = this.grid.tileSize * 1.8;
-    const travelTime = 2500; // Make bees fly faster so sequential attack isn't too agonizing
-    const rowWindow = travelTime / this.grid.rows;
-    const offscreen = travelTime * 0.15;
+    const stepDelay = steps.length > 0 ? pullDuration / steps.length : pullDuration;
 
-    const executeSwarm = (tiles, tilesByRow, baseStart, baseEnd, isFlip) => {
-      // Telegraph just this line
-      tiles.forEach(t => this.grid.telegraph(t.c, t.r, 1200));
+    steps.forEach((s, i) => {
+      this.scene.time.delayedCall((i + 1) * stepDelay, () => {
+        if (this.hp <= 0 || this.scene.isGameOver) return;
 
-      this.scene.time.delayedCall(1200, () => {
-        if (this.hp <= 0) return;
-        
-        const s = this.grid.getPixelPosition(baseStart.c, baseStart.r);
-        const e = this.grid.getPixelPosition(baseEnd.c, baseEnd.r);
-        
-        const dx = e.x - s.x;
-        const dy = e.y - s.y;
-        const startOffX = s.x - dx * 0.5;
-        const startOffY = s.y - dy * 0.5;
-        const endOffX = e.x + dx * 0.5;
-        const endOffY = e.y + dy * 0.5;
+        // Use Player.forceMove which exists and handles tweening correctly
+        player.forceMove(s.dCol, s.dRow, Math.min(180, stepDelay));
 
-        const perpX = -dy; 
-        const perpY = dx;
-        const mag = Math.sqrt(perpX*perpX + perpY*perpY);
-        const pNormX = perpX / mag;
-        const pNormY = perpY / mag;
+        // Visual trail effect at player's new tile
+        const trailPos = this.grid.getPixelPosition(player.col, player.row);
+        const trail = this.scene.add.sprite(trailPos.x, trailPos.y, 'dark_blood_0')
+          .setDisplaySize(this.grid.tileSize * 0.8, this.grid.tileSize * 0.8)
+          .setDepth(30)
+          .setAlpha(0.5);
 
-        for (let i = 0; i < 60; i++) {
-          const spread = Phaser.Math.Between(-200, 200); 
-          const longitudinalOffset = Phaser.Math.Between(-400, 400); 
-          
-          const beeScale = scale * Phaser.Math.FloatBetween(0.5, 1.1);
-          const startX = startOffX + (pNormX * spread) + ( (dx/mag) * longitudinalOffset );
-          const startY = startOffY + (pNormY * spread) + ( (dy/mag) * longitudinalOffset );
-          
-          const bee = this.scene.add.sprite(startX, startY, 'ch2_beeswarm')
-            .setDisplaySize(beeScale, beeScale).setDepth(50 + i).setFlipX(isFlip);
-            
-          bee.setTint(i % 4 === 0 ? 0xbbbbbb : (i % 3 === 0 ? 0xdddddd : 0xffffff));
-          bee.setAlpha(Phaser.Math.FloatBetween(0.8, 1.0));
-            
-          bee.play('anim_ch2_beeswarm_in').once('animationcomplete', () => bee.play('anim_ch2_beeswarm_loop'));
-
-          this.scene.tweens.add({
-            targets: bee,
-            x: endOffX + (startX - startOffX),
-            y: endOffY + (startY - startOffY),
-            duration: travelTime + Phaser.Math.Between(-200, 200), 
-            ease: 'Linear',
-            onComplete: () => {
-              if (bee.active) {
-                bee.play('anim_ch2_beeswarm_out').once('animationcomplete', () => bee.destroy());
-              }
-            }
-          });
-        }
-
-        // Damage strictly follows the physical location of the bees vertically
-        for (let r = 0; r < this.grid.rows; r++) {
-          const rowStart = offscreen + r * rowWindow;
-          this.scene.time.delayedCall(rowStart, () => {
-            if (this.hp <= 0) return;
-            // Only deal damage to the tiles in the active row for this specific line
-            const rowTiles = tilesByRow[r] || [];
-            this.createDamageZone(rowTiles, rowWindow);
-          });
-        }
+        this.scene.tweens.add({
+          targets: trail,
+          alpha: 0,
+          scale: 0.5,
+          duration: 500,
+          onComplete: () => trail.destroy()
+        });
       });
+    });
+    
+    // End vortex after pull completes
+    this.scene.time.delayedCall(pullDuration + 200, () => {
+      if (this.hp <= 0 || this.scene.isGameOver) return;
+      vortex.play('anim_ult_end');
+      vortex.once('animationcomplete', () => vortex.destroy());
+    });
+    
+    // Return total duration (NO damage dealt - just positioning change)
+    return pullDuration + 1000;
+  }
+
+  // ================= CHAPTER 2: BUNGISNGIS MECHANICS =================
+
+  /** Attack 1: The Beeswarm — Horizontal sweep visual distraction */
+  ch2AttackBeeswarm() {
+
+    const scale = this.grid.tileSize * 1.8;
+    const travelTime = 3500; // Slow sweep across full board
+
+    const executeSwarm = (fromLeft) => {
+      // Full board cloud sweep: bees spawn across entire grid area and sweep across
+      const gridLeft = this.grid.offsetX;
+      const gridRight = this.grid.offsetX + this.grid.cols * this.grid.tileSize;
+      const gridTop = this.grid.offsetY;
+      const gridBottom = this.grid.offsetY + this.grid.rows * this.grid.tileSize;
+      const gridWidth = this.grid.cols * this.grid.tileSize;
+      const gridHeight = this.grid.rows * this.grid.tileSize;
+      
+      // Spawn bees across the entire grid area (full board coverage)
+      for (let i = 0; i < 100; i++) {
+        // Random position within the entire grid (full board spread)
+        const offsetX = Phaser.Math.Between(-100, gridWidth + 100);
+        const offsetY = Phaser.Math.Between(-50, gridHeight + 50);
+        
+        const startX = fromLeft ? gridLeft + offsetX - 200 : gridRight - offsetX + 200;
+        const startY = gridTop + offsetY;
+        
+        const beeScale = scale * Phaser.Math.FloatBetween(0.5, 1.1);
+        
+        const bee = this.scene.add.sprite(startX, startY, 'ch2_beeswarm')
+          .setDisplaySize(beeScale, beeScale)
+          .setDepth(50 + i)
+          .setFlipX(!fromLeft);
+          
+        bee.setTint(i % 4 === 0 ? 0xbbbbbb : (i % 3 === 0 ? 0xdddddd : 0xffffff));
+        bee.setAlpha(Phaser.Math.FloatBetween(0.6, 0.9));
+          
+        bee.play('anim_ch2_beeswarm_in').once('animationcomplete', () => bee.play('anim_ch2_beeswarm_loop'));
+
+        // Horizontal sweep with slight vertical drift
+        const endX = fromLeft ? startX + gridWidth + 400 : startX - gridWidth - 400;
+        this.scene.tweens.add({
+          targets: bee,
+          x: endX,
+          y: startY + Phaser.Math.Between(-80, 80),
+          duration: travelTime + Phaser.Math.Between(-400, 400), 
+          ease: 'Linear',
+          onComplete: () => {
+            if (bee.active) {
+              bee.play('anim_ch2_beeswarm_out').once('animationcomplete', () => bee.destroy());
+            }
+          }
+        });
+      }
+      // NO damage - purely visual distraction
     };
 
-    // 1. Sweep Top-Left to Bottom-Right
-    executeSwarm(tiles1, tilesByRow1, {c: 0, r: 0}, {c: this.grid.cols-1, r: this.grid.rows-1}, false);
-    
-    // 2. Wait, then sweep Top-Right to Bottom-Left
-    this.scene.time.delayedCall(2200, () => {
-      if (this.hp <= 0) return;
-      executeSwarm(tiles2, tilesByRow2, {c: this.grid.cols-1, r: 0}, {c: 0, r: this.grid.rows-1}, true);
-    });
+    // Two swarms traversing simultaneously from both sides
+    executeSwarm(true);   // Left to right
+    executeSwarm(false);  // Right to left
 
-    // Total cooldown: 2200 (delay for 2nd) + 1200 (telegraph) + 2500 (travel) + 600 buffer = 6500
-    return 6500;
+    // Total cooldown: slow travel across full board
+    return 4000;
   }
 
   /** Attack 2: Hibiscus Pollen Burst — Concentric Rings Sequence */
@@ -1139,17 +1172,6 @@ export class Boss {
       const gridBottom = this.grid.offsetY + this.grid.rows * this.grid.tileSize;
 
       const dangerZone = this.scene.add.graphics();
-      // dangerZone.fillStyle(0xff0000, 0.25); // faint red
-
-      // Horizontal bar: clamp left/right edges to grid bounds
-      const hLeft  = Math.max(gridLeft,  pos.x - size * 1.5);
-      const hRight = Math.min(gridRight, pos.x + size * 1.5);
-      // dangerZone.fillRect(hLeft, pos.y - size * 0.5, hRight - hLeft, size);
-
-      // Vertical bar: clamp top/bottom edges to grid bounds
-      const vTop    = Math.max(gridTop,    pos.y - size * 1.5);
-      const vBottom = Math.min(gridBottom, pos.y + size * 1.5);
-      // dangerZone.fillRect(pos.x - size * 0.5, vTop, size, vBottom - vTop);
 
       dangerZone.setDepth(15);
       dangerZone.setAlpha(0);
@@ -1197,10 +1219,10 @@ export class Boss {
     return 1000;
   }
 
-  /** Attack 7: Acid Spitter — Wall of Ranged Plants (3 right, 4 left), each fires 3 shots of 3 random tiles */
+  /** Attack 7: Acid Spitter — 1 plant per line (7 plants total), 1 shot with 3 acid projectiles, more escapable with clear telegraphs */
   ch2AttackAcidSpitter() {
-    const SHOTS_PER_PLANT = 3;
-    const SHOT_DELAY = 1000;
+    const SHOTS_PER_PLANT = 1; // Only 1 shot per plant (but 3 acid projectiles per shot)
+    const SHOT_DELAY = 1500; // Delay before the single shot
     const PLANT_SCALE = this.grid.tileSize / 64 * 2.0;
     const PROJ_SCALE  = this.grid.tileSize / 32 * 0.5;
     const SPLAT_SCALE = this.grid.tileSize / 32 * 0.8;
@@ -1209,12 +1231,13 @@ export class Boss {
     const gridRight = this.grid.offsetX + this.grid.cols * this.grid.tileSize;
     const offscreenPad = 80;
 
+    // 1 plant per row (all 7 rows get a plant)
     const allRows = Array.from({ length: this.grid.rows }, (_, i) => i);
-    Phaser.Utils.Array.Shuffle(allRows);
-    const rightRows = allRows.slice(0, 3);
-    const leftRows  = allRows.slice(3, 7);
+    // Alternate sides: even rows on right, odd rows on left
+    const rightRows = allRows.filter(r => r % 2 === 0);
+    const leftRows  = allRows.filter(r => r % 2 === 1);
 
-    const totalDuration = SHOTS_PER_PLANT * SHOT_DELAY + 2500;
+    const totalDuration = SHOTS_PER_PLANT * SHOT_DELAY + 3000;
 
     const spawnPlantAndFire = (plantRow, side) => {
       const isRight = side === 'right';
@@ -1229,28 +1252,34 @@ export class Boss {
       this.scene.tweens.add({ targets: plant, alpha: 1, duration: 400, ease: 'Back.easeOut' });
 
       for (let shot = 0; shot < SHOTS_PER_PLANT; shot++) {
-        this.scene.time.delayedCall(500 + shot * SHOT_DELAY, () => {
+        this.scene.time.delayedCall(800 + shot * SHOT_DELAY, () => {
           if (this.hp <= 0 || this.scene.isGameOver) return;
 
           // Play correct facing animation
           plant.play(isRight ? 'anim_ch2_plant_ranged_left' : 'anim_ch2_plant_ranged_right');
 
           // Pick 3 random UNIQUE columns on THIS plant's own row
+          // Always leave at least 1 escape column free for player to dodge
           const targetTiles = [];
           const usedCols = new Set();
+          const maxShots = Math.min(3, this.grid.cols - 1); // ensure 1 safe col
           let safety = 0;
-          while (targetTiles.length < 3 && safety++ < 30) {
+          while (targetTiles.length < maxShots && safety++ < 30) {
             const tc = Phaser.Math.Between(0, this.grid.cols - 1);
             if (!usedCols.has(tc)) {
               usedCols.add(tc);
-              targetTiles.push({ c: tc, r: plantRow }); // Always fires on its own row
+              targetTiles.push({ c: tc, r: plantRow });
             }
           }
 
-          // Telegraph all 3 target tiles
-          targetTiles.forEach(({ c, r }) => this.grid.telegraph(c, r, 700));
+          // Telegraph stays visible until acid actually fires (after charge animation)
+          // Charge animation: 10 frames @ 12fps = ~833ms
+          const CHARGE_MS = Math.floor(10 / 12 * 1000);
+          const TELEGRAPH_TIME = 1000 + CHARGE_MS; // Keep warning visible through charge + buffer
+          targetTiles.forEach(({ c, r }) => this.grid.telegraph(c, r, TELEGRAPH_TIME));
 
-          this.scene.time.delayedCall(700, () => {
+          // Start charging immediately while telegraph is still visible
+          this.scene.time.delayedCall(1000, () => {
             if (this.hp <= 0 || this.scene.isGameOver) return;
 
             targetTiles.forEach(({ c, r }) => {
@@ -1261,9 +1290,6 @@ export class Boss {
               const charge = this.scene.add.sprite(pixelX, pixelY, 'ch2_acid_charge', 0)
                 .setScale(PROJ_SCALE).setDepth(41);
               charge.play('anim_ch2_acid_charge');
-
-              // anim_ch2_acid_charge: 10 frames @ 12fps = ~833ms
-              const CHARGE_MS = Math.floor(10 / 12 * 1000);
 
               charge.once('animationcomplete', () => {
                 charge.destroy();
@@ -1287,7 +1313,7 @@ export class Boss {
                     .setScale(SPLAT_SCALE).setDepth(20);
                   splat.play('anim_ch2_acid_burst');
                   splat.once('animationcomplete', () => splat.destroy());
-                  this.createDamageZone([{ c, r }], 1200);
+                  this.createDamageZone([{ c, r }], 1000); // Slightly shorter damage duration
                 });
 
                 this.scene.tweens.add({
@@ -1451,7 +1477,7 @@ export class Boss {
     return totalDuration;
   }
 
-  /** Chapter 2 ultimate: Bunny Stampede — mirrored zig-zag lanes from both board edges */
+  /** Chapter 2 ultimate: Bunny Stampede — Bouncing bunny arcs from both edges */
   ch2AttackBunnyStampedeUltimate() {
     if (this.scene.isGameOver || this.hp <= 0 || this._ch2UltimateActive) return 0;
 
@@ -1460,79 +1486,118 @@ export class Boss {
     this.scene.cameras.main.shake(450, 0.018);
 
     const WAVE_COUNT = 4;
-    const WAVE_GAP_MS = 850;
+    const WAVE_GAP_MS = 900;
     const TELEGRAPH_MS = 700;
-    const HOP_MS = 170;
-    const DAMAGE_MS = 360;
-    const bunnySize = this.grid.tileSize * 1.7;
+    const BOUNCE_DURATION = 700;
+    const BUNNY_SCALE = this.grid.tileSize / 64 * 0.5;
     const gridLeft = this.grid.offsetX;
     const gridRight = this.grid.offsetX + this.grid.cols * this.grid.tileSize;
 
-    for (let wave = 0; wave < WAVE_COUNT; wave++) {
-      const waveDelay = wave * WAVE_GAP_MS;
-      const fromLeft = wave % 2 === 0;
-      const rows = this._pickUniqueRows(3);
+    const spawnBunnyArc = (delay, fromLeft, startRow) => {
+      this.scene.time.delayedCall(delay, () => {
+        if (this.hp <= 0 || this.scene.isGameOver) return;
 
-      rows.forEach((row, laneIndex) => {
-        const path = this._buildBunnyZigZagPath(row, fromLeft, laneIndex + wave);
+        // Pick landing spots: 3 bounces across the grid
+        const bounces = [];
+        let currentCol = fromLeft ? 0 : this.grid.cols - 1;
+        let currentRow = startRow;
+        
+        for (let i = 0; i < 3; i++) {
+          const hopCols = Phaser.Math.Between(2, 3);
+          const nextCol = fromLeft 
+            ? Math.min(this.grid.cols - 1, currentCol + hopCols)
+            : Math.max(0, currentCol - hopCols);
+          const nextRow = Phaser.Math.Clamp(
+            currentRow + Phaser.Math.Between(-1, 1),
+            0, this.grid.rows - 1
+          );
+          bounces.push({ c: nextCol, r: nextRow });
+          currentCol = nextCol;
+          currentRow = nextRow;
+        }
 
-        this.scene.time.delayedCall(waveDelay, () => {
-          if (this.hp <= 0 || this.scene.isGameOver) return;
-          path.forEach(tile => this.grid.telegraph(tile.c, tile.r, TELEGRAPH_MS));
+        // Telegraph all landing spots
+        bounces.forEach((bounce, i) => {
+          this.scene.time.delayedCall(i * 200, () => {
+            this.grid.telegraph(bounce.c, bounce.r, TELEGRAPH_MS);
+          });
         });
 
-        this.scene.time.delayedCall(waveDelay + TELEGRAPH_MS, () => {
-          if (this.hp <= 0 || this.scene.isGameOver) return;
+        // Create bunny offscreen
+        const startPos = this.grid.getPixelPosition(
+          fromLeft ? 0 : this.grid.cols - 1, 
+          startRow
+        );
+        const startX = fromLeft ? gridLeft - 150 : gridRight + 150;
+        const startY = startPos.y - 100;
 
-          const first = path[0];
-          const firstPos = this.grid.getPixelPosition(first.c, first.r);
-          const bunny = this.scene.add.sprite(
-            fromLeft ? gridLeft - this.grid.tileSize : gridRight + this.grid.tileSize,
-            firstPos.y,
-            'ch2_bunnies'
-          )
-            .setDisplaySize(bunnySize, bunnySize)
-            .setDepth(48 + laneIndex)
-            .setFlipX(!fromLeft)
-            .play('anim_ch2_bunnies');
+        const bunny = this.scene.add.sprite(startX, startY, 'ch2_bunnies', 0)
+          .setScale(BUNNY_SCALE)
+          .setDepth(50)
+          .setFlipX(!fromLeft)
+          .play('anim_ch2_bunnies');
 
-          path.forEach((tile, stepIndex) => {
-            this.scene.time.delayedCall(stepIndex * HOP_MS, () => {
-              if (!bunny.active || this.hp <= 0 || this.scene.isGameOver) return;
-
-              const pos = this.grid.getPixelPosition(tile.c, tile.r);
-              this.scene.tweens.add({
-                targets: bunny,
-                x: pos.x,
-                y: pos.y - this.grid.tileSize * 0.1,
-                duration: HOP_MS * 0.75,
-                ease: 'Sine.easeInOut'
-              });
-
-              this.createDamageZone([{ c: tile.c, r: tile.r }], DAMAGE_MS);
-            });
-          });
-
-          const exitX = fromLeft ? gridRight + this.grid.tileSize : gridLeft - this.grid.tileSize;
-          const last = path[path.length - 1];
-          const lastPos = this.grid.getPixelPosition(last.c, last.r);
-          this.scene.time.delayedCall(path.length * HOP_MS, () => {
-            if (!bunny.active) return;
+        // Animate through bounces
+        let bounceIndex = 0;
+        const doBounce = () => {
+          if (bounceIndex >= bounces.length || this.hp <= 0 || this.scene.isGameOver) {
+            // Hop offscreen
+            const exitX = fromLeft ? gridRight + 200 : gridLeft - 200;
             this.scene.tweens.add({
               targets: bunny,
               x: exitX,
-              y: lastPos.y,
+              y: startY,
               alpha: 0,
-              duration: 260,
+              duration: 400,
               ease: 'Power2',
               onComplete: () => bunny.destroy()
             });
+            return;
+          }
+
+          const target = bounces[bounceIndex];
+          const targetPos = this.grid.getPixelPosition(target.c, target.r);
+
+          // Damage on landing
+          this.createDamageZone([{ c: target.c, r: target.r }], 300);
+
+          // Arc bounce tween
+          const midX = (bunny.x + targetPos.x) / 2;
+          const midY = Math.min(bunny.y, targetPos.y) - 140;
+
+          this.scene.tweens.add({
+            targets: bunny,
+            x: targetPos.x,
+            y: targetPos.y,
+            duration: BOUNCE_DURATION,
+            ease: 'Sine.easeInOut',
+            onUpdate: (tween, target) => {
+              const progress = tween.progress;
+              const arcHeight = 140 * Math.sin(progress * Math.PI);
+              target.y = targetPos.y - arcHeight + (bunny.y - targetPos.y) * (1 - progress);
+            },
+            onComplete: () => {
+              bounceIndex++;
+              this.scene.time.delayedCall(150, doBounce);
+            }
           });
-        });
+        };
+
+        // Start bouncing after telegraphs
+        this.scene.time.delayedCall(TELEGRAPH_MS, doBounce);
+      });
+    };
+
+    // Spawn waves from alternating sides
+    for (let wave = 0; wave < WAVE_COUNT; wave++) {
+      const fromLeft = wave % 2 === 0;
+      const rows = this._pickUniqueRows(2);
+      rows.forEach((row, i) => {
+        spawnBunnyArc(wave * WAVE_GAP_MS + i * 350, fromLeft, row);
       });
     }
 
-    const totalDuration = (WAVE_COUNT - 1) * WAVE_GAP_MS + TELEGRAPH_MS + this.grid.cols * HOP_MS + 700;
+    const totalDuration = WAVE_COUNT * WAVE_GAP_MS + 3000;
     this.scene.time.delayedCall(totalDuration, () => {
       this._ch2UltimateActive = false;
     });
@@ -1544,20 +1609,6 @@ export class Boss {
     const rows = Array.from({ length: this.grid.rows }, (_, r) => r);
     Phaser.Utils.Array.Shuffle(rows);
     return rows.slice(0, Math.min(count, rows.length));
-  }
-
-  _buildBunnyZigZagPath(startRow, fromLeft, seed) {
-    const path = [];
-    const rowDir = seed % 2 === 0 ? 1 : -1;
-
-    for (let step = 0; step < this.grid.cols; step++) {
-      const c = fromLeft ? step : this.grid.cols - 1 - step;
-      const rowOffset = (step % 3) - 1;
-      const r = Phaser.Math.Clamp(startRow + rowOffset * rowDir, 0, this.grid.rows - 1);
-      path.push({ c, r });
-    }
-
-    return path;
   }
 
   _buildInwardSpiralTiles() {
@@ -1637,6 +1688,11 @@ export class Boss {
 
     if (this.hp <= 0) {
       this.die();
+    } else if (!this.isTutorial && this.scene.chapterId === 1) {
+      // Chapter 1 Ultimate: Blood Vortex - pulls player to center but deals NO damage
+      if (this.attackTimer) this.attackTimer.remove();
+      const ultimateDuration = this.ch1AttackBloodVortexPull();
+      this.attackTimer = this.scene.time.delayedCall(ultimateDuration + 2000, this.executeAttack, [], this);
     } else if (!this.isTutorial && this.scene.chapterId === 2) {
       if (this.attackTimer) this.attackTimer.remove();
       this._ch2UltimateCount = (this._ch2UltimateCount || 0) + 1;
@@ -1751,7 +1807,7 @@ R8: P P P P P P P P P
 
   _executeSpecificExplosionSequence(steps, scaleOverrides) {
     const ts = this.grid.tileSize;
-    const maxSpritesPerBurst = 18;
+    const maxSpritesPerBurst = 50; // Cover full grid patterns (7x7 = 49 tiles max)
     const visualBatchSize = 6;
     const visualBatchDelay = 45;
     let currentSpawnTime = 1100;

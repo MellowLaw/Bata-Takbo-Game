@@ -80,7 +80,7 @@ export const ProfileScreen = {
     let isGuest = false;
 
     try {
-      const stored = localStorage.getItem('guest_session');
+      const stored = localStorage.getItem('guest_session') || sessionStorage.getItem('guest_session');
       if (stored) {
         try {
           const session = JSON.parse(stored);
@@ -284,26 +284,19 @@ export const ProfileScreen = {
           }
         });
       }
-      
-      // Remove the catch block that was here previously for the fetch
 
     // Check admin status and show/hide admin button
     try {
-      console.log('[PROFILE] Checking admin status...');
       const adminRes = await fetch('/admin/check', { credentials: 'include' });
       const adminData = await adminRes.json();
-      console.log('[PROFILE] Admin check response:', adminData);
       const adminBtn = el.querySelector('#btn-admin-panel');
-      console.log('[PROFILE] Admin button found:', !!adminBtn);
       if (adminBtn && adminData.isAdmin) {
-        console.log('[PROFILE] Showing admin button');
         adminBtn.style.display = 'block';
         adminBtn.addEventListener('click', () => {
           window.__screenManager.navigate('admin-dashboard');
         });
       }
     } catch (e) {
-      console.log('[PROFILE] Admin check failed:', e);
       // Not an admin or error, button stays hidden
     }
 

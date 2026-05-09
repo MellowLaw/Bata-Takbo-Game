@@ -1207,91 +1207,120 @@ a {
 
 /* --- Flip Card Wrapper --- */
 .ch-flip-wrapper {
-  width: clamp(150px, 22vw, 280px);
-  aspect-ratio: 1728 / 2454;
+  width: clamp(130px, 18vw, 220px);
+  aspect-ratio: 735 / 1260;
   cursor: pointer;
-  animation: scaleIn 0.5s ease forwards;
   opacity: 0;
   filter: drop-shadow(0px 12px 24px rgba(0, 0, 0, 0.7));
-  transition: transform var(--transition-normal);
+  perspective: 1400px;
+  /* Entrance: cards being dealt from the deck — slide in, settle */
+  animation: cardDeal 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
 .ch-flip-wrapper.locked {
   cursor: default;
 }
 
-.ch-flip-wrapper.unlocked:hover .ch-flip-inner {
-  transform: scale(1.04);
+/* Cards "dealt" out one by one — slight rotation + slide */
+@keyframes cardDeal {
+  0% {
+    opacity: 0;
+    transform: translateY(-180px) translateX(-40px) rotate(-25deg) scale(0.7);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(8px) translateX(0) rotate(2deg) scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) translateX(0) rotate(0deg) scale(1);
+  }
 }
 
 .ch-flip-inner {
   position: relative;
   width: 100%;
   height: 100%;
-  transition: transform var(--transition-normal);
+  transform-style: preserve-3d;
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Slant flip — via classes for reverse transition */
-.ch-flip-inner.is-flipped {
-  animation: none;
+/* Default: back face shown */
+.ch-flip-wrapper .ch-flip-inner {
+  transform: rotateY(0deg);
 }
 
-.ch-flip-inner.is-unflipped {
-  animation: none;
+/* Hover: flip to front (both unlocked and locked) */
+.ch-flip-wrapper.unlocked:hover .ch-flip-inner,
+.ch-flip-wrapper.locked:hover .ch-flip-inner {
+  transform: rotateY(180deg);
 }
 
-@keyframes slantFlip {
-  0% {
-    transform: rotateY(0deg) rotateZ(0deg);
-  }
-
-  50% {
-    transform: rotateY(90deg) rotateZ(-6deg);
-  }
-
-  100% {
-    transform: rotateY(180deg) rotateZ(0deg);
-  }
-}
-
-@keyframes slantFlipReverse {
-  0% {
-    transform: rotateY(180deg) rotateZ(0deg);
-  }
-
-  50% {
-    transform: rotateY(90deg) rotateZ(6deg);
-  }
-
-  100% {
-    transform: rotateY(0deg) rotateZ(0deg);
-  }
-}
-
+/* Faces */
 .ch-face {
   position: absolute;
   inset: 0;
   overflow: hidden;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: 6px;
 }
 
 .ch-face img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  image-rendering: pixelated;
   display: block;
+  image-rendering: pixelated;
 }
 
 .ch-face--back {
-  display: none;
+  transform: rotateY(0deg);
+  z-index: 2;
 }
 
 .ch-face--front {
-  transform: none;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-end;
+  transform: rotateY(180deg);
+  z-index: 1;
+}
+
+/* Static chapter image — visible during flip, fades as canvas appears */
+.ch-front-static {
+  position: absolute;
+  inset: 0;
+  opacity: 1;
+  transition: opacity 0.4s ease;
+}
+
+/* Idle canvas — 735x1260 source, fills card area */
+.ch-front-idle-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+  image-rendering: pixelated;
+}
+
+/* On hover: static fades, canvas shows */
+.ch-flip-wrapper.unlocked:hover .ch-front-static {
+  opacity: 0;
+}
+
+.ch-flip-wrapper.unlocked:hover .ch-front-idle-canvas {
+  opacity: 1;
+}
+
+/* Hover glow */
+.ch-flip-wrapper.unlocked:hover {
+  filter: drop-shadow(0px 0px 22px rgba(255, 136, 0, 0.55)) drop-shadow(0px 12px 24px rgba(0, 0, 0, 0.7));
+}
+
+/* Locked card visual */
+.ch-flip-wrapper.locked .ch-face--front img {
+  filter: grayscale(0.85) brightness(0.45);
 }
 
 .ch-face__label {
