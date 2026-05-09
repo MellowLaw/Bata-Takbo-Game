@@ -8,6 +8,7 @@ export class HUDScene extends Phaser.Scene {
 
   init(data) {
     this.chapterId = data.chapterId;
+    this.character = data.character || 'male';
     this.elapsed = 0;
   }
 
@@ -337,45 +338,48 @@ export class HUDScene extends Phaser.Scene {
     this._puColor = 0x888888;
     this._puActive = false;
 
-    // ========== CAMERA BOX — centered in space below power-up section ==========
-    const puEndY = puBoxY + puBoxH + 8; // bottom of power-up box + small gap
-    const targetCamH = Math.floor(bossBoxW * 0.75); // Ideal 4:3 aspect ratio
+    // ========== CAMERA BOX or D-PAD — based on character ==========
+    const puEndY = puBoxY + puBoxH + 8;
+    const targetCamH = Math.floor(bossBoxW * 0.75);
     const camBoxH = Math.min(targetCamH, Math.floor(remainingHeight * 0.40));
-    // Center the box in the available space between power-up bottom and screen bottom
     const camBoxY = puEndY + Math.floor((height - puEndY - camBoxH) / 2);
 
-    this.panelBg.fillStyle(0x100c04, 1);
-    this.panelBg.fillRect(boxPadX, camBoxY, bossBoxW, camBoxH);
+    if (this.character === 'female') {
+      // ── D-PAD (on-screen arrow buttons) ──────────────────────────────────
+      this._buildDpad(boxPadX, camBoxY, bossBoxW, camBoxH);
+    } else {
+      // ── CAMERA PiP (male / gesture mode) ────────────────────────────────
+      this.panelBg.fillStyle(0x100c04, 1);
+      this.panelBg.fillRect(boxPadX, camBoxY, bossBoxW, camBoxH);
 
-    // Position DOM camera PiP over the camera box
-    const pip = document.getElementById('game-camera-pip');
-    if (pip) {
-      pip.style.left = `${boxPadX + 2}px`;
-      pip.style.top = `${camBoxY + 2}px`;
-      pip.style.width = `${bossBoxW - 4}px`;
-      pip.style.height = `${camBoxH - 4}px`;
-      pip.style.bottom = 'auto';
-      pip.style.borderRadius = '0px';
-      pip.style.border = 'none';
-      pip.style.boxShadow = 'none';
-      pip.style.opacity = '1';
+      const pip = document.getElementById('game-camera-pip');
+      if (pip) {
+        pip.style.left = `${boxPadX + 2}px`;
+        pip.style.top = `${camBoxY + 2}px`;
+        pip.style.width = `${bossBoxW - 4}px`;
+        pip.style.height = `${camBoxH - 4}px`;
+        pip.style.bottom = 'auto';
+        pip.style.borderRadius = '0px';
+        pip.style.border = 'none';
+        pip.style.boxShadow = 'none';
+        pip.style.opacity = '1';
 
-      // Attach translucent eye camera overlay
-      let overlay = document.getElementById('cam-eye-overlay');
-      if (!overlay) {
-        overlay = document.createElement('img');
-        overlay.id = 'cam-eye-overlay';
-        overlay.src = '/assets/ui/game-ui/eye-camera.png';
-        overlay.style.position = 'absolute';
-        overlay.style.pointerEvents = 'none';
-        overlay.style.zIndex = '51'; // exactly above pip (50) but below pause menu (100)
-        pip.parentNode.appendChild(overlay);
+        let overlay = document.getElementById('cam-eye-overlay');
+        if (!overlay) {
+          overlay = document.createElement('img');
+          overlay.id = 'cam-eye-overlay';
+          overlay.src = '/assets/ui/game-ui/eye-camera.png';
+          overlay.style.position = 'absolute';
+          overlay.style.pointerEvents = 'none';
+          overlay.style.zIndex = '51';
+          pip.parentNode.appendChild(overlay);
+        }
+        overlay.style.left = pip.style.left;
+        overlay.style.top = pip.style.top;
+        overlay.style.width = pip.style.width;
+        overlay.style.height = pip.style.height;
+        overlay.style.display = pip.style.display;
       }
-      overlay.style.left = pip.style.left;
-      overlay.style.top = pip.style.top;
-      overlay.style.width = pip.style.width;
-      overlay.style.height = pip.style.height;
-      overlay.style.display = pip.style.display;
     }
 
     // Hide duplicate DOM timer (we use Phaser text)
@@ -416,6 +420,47 @@ export class HUDScene extends Phaser.Scene {
     this.bloodOverlay.setDisplaySize(width - leftWidth, height);
     this.bloodOverlay.setDepth(5);
     this.bloodOverlay.setAlpha(0); // hidden until needed
+  }
+
+  _buildDpad(boxX, boxY, boxW, boxH) {
+    // Remove any pre-existing d-pad
+    const existing = document.getElementById('game-dpad');
+    if (existing) existing.remove();
+
+    const dpad = document.createElement('div');
+    dpad.id = 'game-dpad';
+    dpad.className = 'game-dpad';
+    dpad.style.left = `${boxX}px`;
+    dpad.style.top = `${boxY}px`;
+    dpad.style.width = `${boxW}px`;
+    dpad.style.height = `${boxH}px`;
+
+    const arrows = [
+      { dir: 'up',    label: '\u25b2', cls: 'dpad-up'    },
+      { dir: 'left',  label: '\u25c4', cls: 'dpad-left'  },
+      { dir: 'right', label: '\u25ba', cls: 'dpad-right' },
+      { dir: 'down',  label: '\u25bc', cls: 'dpad-down'  },
+    ];
+
+    arrows.forEach(({ dir, label, cls }) => {
+      const btn = document.createElement('button');
+      btn.className = `dpad-btn ${cls}`;
+      btn.setAttribute('aria-label', dir);
+      btn.innerHTML = `<span class="dpad-arrow-icon">${label}</span>`;
+
+      const fire = () => {
+        const gs = this.scene.get('GameScene');
+        if (gs && !gs.isGameOver) gs.player.move(dir);
+      };
+
+      // Touch (mobile) and click (desktop)
+      btn.addEventListener('pointerdown', (e) => { e.preventDefault(); fire(); });
+
+      dpad.appendChild(btn);
+    });
+
+    const gameContainer = document.querySelector('.game-screen');
+    if (gameContainer) gameContainer.appendChild(dpad);
   }
 
   showPowerup(name, rarity, durationMs) {
@@ -617,5 +662,10 @@ export class HUDScene extends Phaser.Scene {
       this.puBarFill.fillRect(this.puBarX, this.puBarY, this.puBarMaxW * ratio, 5);
       if (remaining <= 0) this.clearPowerup();
     }
+  }
+
+  shutdown() {
+    const dpad = document.getElementById('game-dpad');
+    if (dpad) dpad.remove();
   }
 }

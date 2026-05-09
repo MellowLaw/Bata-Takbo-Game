@@ -7,6 +7,7 @@ import { ScreenManager } from './utils/ScreenManager.js';
 import { state } from './utils/StateManager.js';
 import { MainMenu } from './screens/MainMenu.js';
 import { ChapterSelect } from './screens/ChapterSelect.js';
+import { CharacterSelect } from './screens/CharacterSelect.js';
 import { Settings } from './screens/Settings.js';
 import { GestureTraining } from './screens/GestureTraining.js';
 import { Spellbook } from './screens/Spellbook.js';
@@ -33,6 +34,7 @@ window.__gestureController = gestureController;
 // Register all screens
 screenManager.register('main-menu', MainMenu);
 screenManager.register('chapter-select', ChapterSelect);
+screenManager.register('character-select', CharacterSelect);
 screenManager.register('settings', Settings);
 screenManager.register('gesture-training', GestureTraining);
 screenManager.register('spellbook', Spellbook);

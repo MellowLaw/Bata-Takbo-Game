@@ -135,14 +135,7 @@ export const ChapterSelect = {
 
       card.addEventListener('click', () => {
         const chapterId = parseInt(card.dataset.chapter);
-
-        const isTrained = state.get('gestureModelTrained');
-        if (!isTrained) {
-          alert("WARNING: You haven't trained your hand gestures yet!\nPlease complete Gesture Setup first before playing.");
-          return;
-        }
-
-        window.__screenManager.navigate('game-screen', { chapterId });
+        window.__screenManager.navigate('character-select', { chapterId });
       });
     });
 

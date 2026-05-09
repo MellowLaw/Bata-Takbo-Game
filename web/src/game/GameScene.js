@@ -12,8 +12,9 @@ export class GameScene extends Phaser.Scene {
   init(data) {
     this.chapterId = data.chapterId || 1;
     this.isTutorial = data.isTutorial || false;
+    this.character = data.character || 'male';
     this.isGameOver = false;
-    console.log(`[GameScene] Initializing Chapter ${this.chapterId} (Tutorial: ${this.isTutorial})`);
+    console.log(`[GameScene] Initializing Chapter ${this.chapterId} (Tutorial: ${this.isTutorial}, Character: ${this.character})`);
   }
 
   preload() {
@@ -35,15 +36,26 @@ export class GameScene extends Phaser.Scene {
     this.load.image('boss_frame', '/assets/ui/game-ui/boss-frame.png');
     this.load.image('red_tile', '/assets/ui/game-ui/red_tile.png');
 
-    // Player sprites: 384x64 strips = 8 frames of 48x64 each
-    this.load.spritesheet('player_idle_down', '/assets/entity/player/male/idle/idle_down.png', { frameWidth: 48, frameHeight: 64 });
-    this.load.spritesheet('player_idle_up', '/assets/entity/player/male/idle/idle_up.png', { frameWidth: 48, frameHeight: 64 });
-    this.load.spritesheet('player_idle_left', '/assets/entity/player/male/idle/idle_left.png', { frameWidth: 48, frameHeight: 64 });
-    this.load.spritesheet('player_idle_right', '/assets/entity/player/male/idle/idle_right.png', { frameWidth: 48, frameHeight: 64 });
-    this.load.spritesheet('player_dash_down', '/assets/entity/player/male/dash/dash-down.png', { frameWidth: 48, frameHeight: 64 });
-    this.load.spritesheet('player_dash_up', '/assets/entity/player/male/dash/dash-up.png', { frameWidth: 48, frameHeight: 64 });
-    this.load.spritesheet('player_dash_left', '/assets/entity/player/male/dash/dash-left-down.png', { frameWidth: 48, frameHeight: 64 });
-    this.load.spritesheet('player_dash_right', '/assets/entity/player/male/dash/dash-right-down.png', { frameWidth: 48, frameHeight: 64 });
+    // Player sprites: load based on selected character
+    if (this.character === 'female') {
+      this.load.spritesheet('player_idle_down',  '/assets/entity/player/female/Idle/Idle_Down.png',        { frameWidth: 48, frameHeight: 64 });
+      this.load.spritesheet('player_idle_up',    '/assets/entity/player/female/Idle/Idle_Up.png',          { frameWidth: 48, frameHeight: 64 });
+      this.load.spritesheet('player_idle_left',  '/assets/entity/player/female/Idle/Idle_Left_Down.png',   { frameWidth: 48, frameHeight: 64 });
+      this.load.spritesheet('player_idle_right', '/assets/entity/player/female/Idle/Idle_Right_Down.png',  { frameWidth: 48, frameHeight: 64 });
+      this.load.spritesheet('player_dash_down',  '/assets/entity/player/female/Dash/Dash_Down.png',        { frameWidth: 48, frameHeight: 64 });
+      this.load.spritesheet('player_dash_up',    '/assets/entity/player/female/Dash/Dash_Up.png',          { frameWidth: 48, frameHeight: 64 });
+      this.load.spritesheet('player_dash_left',  '/assets/entity/player/female/Dash/Dash_Left_Down.png',   { frameWidth: 48, frameHeight: 64 });
+      this.load.spritesheet('player_dash_right', '/assets/entity/player/female/Dash/Dash_Right_Down.png',  { frameWidth: 48, frameHeight: 64 });
+    } else {
+      this.load.spritesheet('player_idle_down',  '/assets/entity/player/male/idle/idle_down.png',       { frameWidth: 48, frameHeight: 64 });
+      this.load.spritesheet('player_idle_up',    '/assets/entity/player/male/idle/idle_up.png',         { frameWidth: 48, frameHeight: 64 });
+      this.load.spritesheet('player_idle_left',  '/assets/entity/player/male/idle/idle_left.png',       { frameWidth: 48, frameHeight: 64 });
+      this.load.spritesheet('player_idle_right', '/assets/entity/player/male/idle/idle_right.png',      { frameWidth: 48, frameHeight: 64 });
+      this.load.spritesheet('player_dash_down',  '/assets/entity/player/male/dash/dash-down.png',       { frameWidth: 48, frameHeight: 64 });
+      this.load.spritesheet('player_dash_up',    '/assets/entity/player/male/dash/dash-up.png',         { frameWidth: 48, frameHeight: 64 });
+      this.load.spritesheet('player_dash_left',  '/assets/entity/player/male/dash/dash-left-down.png',  { frameWidth: 48, frameHeight: 64 });
+      this.load.spritesheet('player_dash_right', '/assets/entity/player/male/dash/dash-right-down.png', { frameWidth: 48, frameHeight: 64 });
+    }
 
     // Boss sprite sheets
 
@@ -778,12 +790,14 @@ export class GameScene extends Phaser.Scene {
     }
 
     // Launch HUD
-    this.scene.launch('HUDScene', { chapterId: this.chapterId });
+    this.scene.launch('HUDScene', { chapterId: this.chapterId, character: this.character });
 
-    // Gesture controller
-    this.unsubGesture = state.on('gesture:detected', (direction) => {
-      this.handleGesture(direction);
-    });
+    // Gesture controller — only active for male character
+    if (this.character !== 'female') {
+      this.unsubGesture = state.on('gesture:detected', (direction) => {
+        this.handleGesture(direction);
+      });
+    }
 
     this.cursors = this.input.keyboard.createCursorKeys();
 
@@ -1176,10 +1190,19 @@ export class GameScene extends Phaser.Scene {
 
   update(time, delta) {
     if (this.isGameOver) return;
-    if (Phaser.Input.Keyboard.JustDown(this.cursors.up)) this.player.move('up');
-    if (Phaser.Input.Keyboard.JustDown(this.cursors.down)) this.player.move('down');
-    if (Phaser.Input.Keyboard.JustDown(this.cursors.left)) this.player.move('left');
-    if (Phaser.Input.Keyboard.JustDown(this.cursors.right)) this.player.move('right');
+    const dirs = ['up', 'down', 'left', 'right'];
+    dirs.forEach(dir => {
+      if (Phaser.Input.Keyboard.JustDown(this.cursors[dir])) {
+        this.player.move(dir);
+        if (this.character === 'female') {
+          const btn = document.querySelector(`.dpad-${dir}`);
+          if (btn) {
+            btn.classList.add('dpad-btn--active');
+            setTimeout(() => btn.classList.remove('dpad-btn--active'), 150);
+          }
+        }
+      }
+    });
 
     if (this.chapterId === 1 && this.horizontalProjectiles) {
       this.horizontalProjectiles.getChildren().forEach(proj => {

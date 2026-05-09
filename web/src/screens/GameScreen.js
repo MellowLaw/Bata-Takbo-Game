@@ -145,20 +145,27 @@ export const GameScreen = {
     
     const chapterId = params.chapterId || 1;
     const isTutorial = params.isTutorial || false;
-    
-    // 1. Boot up ML Gestures
-    try {
-      await gestureController.initialize(this.videoEl, this.canvasEl);
-      await gestureController.startCamera();
-    } catch (e) {
-      console.warn('Camera failed to start in game', e);
-    }
-    
-    // 2. Adjust PiP view depending on settings
-    const currentSettings = state.get('settings');
+    const character = params.character || state.get('selectedCharacter') || 'male';
+    state.set('selectedCharacter', character);
+
+    // 1. Boot up ML Gestures (male only — female uses keyboard/d-pad)
     const pip = el.querySelector('#game-camera-pip');
-    if (currentSettings && currentSettings.camera && !currentSettings.camera.showSkeleton && currentSettings.camera.privacyMode) {
-      pip.style.display = 'none';
+    if (character === 'male') {
+      try {
+        await gestureController.initialize(this.videoEl, this.canvasEl);
+        await gestureController.startCamera();
+      } catch (e) {
+        console.warn('Camera failed to start in game', e);
+      }
+
+      // 2. Adjust PiP view depending on settings
+      const currentSettings = state.get('settings');
+      if (currentSettings && currentSettings.camera && !currentSettings.camera.showSkeleton && currentSettings.camera.privacyMode) {
+        pip.style.display = 'none';
+      }
+    } else {
+      // Female: hide camera PiP entirely (D-pad is shown by HUDScene instead)
+      if (pip) pip.style.display = 'none';
     }
 
     // 3. Initialize Game Engine
@@ -184,7 +191,7 @@ export const GameScreen = {
 
     // Add scenes manually ONCE with the correct data, preventing double-start
     this.game.events.on('ready', () => {
-      this.game.scene.add('GameScene', GameScene, true, { chapterId, isTutorial });
+      this.game.scene.add('GameScene', GameScene, true, { chapterId, isTutorial, character });
       this.game.scene.add('HUDScene', HUDScene, false);
       // GameScene.create() will call scene.launch('HUDScene') when ready
     });
@@ -230,12 +237,12 @@ export const GameScreen = {
     
     el.querySelector('#btn-restart').addEventListener('click', () => {
       this.game.destroy(true);
-      window.__screenManager.navigate('game-screen', { chapterId: chapterId }, false);
+      window.__screenManager.navigate('game-screen', { chapterId, character }, false);
     });
 
     el.querySelector('#btn-quit').addEventListener('click', () => {
       this.game.destroy(true);
-      gestureController.stopCamera();
+      if (character === 'male') gestureController.stopCamera();
       window.__screenManager.navigate('main-menu', {}, false);
     });
   },
@@ -253,7 +260,7 @@ export const GameScreen = {
       this.game.destroy(true);
       this.game = null;
     }
-    gestureController.stopCamera();
+    if (state.get('selectedCharacter') !== 'female') gestureController.stopCamera();
     state.set('currentScreen', null);
   },
 
