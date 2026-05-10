@@ -50,13 +50,13 @@ export const GameScreen = {
 
         <!-- Pause / Exit Button overlay is removed from DOM (now in HUDScene) -->
 
-        <!-- ⚠️ DEBUG ONLY — Remove before release -->
+        <!-- ⚠️ DEBUG ONLY — Admin-only force-end buttons -->
         <div id="debug-toolbar" style="
           position: absolute;
           top: 10px;
           right: 10px;
           z-index: 9999;
-          display: flex;
+          display: none;
           gap: 8px;
         ">
           <button id="btn-debug-lose" style="
@@ -92,13 +92,13 @@ export const GameScreen = {
           align-items: center;
           padding-left: 12%;
         ">
-          <div class="pause-content" style="display: flex; flex-direction: column; align-items: flex-start; width: 450px; z-index: 2;">
-            <h2 class="pause-title" style="font-family: 'DirtyHarold', sans-serif; font-size: 8rem; color: white; margin-bottom: 2rem; margin-left: 10px; text-shadow: 4px 4px 0px #000, 0 0 20px rgba(255,255,255,0.2); letter-spacing: 2px; line-height: 1;">PAUSED</h2>
+          <div class="pause-content" style="display: flex; flex-direction: column; align-items: flex-start; width: clamp(200px, 40vw, 450px); z-index: 2;">
+            <h2 class="pause-title" style="font-family: 'DirtyHarold', sans-serif; font-size: clamp(3rem, 8vw, 8rem); color: white; margin-bottom: clamp(0.8rem, 2vh, 2rem); margin-left: 10px; text-shadow: 4px 4px 0px #000, 0 0 20px rgba(255,255,255,0.2); letter-spacing: 2px; line-height: 1;">PAUSED</h2>
             
-            <div class="pause-btn-group" style="display: flex; flex-direction: column; align-items: flex-start; gap: 0.2rem; margin-bottom: 2rem;">
-              <button class="menu-btn" id="btn-resume" style="padding: 0.2rem 0 !important; padding-left: 0 !important; margin: 0 !important; text-align: left !important; font-size: 1.5rem; color: white; text-shadow: 1px 1px 2px #000; letter-spacing: 1px; min-width: 0;">RESUME</button>
-              <button class="menu-btn" id="btn-restart" style="padding: 0.2rem 0 !important; padding-left: 0 !important; margin: 0 !important; text-align: left !important; font-size: 1.5rem; color: white; text-shadow: 1px 1px 2px #000; letter-spacing: 1px; min-width: 0;">RESTART</button>
-              <button class="menu-btn" id="btn-quit" style="padding: 0.2rem 0 !important; padding-left: 0 !important; margin: 0 !important; text-align: left !important; font-size: 1.5rem; color: white; text-shadow: 1px 1px 2px #000; letter-spacing: 1px; min-width: 0;">QUIT TO MENU</button>
+            <div class="pause-btn-group" style="display: flex; flex-direction: column; align-items: flex-start; gap: 0.2rem; margin-bottom: clamp(0.8rem, 2vh, 2rem);">
+              <button class="menu-btn" id="btn-resume" style="padding: 0.2rem 0 !important; padding-left: 0 !important; margin: 0 !important; text-align: left !important; font-size: clamp(1rem, 2.5vw, 1.5rem); color: white; text-shadow: 1px 1px 2px #000; letter-spacing: 1px; min-width: 0;">RESUME</button>
+              <button class="menu-btn" id="btn-restart" style="padding: 0.2rem 0 !important; padding-left: 0 !important; margin: 0 !important; text-align: left !important; font-size: clamp(1rem, 2.5vw, 1.5rem); color: white; text-shadow: 1px 1px 2px #000; letter-spacing: 1px; min-width: 0;">RESTART</button>
+              <button class="menu-btn" id="btn-quit" style="padding: 0.2rem 0 !important; padding-left: 0 !important; margin: 0 !important; text-align: left !important; font-size: clamp(1rem, 2.5vw, 1.5rem); color: white; text-shadow: 1px 1px 2px #000; letter-spacing: 1px; min-width: 0;">QUIT TO MENU</button>
             </div>
 
             <!-- Settings Panel -->
@@ -189,6 +189,19 @@ export const GameScreen = {
 
     this.game = new Phaser.Game(config);
 
+    // Refresh Phaser scale on viewport changes (fullscreen toggle, window resize, orientation)
+    this._onWindowResize = () => {
+      if (this.game && this.game.scale) {
+        this.game.scale.refresh();
+      }
+    };
+    window.addEventListener('resize', this._onWindowResize);
+    window.addEventListener('orientationchange', this._onWindowResize);
+    if (document.addEventListener) {
+      document.addEventListener('fullscreenchange', this._onWindowResize);
+      document.addEventListener('webkitfullscreenchange', this._onWindowResize);
+    }
+
     // Add scenes manually ONCE with the correct data, preventing double-start
     this.game.events.on('ready', () => {
       this.game.scene.add('GameScene', GameScene, true, { chapterId, isTutorial, character });
@@ -202,7 +215,19 @@ export const GameScreen = {
     this.unsubGamePause = state.on('game:pause', () => this.togglePause(true));
     el.querySelector('#btn-resume').addEventListener('click', () => this.togglePause(false));
 
-    // ⚠️ DEBUG — Force lose/win for testing results screen
+    // ⚠️ DEBUG — Force lose/win (admin only)
+    const debugToolbar = el.querySelector('#debug-toolbar');
+    if (debugToolbar) {
+      fetch('/admin/check', { credentials: 'include' })
+        .then(r => r.ok ? r.json() : { isAdmin: false })
+        .then(data => {
+          if (data && data.isAdmin) {
+            debugToolbar.style.display = 'flex';
+          }
+        })
+        .catch(() => { /* not admin / offline — keep hidden */ });
+    }
+
     el.querySelector('#btn-debug-lose').addEventListener('click', () => {
       const gs = this.game && this.game.scene.getScene('GameScene');
       if (gs && !gs.isGameOver) gs.showGameOver(false);
@@ -259,6 +284,13 @@ export const GameScreen = {
     if (this.game) {
       this.game.destroy(true);
       this.game = null;
+    }
+    if (this._onWindowResize) {
+      window.removeEventListener('resize', this._onWindowResize);
+      window.removeEventListener('orientationchange', this._onWindowResize);
+      document.removeEventListener('fullscreenchange', this._onWindowResize);
+      document.removeEventListener('webkitfullscreenchange', this._onWindowResize);
+      this._onWindowResize = null;
     }
     if (state.get('selectedCharacter') !== 'female') gestureController.stopCamera();
     state.set('currentScreen', null);

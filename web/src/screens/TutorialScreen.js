@@ -25,7 +25,7 @@ export const TutorialScreen = {
       {
         text: 'Welcome to the battlefield! This is a 5×5 grid. You stand on it and must dodge the boss attacks.',
         portrait,
-        position: 'bottom',
+        position: 'center',
         autoAdvance: { type: 'time', duration: 4000 }
       },
 
@@ -33,25 +33,25 @@ export const TutorialScreen = {
       {
         text: 'Use your hand gestures to move. Try going ↑ UP!',
         portrait,
-        position: 'bottom',
+        position: 'center',
         autoAdvance: { type: 'playerMoved', check: (dir) => dir === 'up' }
       },
       {
         text: 'Nice! Now try ↓ DOWN.',
         portrait,
-        position: 'bottom',
+        position: 'center',
         autoAdvance: { type: 'playerMoved', check: (dir) => dir === 'down' }
       },
       {
         text: 'Good! Try ← LEFT.',
         portrait,
-        position: 'bottom',
+        position: 'center',
         autoAdvance: { type: 'playerMoved', check: (dir) => dir === 'left' }
       },
       {
         text: 'Almost there — try → RIGHT!',
         portrait,
-        position: 'bottom',
+        position: 'center',
         autoAdvance: { type: 'playerMoved', check: (dir) => dir === 'right' }
       },
 
@@ -59,7 +59,7 @@ export const TutorialScreen = {
       {
         text: 'Great! Move freely for a bit — get comfortable with the controls.',
         portrait,
-        position: 'bottom',
+        position: 'center',
         autoAdvance: { type: 'time', duration: 6000 }
       },
 
@@ -67,7 +67,7 @@ export const TutorialScreen = {
       {
         text: 'The boss will attack you! Watch the RED tiles — those show where danger is coming.',
         portrait,
-        position: 'bottom',
+        position: 'center',
         onEnter: () => state.emit('tutorial:triggerAttack', 0),
         autoAdvance: { type: 'attackComplete' }
       },
@@ -76,7 +76,7 @@ export const TutorialScreen = {
       {
         text: 'DODGE! Move away before the attack hits!',
         portrait,
-        position: 'bottom',
+        position: 'center',
         onEnter: () => state.emit('tutorial:triggerAttack', 1),
         autoAdvance: { type: 'attackComplete' }
       },
@@ -85,7 +85,7 @@ export const TutorialScreen = {
       {
         text: 'If you stand on a tile when it explodes — you take damage. Watch the bottom for your HP!',
         portrait,
-        position: 'bottom',
+        position: 'center',
         onEnter: () => state.emit('tutorial:triggerAttack', 2),
         autoAdvance: { type: 'attackComplete' }
       },
@@ -94,7 +94,7 @@ export const TutorialScreen = {
       {
         text: "Now it's YOUR turn. See the glowing golden tile? Step on it to damage the boss!",
         portrait,
-        position: 'bottom',
+        position: 'center',
         onEnter: () => {
           // Small delay so the dialogue renders before the tile spawns
           setTimeout(() => state.emit('tutorial:spawnDamageTile'), 500);
@@ -106,7 +106,7 @@ export const TutorialScreen = {
       {
         text: "Let's put it all together! Dodge the boss, then step on the golden tile when it appears.",
         portrait,
-        position: 'bottom',
+        position: 'center',
         onEnter: () => {
           // Queue a small combat sequence: attack 0 → attack 1 → golden tile
           // Boss._tutorialSimpleAttack takes ~3s (2s warning + ~1s explosion).
@@ -121,7 +121,7 @@ export const TutorialScreen = {
       {
         text: "You're ready for the real action! Good luck, warrior!",
         portrait,
-        position: 'bottom',
+        position: 'center',
         buttons: [{ label: '▶ Begin Adventure', action: 'next' }]
       }
     ];

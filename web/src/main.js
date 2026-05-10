@@ -5,6 +5,7 @@
 import './index.css';
 import { ScreenManager } from './utils/ScreenManager.js';
 import { state } from './utils/StateManager.js';
+import { orientationManager } from './utils/OrientationManager.js';
 import { MainMenu } from './screens/MainMenu.js';
 import { ChapterSelect } from './screens/ChapterSelect.js';
 import { CharacterSelect } from './screens/CharacterSelect.js';
@@ -145,6 +146,81 @@ document.addEventListener('keydown', (e) => {
     screenManager.back();
   }
 });
+
+// Double-tap anywhere to toggle fullscreen
+(function doubleTapFullscreen() {
+  if (!document.fullscreenEnabled) return;
+
+  // Show a one-time hint overlay when the app first opens
+  const hintShown = sessionStorage.getItem('fs_hint_shown');
+  if (!hintShown) {
+    sessionStorage.setItem('fs_hint_shown', '1');
+    const hint = document.createElement('div');
+    hint.id = 'fs-hint';
+    hint.innerHTML = `
+      <div style="
+        position: fixed; inset: 0; z-index: 99999;
+        background: rgba(0,0,0,0.72);
+        backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        gap: 0.75rem;
+        animation: fsFadeIn 0.5s ease forwards;
+        pointer-events: none;
+      ">
+        <span style="font-size: clamp(2rem,6vw,3rem);">👆👆</span>
+        <p style="
+          font-family: 'GigaSaturn', sans-serif;
+          font-size: clamp(1rem, 3vw, 1.4rem);
+          color: white; letter-spacing: 3px;
+          text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+          text-align: center; margin: 0; line-height: 1.5;
+        ">DOUBLE-TAP<br>FOR FULLSCREEN</p>
+      </div>
+    `;
+    // Inject keyframe if not already present
+    if (!document.getElementById('fs-hint-style')) {
+      const s = document.createElement('style');
+      s.id = 'fs-hint-style';
+      s.textContent = `
+        @keyframes fsFadeIn { from { opacity:0; } to { opacity:1; } }
+        @keyframes fsFadeOut { from { opacity:1; } to { opacity:0; } }
+      `;
+      document.head.appendChild(s);
+    }
+    document.body.appendChild(hint);
+    // Fade out and remove after 2.5s
+    setTimeout(() => {
+      const inner = hint.querySelector('div');
+      if (inner) inner.style.animation = 'fsFadeOut 0.6s ease forwards';
+      setTimeout(() => hint.remove(), 650);
+    }, 2500);
+  }
+
+  // Double-tap detection — ignore taps on interactive elements
+  let lastTap = 0;
+  const DOUBLE_TAP_MS = 300;
+  const INTERACTIVE = 'button, a, input, select, textarea, canvas, [role="button"], .dpad-btn, .gesture-dir-btn, .menu-btn, .back-btn';
+
+  const onTap = (e) => {
+    // Ignore if tapped on or inside an interactive element
+    if (e.target.closest(INTERACTIVE)) return;
+
+    const now = Date.now();
+    if (now - lastTap < DOUBLE_TAP_MS) {
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {});
+      } else {
+        document.documentElement.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
+      }
+      lastTap = 0;
+    } else {
+      lastTap = now;
+    }
+  };
+
+  document.addEventListener('touchend', onTap);
+})();
 
 // PWA: Register service worker
 if ('serviceWorker' in navigator) {

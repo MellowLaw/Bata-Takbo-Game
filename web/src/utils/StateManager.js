@@ -142,8 +142,16 @@ class StateManager {
   _loadGestureSetupState() {
     try {
       const saved = localStorage.getItem('bata_takbo_gesture_setup');
-      if (saved) return JSON.parse(saved) === true;
-    } catch (e) { /* ignore */ }
+      console.log(`[STATE] Loading gesture setup from localStorage:`, saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        console.log(`[STATE] Parsed gesture setup state:`, parsed, `=== true:`, parsed === true);
+        return parsed === true;
+      }
+    } catch (e) { 
+      console.log(`[STATE] Error loading gesture setup state:`, e);
+    }
+    console.log(`[STATE] No gesture setup state found, returning false`);
     return false;
   }
 

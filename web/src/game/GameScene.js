@@ -251,17 +251,10 @@ export class GameScene extends Phaser.Scene {
     // frozen: 1536x128 = 12 frames of 128x128
     this.load.spritesheet('frozen', '/assets/fx/frozen.png', { frameWidth: 128, frameHeight: 128 });
 
-    // Power-Up Assets — Chests.png is 288x128 = 9 cols x 4 rows of 32x32 frames
-    // Columns 0=Common(green), 1=Rare(blue), 2=Legendary(gold)
-    this.load.spritesheet('powerup_chests', '/assets/powerups/chests.png', { frameWidth: 32, frameHeight: 32 });
-    // 02.png is the placeholder icon sheet for the HUD power-up slot
-    this.load.image('powerup_ui', '/assets/powerups/02.png');
-
     this.load.spritesheet('lightning_burst', '/assets/fx/lightning_burst.png', { frameWidth: 64, frameHeight: 64 });
 
     // Boss HP bar — MinimumDamage sheet (64x16, 50 frames: frame 0 = full, frame 49 = empty, top-to-bottom)
     this.load.spritesheet('boss_hp_bar', '/assets/ui/game-ui/minimum-damage/MinimumDamage-Sheet.png', { frameWidth: 64, frameHeight: 16 });
-    this.load.image('inventory_slot', '/assets/ui/game-ui/inventory.png');
     this.load.spritesheet('villain_hp_up', '/assets/fx/villain_hpUP.png', { frameWidth: 64, frameHeight: 64 });
 
     // Blood screen overlays (low HP warnings on right panel)
@@ -328,21 +321,7 @@ export class GameScene extends Phaser.Scene {
         this.anims.create({ key: 'anim_eye_explosion', frames: this.anims.generateFrameNumbers('eye_explosion'), frameRate: 18, repeat: 0 });
       }
 
-      // Power Up Chest Animations (Vertical animation mapping across 9 columns where rarity defines the column index)
-      if (this.textures.exists('powerup_chests') && this.textures.get('powerup_chests').frameTotal >= 27) {
-        const activeChests = [0, 1, 2, 8];
-        for (let i of activeChests) {
-          this.anims.create({
-            key: `chest_open_${i}`,
-            frames: [{ key: 'powerup_chests', frame: i }, { key: 'powerup_chests', frame: i + 9 }, { key: 'powerup_chests', frame: i + 18 }],
-            frameRate: 12,
-            repeat: 0
-          });
-        }
-      } else {
-        console.warn('powerup_chests texture or frames missing, skipping chest animations');
-      }
-
+      
       // Compile Phase 5 Chapter 1 Blood Sequences into Animations
       if (this.chapterId === 1 && !this.anims.exists('anim_dark_blood')) {
 
@@ -720,11 +699,6 @@ export class GameScene extends Phaser.Scene {
       const chosen = Phaser.Math.RND.pick(pool);
       const DURATION = [5000, 5000, 5000][rarity] ?? 5000;
       chosen.apply();
-
-      // Notify HUD powerup slot
-      if (chosen.name !== 'VITALITY' && chosen.name !== 'HEALTH POTION' && chosen.name !== 'BLINK') {
-        this.events.emit('powerup:activated', chosen.name, rarity, DURATION);
-      }
 
       // Floating text feedback
       const msgColors = ['#aaaaaa', '#44aaff', '#ffdd00'];
@@ -1339,8 +1313,9 @@ export class GameScene extends Phaser.Scene {
     const leftWidth = Math.max(250, Math.min(450, width * 0.28));
     const rightPanelCenterX = leftWidth + (width - leftWidth) / 2;
 
+    const flashFontSize = Math.max(32, Math.min(72, Math.floor((width - leftWidth) * 0.12)));
     this.add.text(rightPanelCenterX, height / 2, msg, {
-      fontFamily: 'GigaSaturn', fontSize: '72px', color,
+      fontFamily: 'GigaSaturn', fontSize: `${flashFontSize}px`, color,
       stroke: '#000000', strokeThickness: 8,
       shadow: { offsetX: 0, offsetY: 0, color: color, blur: 30, fill: true }
     }).setOrigin(0.5).setDepth(1000);

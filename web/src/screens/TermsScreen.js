@@ -6,7 +6,7 @@ export const TermsScreen = {
       <div class="terms-screen screen" style="background-image: url('/assets/ui/backgrounds/login_background.png'); background-size: cover; background-position: center; width: 100%; height: 100%;">
         <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7);"></div>
         
-        <button class="back-btn" id="btn-terms-back" style="z-index: 10;">Back</button>
+        <button class="back-btn" id="btn-terms-back">Back</button>
 
         <div style="position: relative; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; padding: 5%;">
           

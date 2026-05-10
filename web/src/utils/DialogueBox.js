@@ -102,7 +102,7 @@ export class DialogueBox {
       ${buttonsHtml}
     `;
 
-      this.container.appendChild(this.element);
+      document.body.appendChild(this.element);
 
       // Bind buttons
       const btnElements = this.element.querySelectorAll('button');

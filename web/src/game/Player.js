@@ -112,7 +112,6 @@ export class Player {
     // Clear dash flag once actively moving
     if (this.hasDash) {
         this.hasDash = false;
-        this.scene.events.emit('powerup:cleared'); // Tells HUD to turn off the dash slot
     }
 
     this.scene.tweens.add({

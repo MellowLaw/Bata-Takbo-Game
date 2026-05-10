@@ -138,7 +138,7 @@ export const CharacterSelect = {
         const control = item.dataset.control;
 
         if (control === 'gesture') {
-          const isTrained = state.get('gestureModelTrained');
+          const isTrained = state.get('gestureModelTrained') || state.get('gestureSetupComplete');
           if (!isTrained) {
             alert("WARNING: You haven't trained your hand gestures yet!\nPlease complete Gesture Setup first.");
             return;

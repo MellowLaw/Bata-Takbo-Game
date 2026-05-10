@@ -1,80 +1,69 @@
 // Service Worker — Bata, Takbo!
-// Basic cache-first strategy for game assets
+// Network-first strategy — always serve fresh assets, cache only as offline fallback
 
-const CACHE_NAME = 'bata-takbo-v4';
-const ASSETS_TO_CACHE = [
-  '/',
-  '/index.html',
-  '/assets/ui/main-title.png',
-  '/assets/ui/chapter-selection/chapter1.png',
-  '/assets/ui/chapter-selection/chapter2.png',
-  '/assets/ui/chapter-selection/chapter3.png',
-  '/assets/fonts/VCRosdNEUE.ttf',
-  '/assets/fonts/DirtyHarold.ttf',
-  '/assets/ui/game-ui/buttons.png',
-  '/assets/ui/game-ui/gui-sprite.png',
-];
+const CACHE_NAME = 'bata-takbo-v6';
 
-// Install — cache core assets
+// Install — activate immediately, no pre-caching
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(ASSETS_TO_CACHE))
-      .then(() => self.skipWaiting())
-  );
+  self.skipWaiting();
 });
 
-// Activate — clean up old caches
+// Activate — wipe ALL old caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then(keys => {
-      return Promise.all(
-        keys.filter(key => key !== CACHE_NAME)
-            .map(key => caches.delete(key))
-      );
-    }).then(() => self.clients.claim())
+    caches.keys()
+      .then(keys => Promise.all(keys.map(key => caches.delete(key))))
+      .then(() => self.clients.claim())
   );
 });
 
-// Fetch — cache first for assets, network first for API
+// Fetch
 self.addEventListener('fetch', (event) => {
+  if (event.request.method !== 'GET') return;
+
   const url = new URL(event.request.url);
 
-  // DEV MODE BYPASS: Never intercept requests on Localhost so live-reloading works flawlessly
-  if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
-    event.respondWith(fetch(event.request));
-    return;
-  }
+  // Bypass for dev/tunnel hosts
+  if (
+    url.hostname === 'localhost' ||
+    url.hostname === '127.0.0.1' ||
+    url.hostname.endsWith('.ngrok-free.app') ||
+    url.hostname.endsWith('.ngrok-free.dev') ||
+    url.hostname.endsWith('.ngrok.io')
+  ) return;
 
-  // Network only for Firebase API calls
-  if (url.hostname.includes('firebase') || url.hostname.includes('googleapis')) {
-    event.respondWith(fetch(event.request));
-    return;
-  }
+  // Bypass for Firebase / Google APIs
+  if (url.hostname.includes('firebase') || url.hostname.includes('googleapis')) return;
 
-  // Cache first for static assets
-  if (url.pathname.startsWith('/assets/')) {
+  // HTML pages — network first (always get latest app shell)
+  if (url.pathname === '/' || url.pathname.endsWith('.html')) {
     event.respondWith(
-      caches.match(event.request)
-        .then(cached => cached || fetch(event.request).then(response => {
+      fetch(event.request)
+        .then(response => {
           const clone = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+          caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
           return response;
-        }))
+        })
+        .catch(() => caches.match(event.request))
     );
     return;
   }
 
-  // Stale while revalidate for everything else
+  // Assets (images, fonts, audio, JS, CSS) — stale-while-revalidate:
+  // Serve cache instantly for speed, fetch fresh in background to update cache.
+  // On cache miss, fetch from network normally.
   event.respondWith(
-    caches.match(event.request)
-      .then(cached => {
-        const fetched = fetch(event.request).then(response => {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+    caches.open(CACHE_NAME).then(cache =>
+      cache.match(event.request).then(cached => {
+        const fetchPromise = fetch(event.request).then(response => {
+          if (response && response.status === 200) {
+            cache.put(event.request, response.clone());
+          }
           return response;
         });
-        return cached || fetched;
+        // Return cached instantly if available, otherwise wait for network
+        return cached || fetchPromise;
       })
+    )
   );
 });

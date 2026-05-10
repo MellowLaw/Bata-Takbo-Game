@@ -12,6 +12,7 @@ export default defineConfig({
   server: {
     host: true,
     port: 5173,
+    allowedHosts: ['all', 'proofs-bunkbed-dandelion.ngrok-free.dev'],
     open: true,
     proxy: {
       '/auth': 'http://localhost:3001',

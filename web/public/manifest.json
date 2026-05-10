@@ -2,12 +2,16 @@
   "name": "Bata, Takbo! — A Survival Game",
   "short_name": "Bata Takbo",
   "description": "A gesture-controlled boss-battle survival game. Dodge projectiles using your hand gestures!",
+  "id": "/",
   "start_url": "/",
+  "scope": "/",
   "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone", "minimal-ui"],
   "orientation": "landscape",
   "background_color": "#0a0a1a",
   "theme_color": "#0a0a1a",
   "categories": ["games", "entertainment"],
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/icons/icon-32.png",

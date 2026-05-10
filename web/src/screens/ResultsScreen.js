@@ -61,59 +61,59 @@ export const ResultsScreen = {
           <div style="
             position: relative;
             z-index: 2;
-            width: 55%;
+            width: clamp(60%, 65%, 70%);
             display: flex;
             flex-direction: column;
             justify-content: center;
-            padding: 0 40px 0 100px;
+            padding: clamp(16px, 4vw, 40px) clamp(16px, 3vw, 40px) clamp(16px, 4vw, 40px) clamp(20px, 8vw, 100px);
           ">
             <!-- Title -->
             <h1 class="results-title" style="
               font-family: 'GigaSaturn', sans-serif;
-              font-size: 5.5rem;
+              font-size: clamp(1.8rem, 6vw, 5.5rem);
               color: #ffd700;
-              margin: 0 0 40px 0;
+              margin: 0 0 clamp(16px, 3vh, 40px) 0;
               line-height: 1;
               letter-spacing: 2px;
             ">CHAPTER CLEARED</h1>
 
             <!-- Stats rows -->
-            <div class="results-stats" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 30px;">
-              <div style="display: flex; align-items: baseline; gap: 0;">
-                <span style="font-family: 'GigaSaturn', sans-serif; font-size: 1.4rem; color: rgba(255,255,255,0.9); width: 200px; letter-spacing: 1px;">SURVIVAL TIME:</span>
-                <span style="font-family: 'GigaSaturn', sans-serif; font-size: 1.6rem; color: white;">${m}:${s}</span>
+            <div class="results-stats" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: clamp(12px, 2vh, 30px);">
+              <div style="display: flex; align-items: baseline; gap: 0; flex-wrap: wrap;">
+                <span style="font-family: 'GigaSaturn', sans-serif; font-size: clamp(0.75rem, 1.8vw, 1.4rem); color: rgba(255,255,255,0.9); min-width: clamp(120px, 18vw, 200px); letter-spacing: 1px;">SURVIVAL TIME:</span>
+                <span style="font-family: 'GigaSaturn', sans-serif; font-size: clamp(0.85rem, 2vw, 1.6rem); color: white;">${m}:${s}</span>
               </div>
-              <div style="display: flex; align-items: baseline; gap: 0;">
-                <span style="font-family: 'GigaSaturn', sans-serif; font-size: 1.4rem; color: rgba(255,255,255,0.9); width: 200px; letter-spacing: 1px;">TOTAL SCORE:</span>
-                <span style="font-family: 'GigaSaturn', sans-serif; font-size: 1.6rem; color: #ffd700;">${result.score.toLocaleString()}</span>
+              <div style="display: flex; align-items: baseline; gap: 0; flex-wrap: wrap;">
+                <span style="font-family: 'GigaSaturn', sans-serif; font-size: clamp(0.75rem, 1.8vw, 1.4rem); color: rgba(255,255,255,0.9); min-width: clamp(120px, 18vw, 200px); letter-spacing: 1px;">TOTAL SCORE:</span>
+                <span style="font-family: 'GigaSaturn', sans-serif; font-size: clamp(0.85rem, 2vw, 1.6rem); color: #ffd700;">${result.score.toLocaleString()}</span>
               </div>
             </div>
 
             <!-- Separator -->
-            <hr class="results-separator" style="border: 0; border-top: 2px solid rgba(255,215,0,0.5); margin: 0 0 40px 0; width: 60%;">
+            <hr class="results-separator" style="border: 0; border-top: 2px solid rgba(255,215,0,0.5); margin: 0 0 clamp(12px, 3vh, 40px) 0; width: 60%;">
 
             <!-- Action buttons -->
-            <div class="results-actions" style="display: flex; gap: 60px; align-items: center;">
+            <div class="results-actions" style="display: flex; gap: clamp(16px, 4vw, 60px); align-items: center; flex-wrap: wrap;">
               ${result.chapterId < 3 ? `<button class="menu-btn" id="btn-results-next" style="
                 font-family: 'GigaSaturn', sans-serif;
-                font-size: 2rem;
+                font-size: clamp(1rem, 2.5vw, 2rem);
                 padding: 0; margin: 0; min-width: 0;
                 background: transparent; border: none; color: #ffd700;
-                letter-spacing: 2px;
+                letter-spacing: 2px; min-height: 44px; touch-action: manipulation;
               ">NEXT</button>` : ''}
               <button class="menu-btn" id="btn-results-retry" style="
                 font-family: 'GigaSaturn', sans-serif;
-                font-size: 2rem;
+                font-size: clamp(1rem, 2.5vw, 2rem);
                 padding: 0; margin: 0; min-width: 0;
                 background: transparent; border: none; color: white;
-                letter-spacing: 2px;
+                letter-spacing: 2px; min-height: 44px; touch-action: manipulation;
               ">RETRY</button>
               <button class="menu-btn" id="btn-results-menu" style="
                 font-family: 'GigaSaturn', sans-serif;
-                font-size: 2rem;
+                font-size: clamp(1rem, 2.5vw, 2rem);
                 padding: 0; margin: 0; min-width: 0;
                 background: transparent; border: none; color: white;
-                letter-spacing: 2px;
+                letter-spacing: 2px; min-height: 44px; touch-action: manipulation;
               ">MENU</button>
             </div>
           </div>
@@ -159,52 +159,52 @@ export const ResultsScreen = {
           <div style="
             position: relative;
             z-index: 2;
-            width: 55%;
+            width: clamp(60%, 65%, 70%);
             display: flex;
             flex-direction: column;
             justify-content: center;
-            padding: 0 40px 0 100px;
+            padding: clamp(16px, 4vw, 40px) clamp(16px, 3vw, 40px) clamp(16px, 4vw, 40px) clamp(20px, 8vw, 100px);
           ">
             <!-- GAME OVER title -->
             <h1 class="results-title" style="
               font-family: 'GigaSaturn', sans-serif;
-              font-size: 7.5rem;
+              font-size: clamp(2rem, 8vw, 7.5rem);
               color: white;
-              margin: 0 0 40px 0;
+              margin: 0 0 clamp(16px, 3vh, 40px) 0;
               line-height: 1;
               letter-spacing: 2px;
             ">GAME OVER</h1>
 
             <!-- Stats rows -->
-            <div class="results-stats" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 30px;">
-              <div style="display: flex; align-items: baseline; gap: 0;">
-                <span style="font-family: 'GigaSaturn', sans-serif; font-size: 1.4rem; color: rgba(255,255,255,0.9); width: 200px; letter-spacing: 1px;">SURVIVAL TIME:</span>
-                <span style="font-family: 'GigaSaturn', sans-serif; font-size: 1.6rem; color: white;">${m}:${s}</span>
+            <div class="results-stats" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: clamp(12px, 2vh, 30px);">
+              <div style="display: flex; align-items: baseline; gap: 0; flex-wrap: wrap;">
+                <span style="font-family: 'GigaSaturn', sans-serif; font-size: clamp(0.75rem, 1.8vw, 1.4rem); color: rgba(255,255,255,0.9); min-width: clamp(120px, 18vw, 200px); letter-spacing: 1px;">SURVIVAL TIME:</span>
+                <span style="font-family: 'GigaSaturn', sans-serif; font-size: clamp(0.85rem, 2vw, 1.6rem); color: white;">${m}:${s}</span>
               </div>
-              <div style="display: flex; align-items: baseline; gap: 0;">
-                <span style="font-family: 'GigaSaturn', sans-serif; font-size: 1.4rem; color: rgba(255,255,255,0.9); width: 200px; letter-spacing: 1px;">TOTAL SCORE:</span>
-                <span style="font-family: 'GigaSaturn', sans-serif; font-size: 1.6rem; color: white;">${result.score.toLocaleString()}</span>
+              <div style="display: flex; align-items: baseline; gap: 0; flex-wrap: wrap;">
+                <span style="font-family: 'GigaSaturn', sans-serif; font-size: clamp(0.75rem, 1.8vw, 1.4rem); color: rgba(255,255,255,0.9); min-width: clamp(120px, 18vw, 200px); letter-spacing: 1px;">TOTAL SCORE:</span>
+                <span style="font-family: 'GigaSaturn', sans-serif; font-size: clamp(0.85rem, 2vw, 1.6rem); color: white;">${result.score.toLocaleString()}</span>
               </div>
             </div>
 
             <!-- Separator -->
-            <hr class="results-separator" style="border: 0; border-top: 2px solid rgba(255,255,255,0.5); margin: 0 0 40px 0; width: 60%;">
+            <hr class="results-separator" style="border: 0; border-top: 2px solid rgba(255,255,255,0.5); margin: 0 0 clamp(12px, 3vh, 40px) 0; width: 60%;">
 
             <!-- Action buttons -->
-            <div class="results-actions" style="display: flex; gap: 60px; align-items: center;">
+            <div class="results-actions" style="display: flex; gap: clamp(16px, 4vw, 60px); align-items: center; flex-wrap: wrap;">
               <button class="menu-btn" id="btn-results-retry" style="
                 font-family: 'GigaSaturn', sans-serif;
-                font-size: 2rem;
+                font-size: clamp(1rem, 2.5vw, 2rem);
                 padding: 0; margin: 0; min-width: 0;
                 background: transparent; border: none; color: white;
-                letter-spacing: 2px;
+                letter-spacing: 2px; min-height: 44px; touch-action: manipulation;
               ">RETRY</button>
               <button class="menu-btn" id="btn-results-menu" style="
                 font-family: 'GigaSaturn', sans-serif;
-                font-size: 2rem;
+                font-size: clamp(1rem, 2.5vw, 2rem);
                 padding: 0; margin: 0; min-width: 0;
                 background: transparent; border: none; color: white;
-                letter-spacing: 2px;
+                letter-spacing: 2px; min-height: 44px; touch-action: manipulation;
               ">MENU</button>
             </div>
           </div>

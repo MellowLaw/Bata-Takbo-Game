@@ -32,9 +32,19 @@ export class HUDScene extends Phaser.Scene {
     const topBarX = leftWidth + 40;
     const topBarY = 28;
 
+    // Scale top-bar text based on available width
+    const isSmall = width < 600;
+    const pauseFontSize = isSmall ? '16px' : '24px';
+    const labelFontSize = isSmall ? '11px' : '16px';
+    const valueFontSize = isSmall ? '18px' : '26px';
+    const heartScale   = isSmall ? 1.8 : 3.0;
+    const heartSpacing = isSmall ? 24 : 36;
+    const timeOffsetX  = isSmall ? 100 : 160;
+    const scoreOffsetX = isSmall ? 210 : 310;
+
     // Pause button
     const pauseBtn = this.add.text(topBarX, topBarY - 6, '❚❚ PAUSE', {
-      fontFamily: 'DungeonFont', fontSize: '24px', color: '#f0e6d3'
+      fontFamily: 'DungeonFont', fontSize: pauseFontSize, color: '#f0e6d3'
     }).setInteractive({ useHandCursor: true }).setDepth(20);
 
     pauseBtn.on('pointerdown', () => {
@@ -42,51 +52,39 @@ export class HUDScene extends Phaser.Scene {
     });
 
     // TIME
-    this.add.text(topBarX + 160, topBarY - 12, 'TIME:', {
-      fontFamily: 'VCR', fontSize: '16px', color: '#a89b8c'
+    this.add.text(topBarX + timeOffsetX, topBarY - 12, 'TIME:', {
+      fontFamily: 'VCR', fontSize: labelFontSize, color: '#a89b8c'
     }).setDepth(20);
-    this.timerText = this.add.text(topBarX + 160, topBarY + 6, '00:00', {
-      fontFamily: 'VCR', fontSize: '26px', color: '#f0e6d3'
+    this.timerText = this.add.text(topBarX + timeOffsetX, topBarY + 6, '00:00', {
+      fontFamily: 'VCR', fontSize: valueFontSize, color: '#f0e6d3'
     }).setDepth(20);
 
     // Score
-    this.add.text(topBarX + 310, topBarY - 12, 'SCORE:', {
-      fontFamily: 'VCR', fontSize: '16px', color: '#a89b8c'
+    this.add.text(topBarX + scoreOffsetX, topBarY - 12, 'SCORE:', {
+      fontFamily: 'VCR', fontSize: labelFontSize, color: '#a89b8c'
     }).setDepth(20);
-    this.scoreText = this.add.text(topBarX + 310, topBarY + 6, '0', {
-      fontFamily: 'VCR', fontSize: '26px', color: '#ffd700'
+    this.scoreText = this.add.text(topBarX + scoreOffsetX, topBarY + 6, '0', {
+      fontFamily: 'VCR', fontSize: valueFontSize, color: '#ffd700'
     }).setDepth(20);
 
     // Hearts (top right of grid side)
     this.hearts = [];
     const rightPanelW = width - leftWidth;
-    const heartStartX = leftWidth + rightPanelW - 60 - (2 * 36);
+    const heartStartX = leftWidth + rightPanelW - (isSmall ? 20 : 60) - (2 * heartSpacing);
     for (let i = 0; i < 3; i++) {
-      // Render the full heart by default (frame 147)
-      const heart = this.add.sprite(heartStartX + (i * 36), topBarY + 6, 'ui_buttons', 147);
-      heart.setScale(3.0).setOrigin(0.5, 0.5).setDepth(20);
+      const heart = this.add.sprite(heartStartX + (i * heartSpacing), topBarY + 6, 'ui_buttons', 147);
+      heart.setScale(heartScale).setOrigin(0.5, 0.5).setDepth(20);
       this.hearts.push(heart);
     }
 
     // ========== BOSS DISPLAY BOX ==========
     const boxPadX = 24;
-    // Pushed down further to give more top breathing room for the title text
-    const bossBoxY = 155;
     const bossBoxW = leftWidth - boxPadX * 2;
-    const remainingHeight = height - bossBoxY;
-    const bossBoxH = Math.floor(remainingHeight * 0.38);
-
-    // Box background
-    this.panelBg.fillStyle(0x201c11, 1);
-    this.panelBg.fillRect(boxPadX, bossBoxY, bossBoxW, bossBoxH);
-    // Border
-    this.panelBg.lineStyle(3, 0x100c04, 1);
-    this.panelBg.strokeRect(boxPadX, bossBoxY, bossBoxW, bossBoxH);
 
     // Chapter Title and description headers
     let bossName = `CHAPTER ${this.chapterId}`;
     let bossTitle = "";
-    
+
     if (this.chapterId == 1) {
       bossName = "SI IMELDA";
       bossTitle = "ANG UNANG MANANANGGAL";
@@ -97,14 +95,42 @@ export class HUDScene extends Phaser.Scene {
       bossName = "KATAW";
       bossTitle = "ABYSSAL SIREN";
     }
-    // Main Title (Giga Saturn) — absolute Y ~10px from top
-    this.add.text(boxPadX, bossBoxY - 143, bossName, {
-      fontFamily: 'GigaSaturn', fontSize: '32px', color: '#ffd700', align: 'left'
+
+    // Scale boss name/subtitle to fit bossBoxW (actual usable text width)
+    const bossNamePx    = bossBoxW < 160 ? 14 : bossBoxW < 200 ? 18 : bossBoxW < 250 ? 22 : 28;
+    const bossTitlePx   = bossBoxW < 160 ? 9  : bossBoxW < 200 ? 10 : bossBoxW < 250 ? 12 : 14;
+    const bossNameSize  = `${bossNamePx}px`;
+    const bossTitleSize = `${bossTitlePx}px`;
+
+    // Stack tightly from top bar: name → subtitle → hp bar → boss box
+    const textGap   = 5;
+    const bossNameY = topBarY + 28;                              // just below top bar
+    const bossTitleY = bossNameY + bossNamePx + textGap;
+    const hpBarY     = bossTitleY + bossTitlePx + textGap;
+    const bossBoxY   = hpBarY + 18 + textGap;                   // 18 = hp bar visual height
+
+    const remainingHeight = height - bossBoxY;
+    // On small screens give the boss box less room so camera/dpad fits
+    const bossBoxRatio = height < 500 ? 0.28 : height < 650 ? 0.32 : 0.38;
+    const bossBoxH = Math.floor(remainingHeight * bossBoxRatio);
+
+    // Box background
+    this.panelBg.fillStyle(0x201c11, 1);
+    this.panelBg.fillRect(boxPadX, bossBoxY, bossBoxW, bossBoxH);
+    // Border
+    this.panelBg.lineStyle(3, 0x100c04, 1);
+    this.panelBg.strokeRect(boxPadX, bossBoxY, bossBoxW, bossBoxH);
+
+    // Main Title (Giga Saturn)
+    this.add.text(boxPadX, bossNameY, bossName, {
+      fontFamily: 'GigaSaturn', fontSize: bossNameSize, color: '#ffd700', align: 'left',
+      wordWrap: { width: bossBoxW, useAdvancedWrap: true }
     }).setOrigin(0, 0);
 
     // Subtitle
-    this.add.text(boxPadX, bossBoxY - 102, bossTitle, {
-      fontFamily: 'VCR', fontSize: '15px', color: '#f0e6d3', align: 'left'
+    this.add.text(boxPadX, bossTitleY, bossTitle, {
+      fontFamily: 'VCR', fontSize: bossTitleSize, color: '#f0e6d3', align: 'left',
+      wordWrap: { width: bossBoxW, useAdvancedWrap: true }
     }).setOrigin(0, 0);
 
     // *** BOSS ANIMATED SPRITE — rendered HERE in HUDScene so it's visible ***
@@ -274,10 +300,11 @@ export class HUDScene extends Phaser.Scene {
     const HP_BAR_FRAMES = 50;
     const hpBarScaleY = 2.2;
 
-    // Position below the lore text (bossBoxY - 82), let's say bossBoxY - 40
-    this.hpBarSprite = this.add.sprite(boxPadX, bossBoxY - 40, 'boss_hp_bar', 0);
+    // Scale HP bar to fit the panel width
+    const hpBarScaleX = Math.min(3, (bossBoxW - 8) / 64);
+    this.hpBarSprite = this.add.sprite(boxPadX, hpBarY + 8, 'boss_hp_bar', 0);
     this.hpBarSprite.setOrigin(0, 0.5); // left-center aligned
-    this.hpBarSprite.setScale(3, hpBarScaleY); // 3x width = 192px
+    this.hpBarSprite.setScale(hpBarScaleX, hpBarScaleY);
     this.hpBarSprite.setDepth(10);
 
     // Default to the first frame (base HP)
@@ -289,69 +316,23 @@ export class HUDScene extends Phaser.Scene {
     this._hpBarState = 0;
 
     // Add HP text to the right side of the panel
-    this.hpText = this.add.text(boxPadX + bossBoxW, bossBoxY - 40, '1000/1000', {
+    this.hpText = this.add.text(boxPadX + bossBoxW, hpBarY + 8, '1000/1000', {
       fontFamily: 'VCR', fontSize: '13px', color: '#ff4444'
     }).setOrigin(1, 0.5);
 
-    // ========== POWER-UP SLOT ==========
-    // sits below the boss box
-    const puY = bossBoxY + bossBoxH + 8;
-
-    this.add.text(boxPadX, puY, 'POWER-UP', {
-      fontFamily: 'VCR', fontSize: '13px', color: '#a89b8c'
-    });
-
-    const puBoxH = 50;
-    const puBoxY = puY + 16;
-
-    // DISABLED: Power-up / chest system removed for rework from scratch
-    // Inventory slot background image instead of drawn box
-    this.inventoryBg = this.add.sprite(boxPadX, puBoxY, 'inventory_slot');
-    this.inventoryBg.setOrigin(0, 0);
-    this.inventoryBg.setDisplaySize(puBoxH, puBoxH);
-    this.inventoryBg.setAlpha(0); // Hidden for rework
-
-    // Chest icon (frame will change by rarity) - DISABLED
-    this.puIcon = this.add.sprite(boxPadX + puBoxH / 2, puBoxY + puBoxH / 2, 'powerup_chests', 0);
-    this.puIcon.setScale(1.4).setAlpha(0);
-
-    // Power-up name label (shifted right of the square slot) - DISABLED
-    const labelX = boxPadX + puBoxH + 12;
-    this.puLabel = this.add.text(labelX, puBoxY + 6, '', {
-      fontFamily: 'VCR', fontSize: '13px', color: '#666688'
-    });
-    this.puLabel.setAlpha(0);
-
-    // Timer bar background - DISABLED
-    const puBarY = puBoxY + puBoxH - 8;
-    // this.panelBg.fillStyle(0x1a1a33, 1);
-    // this.panelBg.fillRect(labelX, puBarY, bossBoxW - puBoxH - 12, 5);
-
-    // Timer bar fill (redrawn every update) - DISABLED
-    this.puBarFill = this.add.graphics();
-    this.puBarMaxW = bossBoxW - puBoxH - 12;
-    this.puBarX = labelX;
-    this.puBarY = puBarY;
-
-    this._puEndTime = 0;
-    this._puDuration = 0;
-    this._puColor = 0x888888;
-    this._puActive = false;
-
     // ========== CAMERA BOX or D-PAD — based on character ==========
-    const puEndY = puBoxY + puBoxH + 8;
+    const camStartY = bossBoxY + bossBoxH + 8;
+    const availCamH = height - camStartY - 8;
     const targetCamH = Math.floor(bossBoxW * 0.75);
-    const camBoxH = Math.min(targetCamH, Math.floor(remainingHeight * 0.40));
-    const camBoxY = puEndY + Math.floor((height - puEndY - camBoxH) / 2);
+    const camBoxH = Math.min(targetCamH, availCamH);
+    const camBoxY = camStartY + Math.floor((availCamH - camBoxH) / 2);
 
     if (this.character === 'female') {
       // ── D-PAD (on-screen arrow buttons) ──────────────────────────────────
-      // Layout is 2 rows (up / left-down-right), so height = ~2/3 of width
-      const availH = height - puEndY - 16;
       const dpadW = bossBoxW - 8;
-      const dpadH = Math.min(Math.floor(dpadW * 2 / 3), availH);
+      const dpadH = Math.min(Math.floor(dpadW * 2 / 3), availCamH);
       const dpadX = boxPadX + Math.floor((bossBoxW - dpadW) / 2);
-      const dpadY = puEndY + Math.floor((availH - dpadH) / 2) + 8;
+      const dpadY = camStartY + Math.floor((availCamH - dpadH) / 2);
       this._buildDpad(dpadX, dpadY, dpadW, dpadH);
     } else {
       // ── CAMERA PiP (male / gesture mode) ────────────────────────────────
@@ -411,10 +392,6 @@ export class HUDScene extends Phaser.Scene {
           this.bossSprite.anims.resume();
         }
       });
-      gameScene.events.on('powerup:activated', (name, rarity, durationMs) => {
-        this.showPowerup(name, rarity, durationMs);
-      });
-      gameScene.events.on('powerup:cleared', () => this.clearPowerup());
       gameScene.events.on('player:health_changed', (hp) => this.updateLives(hp));
     }
 
@@ -426,6 +403,65 @@ export class HUDScene extends Phaser.Scene {
     this.bloodOverlay.setDisplaySize(width - leftWidth, height);
     this.bloodOverlay.setDepth(5);
     this.bloodOverlay.setAlpha(0); // hidden until needed
+
+    // Keep DOM overlays (d-pad, camera-pip) aligned when the canvas resizes
+    // (window resize, fullscreen toggle, orientation change).
+    this._repositionDomOverlays = (gameSize) => {
+      const w = gameSize ? gameSize.width  : this.scale.width;
+      const h = gameSize ? gameSize.height : this.scale.height;
+      const lw  = Math.max(w < 768 ? 160 : 250, Math.min(450, w * 0.28));
+      const bbW = lw - 24 * 2;
+
+      // Mirror the same dynamic layout as create()
+      const bossNamePx  = bbW < 160 ? 14 : bbW < 200 ? 18 : bbW < 250 ? 22 : 28;
+      const bossTitlePx = bbW < 160 ? 9  : bbW < 200 ? 10 : bbW < 250 ? 12 : 14;
+      const bossNameY   = 28 + 28;
+      const bossTitleY  = bossNameY + bossNamePx + 5;
+      const hpBarY      = bossTitleY + bossTitlePx + 5;
+      const bbY         = hpBarY + 18 + 5;
+      const remH        = h - bbY;
+      const bbRatio     = h < 500 ? 0.28 : h < 650 ? 0.32 : 0.38;
+      const bbH         = Math.floor(remH * bbRatio);
+
+      const camStartY  = bbY + bbH + 8;
+      const availCamH  = h - camStartY - 8;
+      const targetCamH = Math.floor(bbW * 0.75);
+      const camBoxH    = Math.min(targetCamH, availCamH);
+      const camBoxY    = camStartY + Math.floor((availCamH - camBoxH) / 2);
+
+      if (this.character === 'female') {
+        const dpad = document.getElementById('game-dpad');
+        if (dpad) {
+          const dpadW = bbW - 8;
+          const dpadH = Math.min(Math.floor(dpadW * 2 / 3), availCamH);
+          const dpadX = 24 + Math.floor((bbW - dpadW) / 2);
+          const dpadY = camStartY + Math.floor((availCamH - dpadH) / 2);
+          dpad.style.left   = `${dpadX}px`;
+          dpad.style.top    = `${dpadY}px`;
+          dpad.style.width  = `${dpadW}px`;
+          dpad.style.height = `${dpadH}px`;
+        }
+      } else {
+        const pip = document.getElementById('game-camera-pip');
+        if (pip) {
+          pip.style.left   = `${26}px`;
+          pip.style.top    = `${camBoxY + 2}px`;
+          pip.style.width  = `${bbW - 4}px`;
+          pip.style.height = `${camBoxH - 4}px`;
+        }
+        const overlay = document.getElementById('cam-eye-overlay');
+        if (overlay && pip) {
+          overlay.style.left   = pip.style.left;
+          overlay.style.top    = pip.style.top;
+          overlay.style.width  = pip.style.width;
+          overlay.style.height = pip.style.height;
+        }
+      }
+    };
+    this.scale.on('resize', this._repositionDomOverlays);
+    this.events.once('shutdown', () => {
+      this.scale.off('resize', this._repositionDomOverlays);
+    });
   }
 
   _buildDpad(boxX, boxY, boxW, boxH) {
@@ -477,26 +513,6 @@ export class HUDScene extends Phaser.Scene {
 
     const gameContainer = document.querySelector('.game-screen');
     if (gameContainer) gameContainer.appendChild(dpad);
-  }
-
-  showPowerup(name, rarity, durationMs) {
-    if (!this.puIcon) return;
-    const colors = [0x888888, 0x44aaff, 0xffdd00];
-    const hexStr = ['#aaaaaa', '#44aaff', '#ffdd00'];
-    const frames = [0, 1, 2]; // Chests.png column per rarity
-    this._puActive = true;
-    this._puEndTime = this.elapsed + durationMs;
-    this._puDuration = durationMs;
-    this._puColor = colors[rarity] ?? 0x888888;
-    this.puIcon.setFrame(frames[rarity] ?? 0).setAlpha(1);
-    this.puLabel.setText(name).setColor(hexStr[rarity] ?? '#aaaaaa');
-  }
-
-  clearPowerup() {
-    this._puActive = false;
-    if (this.puIcon) this.puIcon.setAlpha(0);
-    if (this.puLabel) this.puLabel.setText(' — ').setColor('#666688');
-    if (this.puBarFill) this.puBarFill.clear();
   }
 
   playBossAttack() {
@@ -669,15 +685,6 @@ export class HUDScene extends Phaser.Scene {
       this.timerText.setText(`${minutes.toString().padStart(2, '0')}:${displaySecs.toString().padStart(2, '0')}`);
     }
 
-    // Live power-up timer bar drain
-    if (this._puActive && this.puBarFill) {
-      const remaining = Math.max(0, this._puEndTime - this.elapsed);
-      const ratio = remaining / this._puDuration;
-      this.puBarFill.clear();
-      this.puBarFill.fillStyle(this._puColor, 1);
-      this.puBarFill.fillRect(this.puBarX, this.puBarY, this.puBarMaxW * ratio, 5);
-      if (remaining <= 0) this.clearPowerup();
-    }
   }
 
   shutdown() {

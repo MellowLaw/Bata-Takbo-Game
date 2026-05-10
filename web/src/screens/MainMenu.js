@@ -50,20 +50,19 @@ export const MainMenu = {
             <button class="menu-btn" id="btn-about" data-screen="about">
               About
             </button>
-            <button class="menu-btn" id="btn-logout">
-              Logout
-            </button>
           </nav>
         </div>
 
         <div class="main-menu__version">v0.1.0</div>
 
-        <img 
-          src="/assets/ui/user_logo.png" 
-          alt="Profile" 
-          id="icon-profile" 
-          style="position: absolute; top: var(--space-lg); right: var(--space-lg); width: 48px; height: 48px; cursor: pointer; z-index: 10;"
-        />
+        <div class="main-menu__top-right">
+          <img 
+            src="/assets/ui/user_logo.png" 
+            alt="Profile" 
+            id="icon-profile"
+          />
+          <button id="btn-logout" class="main-menu__logout-btn" title="Logout">⏻</button>
+        </div>
       </div>
     `;
   },
@@ -90,8 +89,10 @@ export const MainMenu = {
           this._fadeOutMusic(800, () => {
             btn.style.animation = '';
             const isTutorialComplete = state.get('tutorialComplete');
+            const isGestureModelTrained = state.get('gestureModelTrained');
             const isGestureSetupComplete = state.get('gestureSetupComplete');
-            console.log(`[PLAY] tutorialComplete=${isTutorialComplete} gestureSetupComplete=${isGestureSetupComplete}`);
+            console.log(`[PLAY] tutorialComplete=${isTutorialComplete} gestureModelTrained=${isGestureModelTrained} gestureSetupComplete=${isGestureSetupComplete}`);
+            console.log(`[PLAY] Full state:`, state._state);
 
             // Returning player who finished the tutorial → straight to chapter select
             if (isTutorialComplete) {
@@ -99,10 +100,9 @@ export const MainMenu = {
               return;
             }
 
-            // Gesture model already trained → skip the gesture-setup step
-            // and go straight to the gameplay tutorial.
-            if (isGestureSetupComplete) {
-              window.__screenManager.navigate('tutorial-screen');
+            // Gesture model already trained → ask if they want to continue tutorial
+            if (isGestureModelTrained) {
+              this._showGestureSetupCompletePrompt();
               return;
             }
 
@@ -247,6 +247,44 @@ export const MainMenu = {
     };
 
     step1();
+  },
+
+  _showGestureSetupCompletePrompt() {
+    // Guard: prevent stacking multiple prompts when Play is clicked repeatedly
+    if (this._promptOpen) return;
+    this._promptOpen = true;
+
+    const dialogue = new DialogueBox('screen-container');
+    const portrait = '/assets/entity/character-icon/character.png';
+    const portraitFrames = 5;
+
+    const cleanup = () => {
+      this._promptOpen = false;
+      dialogue.hide();
+    };
+
+    dialogue.show({
+      text: "Your hand gestures are already set up! Would you like to continue with the gameplay tutorial, or skip it and go straight to the action?",
+      subtext: 'Tutorial Choice',
+      portrait,
+      portraitFrames,
+      position: 'center',
+      buttons: [
+        { label: '▶ Continue Tutorial', action: 'tutorial' },
+        { label: '⚡ Skip Tutorial', action: 'skip' }
+      ]
+    }, (action) => {
+      if (action === 'tutorial') {
+        cleanup();
+        window.__screenManager.navigate('tutorial-screen');
+      } else if (action === 'skip') {
+        cleanup();
+        // Mark tutorial as complete and go to chapter select
+        state.set('tutorialComplete', true);
+        state.saveTutorialState();
+        window.__screenManager.navigate('chapter-select');
+      }
+    });
   },
 
   _startMusic() {

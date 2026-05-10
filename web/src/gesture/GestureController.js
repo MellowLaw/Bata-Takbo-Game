@@ -69,13 +69,8 @@ class GestureController {
    * Start the camera loops
    */
   async startCamera() {
-    try {
-      await this.cameraManager.initialize();
-      this.handDetector.start();
-    } catch (e) {
-      console.error(e);
-      alert('Must allow camera feed to train hand gestures.');
-    }
+    await this.cameraManager.initialize();
+    this.handDetector.start();
   }
 
   /**
@@ -154,6 +149,7 @@ class GestureController {
   }
 
   async saveModel() {
+    if (!this.classifier) return;
     await this.classifier.saveModel();
     state.set('gestureModelTrained', true);
   }

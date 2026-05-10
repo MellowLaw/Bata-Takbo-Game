@@ -11,78 +11,89 @@ export const GestureTraining = {
     return `
       <div class="gesture-screen screen">
         <button class="back-btn" id="btn-gesture-back">Back</button>
-        
-        <h1 class="screen-title" style="animation: fadeInUp 0.4s ease forwards;">
+
+        <h1 class="screen-title gesture-screen__title" style="animation: fadeInUp 0.4s ease forwards;">
           Gesture Setup
         </h1>
-        
-        <div class="gesture-screen__camera" id="gesture-camera">
-          <video id="webcam-video" style="display: none;"></video>
-          <canvas id="webcam-canvas"></canvas>
-          <div id="camera-loading" class="placeholder-content" style="position: absolute; top:0; left:0; height: 100%; width: 100%; pointer-events:none;">
-            <div class="loading-spinner"></div>
-            <span class="placeholder-text" style="font-size: var(--text-xs);">Initializing Camera...</span>
+
+        <!-- 50/50 split wrapper: camera left, controls right on mobile landscape -->
+        <div class="gesture-screen__layout">
+
+          <!-- LEFT: Camera -->
+          <div class="gesture-screen__left">
+            <div class="gesture-screen__camera" id="gesture-camera">
+              <video id="webcam-video" style="display: none;"></video>
+              <canvas id="webcam-canvas"></canvas>
+              <div id="camera-loading" class="placeholder-content" style="position: absolute; top:0; left:0; height: 100%; width: 100%; pointer-events:none;">
+                <div class="loading-spinner"></div>
+                <span class="placeholder-text" style="font-size: var(--text-xs);">Initializing Camera...</span>
+              </div>
+            </div>
           </div>
-        </div>
 
-        <p class="text-center" style="font-size: var(--text-sm); color: white; margin-bottom: var(--space-md); max-width: 400px; animation: fadeInUp 0.4s ease 0.1s forwards;">
-          Train the game to recognize YOUR hand gestures!
-          Select a direction, make a gesture, and hold Record.
-        </p>
+          <!-- RIGHT: Controls -->
+          <div class="gesture-screen__right">
+            <p class="text-center gesture-screen__hint" style="font-size: var(--text-sm); color: white; margin-bottom: var(--space-md); max-width: 400px; animation: fadeInUp 0.4s ease 0.1s forwards;">
+              Train the game to recognize YOUR hand gestures!
+              Select a direction, make a gesture, and hold Record.
+            </p>
 
-        <div class="gesture-directions" style="animation: fadeInUp 0.4s ease 0.15s forwards;">
-          <button class="gesture-dir-btn active" data-dir="up" id="dir-up">
-            <span class="gesture-dir-btn__arrow">▲</span>
-            <span class="gesture-dir-btn__label">UP</span>
-            <span class="gesture-dir-btn__count">0</span>
-          </button>
-          <button class="gesture-dir-btn" data-dir="down" id="dir-down">
-            <span class="gesture-dir-btn__arrow">▼</span>
-            <span class="gesture-dir-btn__label">DOWN</span>
-            <span class="gesture-dir-btn__count">0</span>
-          </button>
-          <button class="gesture-dir-btn" data-dir="left" id="dir-left">
-            <span class="gesture-dir-btn__arrow">◄</span>
-            <span class="gesture-dir-btn__label">LEFT</span>
-            <span class="gesture-dir-btn__count">0</span>
-          </button>
-          <button class="gesture-dir-btn" data-dir="right" id="dir-right">
-            <span class="gesture-dir-btn__arrow">►</span>
-            <span class="gesture-dir-btn__label">RIGHT</span>
-            <span class="gesture-dir-btn__count">0</span>
-          </button>
-          <button class="gesture-dir-btn" data-dir="idle" id="dir-idle">
-            <span class="gesture-dir-btn__arrow"><img src="/assets/ui/gesture-setup/bone-hand.png" alt="Rest" class="gesture-dir-btn__icon" /></span>
-            <span class="gesture-dir-btn__label">REST</span>
-            <span class="gesture-dir-btn__count">0</span>
-          </button>
-        </div>
+            <div class="gesture-directions" style="animation: fadeInUp 0.4s ease 0.15s forwards;">
+              <button class="gesture-dir-btn active" data-dir="up" id="dir-up">
+                <span class="gesture-dir-btn__arrow">▲</span>
+                <span class="gesture-dir-btn__label">UP</span>
+                <span class="gesture-dir-btn__count">0</span>
+              </button>
+              <button class="gesture-dir-btn" data-dir="down" id="dir-down">
+                <span class="gesture-dir-btn__arrow">▼</span>
+                <span class="gesture-dir-btn__label">DOWN</span>
+                <span class="gesture-dir-btn__count">0</span>
+              </button>
+              <button class="gesture-dir-btn" data-dir="left" id="dir-left">
+                <span class="gesture-dir-btn__arrow">◄</span>
+                <span class="gesture-dir-btn__label">LEFT</span>
+                <span class="gesture-dir-btn__count">0</span>
+              </button>
+              <button class="gesture-dir-btn" data-dir="right" id="dir-right">
+                <span class="gesture-dir-btn__arrow">►</span>
+                <span class="gesture-dir-btn__label">RIGHT</span>
+                <span class="gesture-dir-btn__count">0</span>
+              </button>
+              <button class="gesture-dir-btn" data-dir="idle" id="dir-idle">
+                <span class="gesture-dir-btn__arrow"><img src="/assets/ui/gesture-setup/bone-hand.png" alt="Rest" class="gesture-dir-btn__icon" /></span>
+                <span class="gesture-dir-btn__label">REST</span>
+                <span class="gesture-dir-btn__count">0</span>
+              </button>
+            </div>
 
-        <div class="progress-bar" style="animation: fadeInUp 0.4s ease 0.2s forwards;">
-          <div class="progress-bar__fill" style="width: 0%;" id="gesture-progress"></div>
-        </div>
-        <p class="text-primary" style="font-size: var(--text-xs); margin-bottom: var(--space-md);">
-          <span id="progress-label">0 / 20</span> samples
-        </p>
+            <div class="progress-bar" style="animation: fadeInUp 0.4s ease 0.2s forwards;">
+              <div class="progress-bar__fill" style="width: 0%;" id="gesture-progress"></div>
+            </div>
+            <p class="text-primary" style="font-size: var(--text-xs); margin-bottom: var(--space-md);">
+              <span id="progress-label">0 / 20</span> samples
+            </p>
 
-        <button class="gesture-record-btn" id="btn-record" style="animation: fadeInUp 0.4s ease 0.25s forwards;">
-          Hold to Record
-        </button>
+            <button class="gesture-record-btn" id="btn-record" style="animation: fadeInUp 0.4s ease 0.25s forwards;">
+              Hold to Record
+            </button>
 
-        <div style="display: flex; gap: var(--space-md); margin-top: var(--space-lg); animation: fadeInUp 0.4s ease 0.3s forwards;">
-          <button class="menu-btn" id="btn-test-gestures" style="font-size: var(--text-sm);">
-            Test My Gestures
-          </button>
-          <button class="menu-btn" id="btn-export-gestures" style="font-size: var(--text-sm);">
-            Export
-          </button>
-          <button class="menu-btn" id="btn-import-gestures" style="font-size: var(--text-sm);">
-            Import
-          </button>
-          <input type="file" id="import-file-input" accept=".json" style="display: none;" />
-          <button class="menu-btn text-red" id="btn-reset-gestures" style="font-size: var(--text-sm);">
-            Reset All
-          </button>
+            <div class="gesture-screen__actions" style="animation: fadeInUp 0.4s ease 0.3s forwards;">
+              <button class="menu-btn" id="btn-test-gestures" style="font-size: var(--text-sm);">
+                Test My Gestures
+              </button>
+              <button class="menu-btn" id="btn-export-gestures" style="font-size: var(--text-sm);">
+                Export
+              </button>
+              <button class="menu-btn" id="btn-import-gestures" style="font-size: var(--text-sm);">
+                Import
+              </button>
+              <input type="file" id="import-file-input" accept=".json" style="display: none;" />
+              <button class="menu-btn text-red" id="btn-reset-gestures" style="font-size: var(--text-sm);">
+                Reset All
+              </button>
+            </div>
+          </div>
+
         </div>
       </div>
     `;
@@ -101,13 +112,19 @@ export const GestureTraining = {
     this.canvasEl.width = 640;
     this.canvasEl.height = 480;
 
-    // Back button
-    el.querySelector('#btn-gesture-back').addEventListener('click', async () => {
-      // Must save model when leaving
-      await gestureController.saveModel();
-      gestureController.stopCamera();
+    // Back button — use touchend on mobile so async handler isn't swallowed
+    const backBtn = el.querySelector('#btn-gesture-back');
+    const handleBack = async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      backBtn.removeEventListener('touchend', handleBack);
+      backBtn.removeEventListener('click', handleBack);
+      try { await gestureController.saveModel(); } catch (e) { console.warn('[GestureTraining] saveModel on back failed:', e); }
+      try { gestureController.stopCamera(); } catch (e) { console.warn('[GestureTraining] stopCamera on back failed:', e); }
       window.__screenManager.back();
-    });
+    };
+    backBtn.addEventListener('touchend', handleBack, { passive: false });
+    backBtn.addEventListener('click', handleBack);
 
     // Initialize controller and start camera
     try {
@@ -117,7 +134,7 @@ export const GestureTraining = {
       this.loadingUi.style.display = 'none';
       this._updateUIFromCounts();
       
-      // Show tutorial if gesture setup hasn't been completed yet
+      // Only start tutorial if camera is actually running
       const counts = gestureController.getSampleCounts();
       const hasTrainedGestures = Object.values(counts).some(c => c >= 10);
       if (!hasTrainedGestures && !gestureController.isTesting) {
@@ -125,7 +142,19 @@ export const GestureTraining = {
       }
       
     } catch (e) {
-      this.loadingUi.innerHTML = `<span class="text-red">Camera Error. Refresh and allow permissions.</span>`;
+      console.error('[GestureTraining] Camera failed:', e);
+      this.loadingUi.style.display = 'flex';
+      this.loadingUi.innerHTML = `
+        <div style="text-align:center; padding: 1rem;">
+          <p style="color:#ef4444; font-family:'GigaSaturn',sans-serif; font-size:clamp(0.7rem,2vw,0.9rem); margin-bottom:0.75rem;">
+            ⚠ Camera access was denied or unavailable.
+          </p>
+          <p style="color:#a89b8c; font-family:'GigaSaturn',sans-serif; font-size:clamp(0.6rem,1.5vw,0.75rem); line-height:1.6;">
+            To use gesture controls, allow camera access in your browser settings, then refresh this page.
+          </p>
+        </div>
+      `;
+      // Do NOT start tutorial — user can't train without camera
     }
 
     // Direction buttons
@@ -327,27 +356,27 @@ export const GestureTraining = {
       {
         text: "Welcome to Bata, Takbo! Before we begin, let's set up your hand gestures. You'll use your webcam to teach the game how you move!",
         portrait: portrait,
-        position: 'top'
+        position: 'center'
       },
       {
         text: "This is your camera view. Make sure your hand is clearly visible inside the frame!",
         portrait: portrait,
-        position: 'top',
+        position: 'center',
         highlight: '#gesture-camera',
         buttons: [{ label: 'Got it', action: 'next' }]
       },
       {
         text: "These are the gesture buttons. You will select a direction before you start recording.",
         portrait: portrait,
-        position: 'top',
+        position: 'center',
         highlight: '.gesture-directions',
         buttons: [{ label: 'Next', action: 'next' }]
       },
       {
-        text: "Let's train the **UP** gesture. Make a clear upward hand signal, then press and hold the **Record** button until the bar fills.",
+        text: "Let's train the UP gesture. Make a clear upward hand signal, then press and hold the Record button until the bar fills.",
         highlight: "#btn-record",
         portrait: portrait,
-        position: 'top',
+        position: 'center',
         onEnter: () => el.querySelector('#dir-up').click(),
         autoAdvance: {
           type: 'sampleAdded',
@@ -355,10 +384,10 @@ export const GestureTraining = {
         }
       },
       {
-        text: "Great! Now do the same for **DOWN**. Make a downward signal and hold record.",
+        text: "Great! Now do the same for DOWN. Make a downward signal and hold record.",
         highlight: "#btn-record",
         portrait: portrait,
-        position: 'top',
+        position: 'center',
         onEnter: () => el.querySelector('#dir-down').click(),
         autoAdvance: {
           type: 'sampleAdded',
@@ -366,10 +395,10 @@ export const GestureTraining = {
         }
       },
       {
-        text: "Now point **LEFT**.",
+        text: "Now point LEFT.",
         highlight: "#btn-record",
         portrait: portrait,
-        position: 'top',
+        position: 'center',
         onEnter: () => el.querySelector('#dir-left').click(),
         autoAdvance: {
           type: 'sampleAdded',
@@ -377,10 +406,10 @@ export const GestureTraining = {
         }
       },
       {
-        text: "And point **RIGHT**.",
+        text: "And point RIGHT.",
         highlight: "#btn-record",
         portrait: portrait,
-        position: 'top',
+        position: 'center',
         onEnter: () => el.querySelector('#dir-right').click(),
         autoAdvance: {
           type: 'sampleAdded',
@@ -388,10 +417,10 @@ export const GestureTraining = {
         }
       },
       {
-        text: "One more — make your **REST** pose. This is what your hand looks like when you're NOT moving (e.g., an open palm or fist).",
+        text: "One more — make your REST pose. This is what your hand looks like when you are NOT moving (e.g., an open palm or fist).",
         highlight: "#btn-record",
         portrait: portrait,
-        position: 'top',
+        position: 'center',
         onEnter: () => el.querySelector('#dir-idle').click(),
         autoAdvance: {
           type: 'sampleAdded',
@@ -402,7 +431,7 @@ export const GestureTraining = {
         text: "Perfect! Let's test it. Click 'Test My Gestures', move your hand, and see if the arrows highlight correctly.",
         highlight: "#btn-test-gestures",
         portrait: portrait,
-        position: 'top',
+        position: 'center',
         buttons: [{ label: 'Done Testing', action: 'next' }]
       },
       {
@@ -410,7 +439,7 @@ export const GestureTraining = {
           ? "You're all set! Your gesture model has been saved. Let's jump into the game!"
           : "You're all set! Your gesture model has been saved. You can come back anytime to retrain.",
         portrait: portrait,
-        position: 'top',
+        position: 'center',
         buttons: [{ label: fromPlay ? 'Start Tutorial' : 'Done', action: 'next' }]
       }
     ];
@@ -439,9 +468,11 @@ export const GestureTraining = {
     await gestureController.saveModel();
 
     // Mark gesture setup as complete so the welcome prompt skips this step
-    // on subsequent plays. Persist + sync to server (no-op for guests).
+    console.log('[TUTORIAL-DEBUG] GestureTraining._finish(): setting gestureSetupComplete = true');
     state.set('gestureSetupComplete', true);
+    console.log('[TUTORIAL-DEBUG] GestureTraining._finish(): state after setting:', state.get('gestureSetupComplete'));
     await state.saveGestureSetupState();
+    console.log('[TUTORIAL-DEBUG] GestureTraining._finish(): saved gesture setup state');
 
     // We don't set tutorialComplete = true here because the gameplay tutorial is next.
     // It will be set to true at the end of TutorialScreen.js
