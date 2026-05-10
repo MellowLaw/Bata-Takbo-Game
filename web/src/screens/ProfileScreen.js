@@ -58,6 +58,19 @@ export const ProfileScreen = {
             </div>
           </div>
 
+          <div id="ce-group" style="animation: fadeInUp 0.4s ease 0.2s forwards; opacity: 0; margin-bottom: var(--space-lg);">
+            <p style="font-family: var(--font-ui); font-size: var(--text-xs); color: var(--text-dim); letter-spacing: 2px; text-transform: uppercase; margin-bottom: var(--space-sm); padding: 0 var(--space-xs);">Change Email</p>
+            <div style="display: flex; flex-direction: column; gap: var(--space-sm);">
+              <input type="email" id="ce-new" class="login-card__input" placeholder="NEW EMAIL ADDRESS" maxlength="255" autocomplete="off" style="font-size: var(--text-sm); padding: var(--space-sm);" />
+              <input type="password" id="ce-password" class="login-card__input" placeholder="CONFIRM WITH PASSWORD" style="font-size: var(--text-sm); padding: var(--space-sm);" />
+              <p id="ce-msg" style="font-size: var(--text-sm); font-weight: bold; min-height: 1.2em; text-align: center;"></p>
+              <div style="display: flex; gap: var(--space-sm);">
+                <button id="btn-cancel-email" class="login-card__join-btn" style="padding: var(--space-sm); font-size: var(--text-sm); flex: 1;">CANCEL</button>
+                <button id="btn-save-email" class="login-card__join-btn" style="padding: var(--space-sm); font-size: var(--text-sm); flex: 1;">SAVE</button>
+              </div>
+            </div>
+          </div>
+
           <div style="animation: fadeInUp 0.4s ease 0.25s forwards; opacity: 0; margin-bottom: var(--space-lg);">
             <p style="font-family: var(--font-ui); font-size: var(--text-xs); color: var(--text-dim); letter-spacing: 2px; text-transform: uppercase; margin-bottom: var(--space-sm); padding: 0 var(--space-xs);">Change Password</p>
             <div style="display: flex; flex-direction: column; gap: var(--space-sm);">
@@ -234,6 +247,10 @@ export const ProfileScreen = {
         });
       }
 
+      // Hide change email for guests
+      const ceGroup = el.querySelector('#ce-group');
+      if (isGuest && ceGroup) ceGroup.style.display = 'none';
+
       // Change Username Logic
       const cuBtn = el.querySelector('#btn-save-username');
       const cuCancelBtn = el.querySelector('#btn-cancel-username');
@@ -317,6 +334,73 @@ export const ProfileScreen = {
         cuNew.addEventListener('keydown', (e) => {
           if (e.key === 'Enter') cuBtn.click();
         });
+      }
+
+      // Change Email Logic
+      const ceBtn = el.querySelector('#btn-save-email');
+      const ceCancelBtn = el.querySelector('#btn-cancel-email');
+      const ceNew = el.querySelector('#ce-new');
+      const cePass = el.querySelector('#ce-password');
+      const ceMsg = el.querySelector('#ce-msg');
+
+      if (ceCancelBtn) {
+        ceCancelBtn.addEventListener('click', () => {
+          ceNew.value = '';
+          cePass.value = '';
+          ceMsg.textContent = '';
+        });
+      }
+
+      if (ceBtn && !isGuest && isRegistered) {
+        ceBtn.addEventListener('click', async () => {
+          const newEmail = ceNew.value.trim();
+          const password = cePass.value;
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+          if (!newEmail || !emailRegex.test(newEmail)) {
+            ceMsg.textContent = 'Please enter a valid email address.';
+            ceMsg.style.color = 'var(--accent-red)';
+            return;
+          }
+          if (!password) {
+            ceMsg.textContent = 'Please enter your current password.';
+            ceMsg.style.color = 'var(--accent-red)';
+            return;
+          }
+
+          ceBtn.textContent = 'SAVING...';
+          ceBtn.disabled = true;
+
+          try {
+            const res = await fetch('/auth/change-email', {
+              method: 'POST',
+              credentials: 'include',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ newEmail, password })
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+              ceMsg.textContent = 'Email updated successfully.';
+              ceMsg.style.color = 'var(--accent-green)';
+              ceNew.value = '';
+              cePass.value = '';
+              const pEmail = el.querySelector('#profile-email');
+              if (pEmail) pEmail.textContent = newEmail.toLowerCase();
+            } else {
+              ceMsg.textContent = data.error || 'Failed to update email.';
+              ceMsg.style.color = 'var(--accent-red)';
+            }
+          } catch (err) {
+            ceMsg.textContent = 'Network error. Try again.';
+            ceMsg.style.color = 'var(--accent-red)';
+          } finally {
+            ceBtn.textContent = 'SAVE';
+            ceBtn.disabled = false;
+          }
+        });
+
+        ceNew.addEventListener('keydown', (e) => { if (e.key === 'Enter') cePass.focus(); });
+        cePass.addEventListener('keydown', (e) => { if (e.key === 'Enter') ceBtn.click(); });
       }
 
       // Change Password Logic

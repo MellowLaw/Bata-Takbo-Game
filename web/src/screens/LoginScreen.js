@@ -110,6 +110,7 @@ export const LoginScreen = {
               id="reg-email"
               style="width: 100%; height: 45px; background: rgba(0,0,0,0.3); border: 2px solid white; color: white; font-family: 'GigaSaturn', sans-serif; font-size: 1.2rem; text-align: center; outline: none; box-shadow: 0 4px 6px rgba(0,0,0,0.5);"
             />
+            <div style="width: 100%; text-align: left; font-family: 'GigaSaturn', sans-serif; font-size: 0.6rem; color: #a89b8c; margin-top: -0.3rem; padding-left: 2px;">Use an email you can access — needed to recover your account if you forget your password.</div>
             <div style="position: relative; width: 100%;">
               <input 
                 type="password" 
@@ -167,15 +168,59 @@ export const LoginScreen = {
       <div class="login-reference-layout" id="forgot-pw-card" style="width: 100%; height: 100%; position: relative;">
         <img src="/assets/ui/main-title.png" alt="Bata, Takbo!" style="position: absolute; left: 3%; top: 5%; width: clamp(80px, 10vw, 150px); height: auto; pointer-events: none; z-index: 1;" />
         <div style="position: absolute; right: 10%; bottom: 10%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; width: 40%; min-width: 300px; max-width: 600px;">
-          <h1 style="font-family: 'GigaSaturn', sans-serif; font-size: clamp(1.5rem, 3.5vw, 4rem); color: white; text-align: center; margin-bottom: 2rem; line-height: 1; letter-spacing: 2px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">
-            FORGOT PASSWORD
-          </h1>
-          <input type="email" id="forgot-email" placeholder="ENTER YOUR EMAIL" autocomplete="off" maxlength="255" style="width: 90%; max-width: 500px; height: 45px; margin-bottom: 1rem; background: rgba(0,0,0,0.3); border: 2px solid white; color: white; font-family: 'GigaSaturn', sans-serif; font-size: 1.2rem; text-align: center; outline: none; box-shadow: 0 4px 6px rgba(0,0,0,0.5);" />
-          <p class="login-card__privacy text-red hidden" id="forgot-error-msg" style="margin-top: 0.5rem; font-family: 'GigaSaturn', sans-serif; font-size: 1rem; font-weight: bold; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); text-align: center;"></p>
-          <div style="display: flex; gap: 1rem; margin-top: 2rem; width: 90%; max-width: 500px; justify-content: center;">
-            <button id="btn-back-forgot" style="font-family: 'GigaSaturn', sans-serif; font-size: clamp(1.2rem, 2vw, 2.5rem); color: white; background: transparent; border: none; cursor: pointer; transition: transform 0.2s; letter-spacing: 2px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">BACK</button>
-            <button id="btn-submit-forgot" style="font-family: 'GigaSaturn', sans-serif; font-size: clamp(1.2rem, 2vw, 2.5rem); color: white; background: transparent; border: none; cursor: pointer; transition: transform 0.2s; letter-spacing: 2px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">SEND LINK</button>
+
+          <!-- STEP 1: EMAIL -->
+          <div id="frp-step-email">
+            <h1 style="font-family: 'GigaSaturn', sans-serif; font-size: clamp(1.5rem, 3.5vw, 4rem); color: white; text-align: center; margin-bottom: 0.75rem; line-height: 1; letter-spacing: 2px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">FORGOT PASSWORD</h1>
+            <p style="font-family: 'GigaSaturn', sans-serif; font-size: 0.68rem; color: #a89b8c; text-align: center; margin-bottom: 1.25rem; line-height: 1.6;">Enter the email you used when you created your account.<br>We will send a 6-digit code to that address.</p>
+            <input type="email" id="frp-email" placeholder="ENTER YOUR EMAIL" autocomplete="off" maxlength="255" style="width: 100%; height: 45px; margin-bottom: 0.4rem; background: rgba(0,0,0,0.3); border: 2px solid white; color: white; font-family: 'GigaSaturn', sans-serif; font-size: 1.2rem; text-align: center; outline: none; box-shadow: 0 4px 6px rgba(0,0,0,0.5); box-sizing: border-box;" />
+            <p id="frp-email-msg" style="font-family: 'GigaSaturn', sans-serif; font-size: 0.8rem; font-weight: bold; min-height: 1.2em; text-align: center; margin: 0.4rem 0;"></p>
+            <div style="display: flex; gap: 1rem; margin-top: 1.5rem; justify-content: center;">
+              <button id="frp-back" style="font-family: 'GigaSaturn', sans-serif; font-size: clamp(1.2rem, 2vw, 2.5rem); color: white; background: transparent; border: none; cursor: pointer; letter-spacing: 2px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">BACK</button>
+              <button id="frp-send" style="font-family: 'GigaSaturn', sans-serif; font-size: clamp(1.2rem, 2vw, 2.5rem); color: white; background: transparent; border: none; cursor: pointer; letter-spacing: 2px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">SEND CODE</button>
+            </div>
           </div>
+
+          <!-- STEP 2: CODE -->
+          <div id="frp-step-code" style="display:none; width:100%; text-align:center;">
+            <h1 style="font-family: 'GigaSaturn', sans-serif; font-size: clamp(1.5rem, 3.5vw, 4rem); color: white; text-align: center; margin-bottom: 0.75rem; line-height: 1; letter-spacing: 2px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">CHECK YOUR EMAIL</h1>
+            <p id="frp-code-hint" style="font-family: 'GigaSaturn', sans-serif; font-size: 0.68rem; color: #a89b8c; text-align: center; margin-bottom: 1.25rem; line-height: 1.6;"></p>
+            <input type="text" id="frp-code" placeholder="6-DIGIT CODE" maxlength="6" autocomplete="off" inputmode="numeric" style="width: 100%; height: 55px; margin-bottom: 0.4rem; background: rgba(0,0,0,0.3); border: 2px solid white; color: white; font-family: 'GigaSaturn', sans-serif; font-size: 2rem; text-align: center; letter-spacing: 8px; outline: none; box-shadow: 0 4px 6px rgba(0,0,0,0.5); box-sizing: border-box;" />
+            <p id="frp-countdown" style="font-family: 'GigaSaturn', sans-serif; font-size: 0.65rem; color: #5a5068; text-align: center; margin: 0.3rem 0;"></p>
+            <p id="frp-code-msg" style="font-family: 'GigaSaturn', sans-serif; font-size: 0.8rem; font-weight: bold; min-height: 1.2em; text-align: center; margin: 0.3rem 0;"></p>
+            <button id="frp-resend" style="display:none; background: transparent; border: none; color: #a89b8c; font-family: 'GigaSaturn', sans-serif; font-size: 0.7rem; cursor: pointer; text-decoration: underline; letter-spacing: 1px; margin-bottom: 0.5rem;">RESEND CODE</button>
+            <div style="display: flex; gap: 1rem; margin-top: 1.5rem; justify-content: center;">
+              <button id="frp-code-back" style="font-family: 'GigaSaturn', sans-serif; font-size: clamp(1.2rem, 2vw, 2.5rem); color: white; background: transparent; border: none; cursor: pointer; letter-spacing: 2px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">BACK</button>
+              <button id="frp-verify" style="font-family: 'GigaSaturn', sans-serif; font-size: clamp(1.2rem, 2vw, 2.5rem); color: white; background: transparent; border: none; cursor: pointer; letter-spacing: 2px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">VERIFY</button>
+            </div>
+          </div>
+
+          <!-- STEP 3: NEW PASSWORD -->
+          <div id="frp-step-reset" style="display:none; width:100%;">
+            <h1 style="font-family: 'GigaSaturn', sans-serif; font-size: clamp(1.5rem, 3vw, 4rem); color: white; text-align: center; margin-bottom: 2rem; line-height: 1; letter-spacing: 2px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">NEW PASSWORD</h1>
+            <div style="position: relative; width: 100%; margin-bottom: 0.5rem;">
+              <input type="password" id="frp-pw" placeholder="NEW PASSWORD" maxlength="50" autocomplete="new-password" style="width: 100%; height: 45px; background: rgba(0,0,0,0.3); border: 2px solid white; color: white; font-family: 'GigaSaturn', sans-serif; font-size: 1.2rem; text-align: center; outline: none; box-shadow: 0 4px 6px rgba(0,0,0,0.5); box-sizing: border-box;" />
+              <button type="button" id="frp-toggle-pw" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); background: transparent; border: none; cursor: pointer; padding: 0;"><img src="/assets/ui/eye_closed.png" style="width: 24px; height: 24px; opacity: 0.8;" /></button>
+            </div>
+            <div style="width: 100%; text-align: left; font-family: 'GigaSaturn', sans-serif; font-size: 0.65rem; color: #a89b8c; margin-bottom: 0.3rem; display: flex; flex-direction: column; gap: 2px;">
+              <span id="frp-req-length">✗ 8 CHARACTERS MINIMUM</span>
+              <span id="frp-req-number">✗ 1 NUMBER</span>
+              <span id="frp-req-special">✗ 1 SPECIAL CHARACTER</span>
+            </div>
+            <div style="width: 100%; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; margin-bottom: 0.5rem; overflow: hidden;">
+              <div id="frp-strength-bar" style="height: 100%; width: 0%; border-radius: 2px; transition: width 0.3s ease, background 0.3s ease;"></div>
+            </div>
+            <div style="position: relative; width: 100%;">
+              <input type="password" id="frp-confirm" placeholder="CONFIRM NEW PASSWORD" maxlength="50" autocomplete="new-password" style="width: 100%; height: 45px; background: rgba(0,0,0,0.3); border: 2px solid white; color: white; font-family: 'GigaSaturn', sans-serif; font-size: 1.2rem; text-align: center; outline: none; box-shadow: 0 4px 6px rgba(0,0,0,0.5); box-sizing: border-box;" />
+              <button type="button" id="frp-toggle-confirm" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); background: transparent; border: none; cursor: pointer; padding: 0;"><img src="/assets/ui/eye_closed.png" style="width: 24px; height: 24px; opacity: 0.8;" /></button>
+            </div>
+            <p id="frp-reset-msg" style="font-family: 'GigaSaturn', sans-serif; font-size: 0.85rem; font-weight: bold; min-height: 1.2em; text-align: center; margin: 0.5rem 0;"></p>
+            <div style="display: flex; gap: 1rem; margin-top: 1.5rem; justify-content: center;">
+              <button id="frp-reset-back" style="font-family: 'GigaSaturn', sans-serif; font-size: clamp(1.2rem, 2vw, 2.5rem); color: white; background: transparent; border: none; cursor: pointer; letter-spacing: 2px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">CANCEL</button>
+              <button id="frp-submit" style="font-family: 'GigaSaturn', sans-serif; font-size: clamp(1.2rem, 2vw, 2.5rem); color: white; background: transparent; border: none; cursor: pointer; letter-spacing: 2px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">RESET</button>
+            </div>
+          </div>
+
         </div>
       </div>
     `;
@@ -218,12 +263,7 @@ export const LoginScreen = {
 
   async onEnter(el, data) {
     this.container = el;
-    if (data && data.resetToken) {
-      this.container.innerHTML = this.renderResetPasswordCard();
-      this.bindResetPasswordEvents(data.resetToken);
-    } else {
-      this.bindWelcomeEvents();
-    }
+    this.bindWelcomeEvents();
   },
 
   bindWelcomeEvents() {
@@ -450,64 +490,250 @@ export const LoginScreen = {
   },
 
   bindForgotPasswordEvents() {
-    const backBtn = this.container.querySelector('#btn-back-forgot');
-    const submitBtn = this.container.querySelector('#btn-submit-forgot');
-    const emailIn = this.container.querySelector('#forgot-email');
-    const msgEl = this.container.querySelector('#forgot-error-msg');
+    let _email = '';
+    let _code = '';
+    let _countdownInterval = null;
+    let _resendTimeout = null;
 
-    if (!backBtn || !submitBtn || !emailIn) return;
+    const showStep = (step) => {
+      ['frp-step-email', 'frp-step-code', 'frp-step-reset'].forEach(id => {
+        const el = this.container.querySelector('#' + id);
+        if (el) el.style.display = 'none';
+      });
+      const target = this.container.querySelector('#frp-step-' + step);
+      if (target) target.style.display = 'block';
+    };
 
-    backBtn.addEventListener('click', () => {
+    const startCountdown = (seconds) => {
+      const countdownEl = this.container.querySelector('#frp-countdown');
+      const resendBtn = this.container.querySelector('#frp-resend');
+      if (_countdownInterval) clearInterval(_countdownInterval);
+      if (_resendTimeout) clearTimeout(_resendTimeout);
+      if (resendBtn) resendBtn.style.display = 'none';
+
+      let remaining = seconds;
+      const update = () => {
+        if (!countdownEl) return;
+        const m = Math.floor(remaining / 60);
+        const s = String(remaining % 60).padStart(2, '0');
+        countdownEl.textContent = `Code expires in ${m}:${s}`;
+        if (remaining <= 60) countdownEl.style.color = '#ef4444';
+        else countdownEl.style.color = '#5a5068';
+        remaining--;
+        if (remaining < 0) {
+          clearInterval(_countdownInterval);
+          countdownEl.textContent = 'Code expired. Please resend.';
+          countdownEl.style.color = '#ef4444';
+        }
+      };
+      update();
+      _countdownInterval = setInterval(update, 1000);
+
+      _resendTimeout = setTimeout(() => {
+        if (resendBtn) resendBtn.style.display = 'inline-block';
+      }, 30000);
+    };
+
+    const sendCode = async (email) => {
+      const res = await fetch('/auth/forgot-password', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      return res;
+    };
+
+    // BACK button (step 1)
+    const backBtn = this.container.querySelector('#frp-back');
+    if (backBtn) backBtn.addEventListener('click', () => {
+      if (_countdownInterval) clearInterval(_countdownInterval);
+      if (_resendTimeout) clearTimeout(_resendTimeout);
       this.container.innerHTML = this.renderLoginCard();
       this.bindLoginEvents();
     });
 
-    const handleSubmit = async () => {
-      const email = emailIn.value.trim();
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      
-      if (!email || !emailRegex.test(email) || email.length > 255) {
-        msgEl.textContent = 'Please enter a valid email address.';
-        msgEl.style.color = '#ef4444';
-        msgEl.classList.remove('hidden');
+    // SEND CODE (step 1)
+    const sendBtn = this.container.querySelector('#frp-send');
+    const emailIn = this.container.querySelector('#frp-email');
+    const emailMsg = this.container.querySelector('#frp-email-msg');
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    const doSend = async () => {
+      const email = emailIn ? emailIn.value.trim() : '';
+      if (!email || !emailRegex.test(email)) {
+        if (emailMsg) { emailMsg.textContent = 'Please enter a valid email address.'; emailMsg.style.color = '#ef4444'; }
         return;
       }
-
-      submitBtn.innerHTML = 'SENDING...';
-      submitBtn.disabled = true;
-
+      _email = email;
+      if (sendBtn) { sendBtn.textContent = 'SENDING...'; sendBtn.disabled = true; }
       try {
-        const res = await fetch('/auth/forgot-password', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email })
-        });
-
-        const data = await res.json();
-        if (res.ok) {
-          msgEl.textContent = data.message || 'If that email exists, a reset link has been sent.';
-          msgEl.style.color = '#4ade80';
-        } else {
-          msgEl.textContent = data.error || 'Something went wrong. Try again.';
-          msgEl.style.color = '#ef4444';
-        }
-        msgEl.classList.remove('hidden');
-      } catch(err) {
-        msgEl.textContent = 'Network error. Try again.';
-        msgEl.style.color = '#ef4444';
-        msgEl.classList.remove('hidden');
+        await sendCode(email);
+        const hintEl = this.container.querySelector('#frp-code-hint');
+        if (hintEl) hintEl.textContent = `A 6-digit code was sent to ${email}. Enter it below.`;
+        showStep('code');
+        startCountdown(15 * 60);
+        setTimeout(() => { const ci = this.container.querySelector('#frp-code'); if (ci) ci.focus(); }, 50);
+      } catch (e) {
+        if (emailMsg) { emailMsg.textContent = 'Network error. Try again.'; emailMsg.style.color = '#ef4444'; }
       } finally {
-        submitBtn.innerHTML = 'SEND LINK';
-        submitBtn.disabled = false;
+        if (sendBtn) { sendBtn.textContent = 'SEND CODE'; sendBtn.disabled = false; }
       }
     };
 
-    submitBtn.addEventListener('click', handleSubmit);
-    emailIn.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') handleSubmit();
+    if (sendBtn) sendBtn.addEventListener('click', doSend);
+    if (emailIn) emailIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') doSend(); });
+    setTimeout(() => { if (emailIn) emailIn.focus(); }, 50);
+
+    // RESEND
+    const resendBtn = this.container.querySelector('#frp-resend');
+    if (resendBtn) resendBtn.addEventListener('click', async () => {
+      resendBtn.textContent = 'SENDING...';
+      resendBtn.disabled = true;
+      const codeMsg = this.container.querySelector('#frp-code-msg');
+      try {
+        await sendCode(_email);
+        if (codeMsg) { codeMsg.textContent = 'New code sent! Check your inbox.'; codeMsg.style.color = '#4ade80'; }
+        startCountdown(15 * 60);
+      } catch (e) {
+        if (codeMsg) { codeMsg.textContent = 'Network error. Try again.'; codeMsg.style.color = '#ef4444'; }
+      } finally {
+        resendBtn.textContent = 'RESEND CODE';
+        resendBtn.disabled = false;
+      }
     });
 
-    setTimeout(() => emailIn.focus(), 50);
+    // BACK (step 2 → step 1)
+    const codeBackBtn = this.container.querySelector('#frp-code-back');
+    if (codeBackBtn) codeBackBtn.addEventListener('click', () => {
+      if (_countdownInterval) clearInterval(_countdownInterval);
+      if (_resendTimeout) clearTimeout(_resendTimeout);
+      showStep('email');
+      setTimeout(() => { if (emailIn) emailIn.focus(); }, 50);
+    });
+
+    // VERIFY code (step 2 → step 3)
+    const verifyBtn = this.container.querySelector('#frp-verify');
+    const codeIn = this.container.querySelector('#frp-code');
+    const codeMsg = this.container.querySelector('#frp-code-msg');
+
+    const doVerify = async () => {
+      const code = codeIn ? codeIn.value.trim() : '';
+      if (!code || code.length !== 6) {
+        if (codeMsg) { codeMsg.textContent = 'Enter the 6-digit code from your email.'; codeMsg.style.color = '#ef4444'; }
+        return;
+      }
+      if (verifyBtn) { verifyBtn.textContent = 'CHECKING...'; verifyBtn.disabled = true; }
+      try {
+        const res = await fetch('/auth/verify-reset-code', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: _email, code })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          _code = code;
+          if (_countdownInterval) clearInterval(_countdownInterval);
+          if (_resendTimeout) clearTimeout(_resendTimeout);
+          showStep('reset');
+          setTimeout(() => { const pw = this.container.querySelector('#frp-pw'); if (pw) pw.focus(); }, 50);
+          this._bindFrpResetStep(_email, _code);
+        } else if (data.error === 'expired') {
+          if (codeMsg) { codeMsg.textContent = 'Code expired. Click Resend to get a new one.'; codeMsg.style.color = '#ef4444'; }
+          const rb = this.container.querySelector('#frp-resend');
+          if (rb) rb.style.display = 'inline-block';
+        } else {
+          if (codeMsg) { codeMsg.textContent = data.error || 'Incorrect code. Try again.'; codeMsg.style.color = '#ef4444'; }
+        }
+      } catch (e) {
+        if (codeMsg) { codeMsg.textContent = 'Network error. Try again.'; codeMsg.style.color = '#ef4444'; }
+      } finally {
+        if (verifyBtn) { verifyBtn.textContent = 'VERIFY'; verifyBtn.disabled = false; }
+      }
+    };
+
+    if (verifyBtn) verifyBtn.addEventListener('click', doVerify);
+    if (codeIn) {
+      codeIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') doVerify(); });
+      codeIn.addEventListener('input', () => { codeIn.value = codeIn.value.replace(/\D/g, '').slice(0, 6); });
+    }
+  },
+
+  _bindFrpResetStep(email, code) {
+    const pwIn = this.container.querySelector('#frp-pw');
+    const confirmIn = this.container.querySelector('#frp-confirm');
+    const msgEl = this.container.querySelector('#frp-reset-msg');
+    const submitBtn = this.container.querySelector('#frp-submit');
+    const strengthBar = this.container.querySelector('#frp-strength-bar');
+    const reqLength = this.container.querySelector('#frp-req-length');
+    const reqNumber = this.container.querySelector('#frp-req-number');
+    const reqSpecial = this.container.querySelector('#frp-req-special');
+
+    const togglePw = this.container.querySelector('#frp-toggle-pw');
+    if (togglePw) togglePw.addEventListener('click', () => {
+      const t = pwIn.getAttribute('type') === 'password' ? 'text' : 'password';
+      pwIn.setAttribute('type', t);
+      const img = togglePw.querySelector('img');
+      if (img) img.src = t === 'password' ? '/assets/ui/eye_closed.png' : '/assets/ui/eye_open.png';
+    });
+
+    const toggleConfirm = this.container.querySelector('#frp-toggle-confirm');
+    if (toggleConfirm) toggleConfirm.addEventListener('click', () => {
+      const t = confirmIn.getAttribute('type') === 'password' ? 'text' : 'password';
+      confirmIn.setAttribute('type', t);
+      const img = toggleConfirm.querySelector('img');
+      if (img) img.src = t === 'password' ? '/assets/ui/eye_closed.png' : '/assets/ui/eye_open.png';
+    });
+
+    if (pwIn) pwIn.addEventListener('input', () => {
+      const v = pwIn.value;
+      const okL = v.length >= 8, okN = /\d/.test(v), okS = /[!@#$%^&*(),.?":{}|<>]/.test(v);
+      if (reqLength) { reqLength.textContent = (okL ? '\u2713' : '\u2717') + ' 8 CHARACTERS MINIMUM'; reqLength.style.color = okL ? '#4ade80' : '#a89b8c'; }
+      if (reqNumber) { reqNumber.textContent = (okN ? '\u2713' : '\u2717') + ' 1 NUMBER'; reqNumber.style.color = okN ? '#4ade80' : '#a89b8c'; }
+      if (reqSpecial) { reqSpecial.textContent = (okS ? '\u2713' : '\u2717') + ' 1 SPECIAL CHARACTER'; reqSpecial.style.color = okS ? '#4ade80' : '#a89b8c'; }
+      const score = (okL ? 1 : 0) + (okN ? 1 : 0) + (okS ? 1 : 0) + (v.length >= 12 ? 1 : 0);
+      if (strengthBar) { strengthBar.style.width = ['0%','25%','50%','75%','100%'][score]; strengthBar.style.background = ['transparent','#e63946','#ff9a4a','#ffd700','#2ecc71'][score]; }
+    });
+
+    const resetBackBtn = this.container.querySelector('#frp-reset-back');
+    if (resetBackBtn) resetBackBtn.addEventListener('click', () => {
+      this.container.innerHTML = this.renderLoginCard();
+      this.bindLoginEvents();
+    });
+
+    const doReset = async () => {
+      const newPassword = pwIn ? pwIn.value : '';
+      const confirm = confirmIn ? confirmIn.value : '';
+      if (newPassword.length < 8 || !/\d/.test(newPassword) || !/[!@#$%^&*(),.?":{}|<>]/.test(newPassword)) {
+        if (msgEl) { msgEl.textContent = 'Password does not meet requirements.'; msgEl.style.color = '#ef4444'; }
+        return;
+      }
+      if (newPassword !== confirm) {
+        if (msgEl) { msgEl.textContent = 'Passwords do not match.'; msgEl.style.color = '#ef4444'; }
+        return;
+      }
+      if (submitBtn) { submitBtn.textContent = 'RESETTING...'; submitBtn.disabled = true; }
+      try {
+        const res = await fetch('/auth/reset-password', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, code, newPassword })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          if (msgEl) { msgEl.textContent = 'Password reset! You can now log in.'; msgEl.style.color = '#4ade80'; }
+          setTimeout(() => { this.container.innerHTML = this.renderLoginCard(); this.bindLoginEvents(); }, 2000);
+        } else if (data.error === 'expired') {
+          if (msgEl) { msgEl.textContent = 'Code expired. Please start over.'; msgEl.style.color = '#ef4444'; }
+          setTimeout(() => { this.container.innerHTML = this.renderForgotPasswordCard(); this.bindForgotPasswordEvents(); }, 2500);
+        } else {
+          if (msgEl) { msgEl.textContent = data.error || 'Something went wrong. Try again.'; msgEl.style.color = '#ef4444'; }
+        }
+      } catch (e) {
+        if (msgEl) { msgEl.textContent = 'Network error. Try again.'; msgEl.style.color = '#ef4444'; }
+      } finally {
+        if (submitBtn) { submitBtn.textContent = 'RESET'; submitBtn.disabled = false; }
+      }
+    };
+
+    if (submitBtn) submitBtn.addEventListener('click', doReset);
+    if (confirmIn) confirmIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') doReset(); });
   },
 
   bindResetPasswordEvents(resetToken) {

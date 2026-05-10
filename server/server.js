@@ -497,6 +497,33 @@ app.post('/auth/change-username', authMiddleware, async (req, res) => {
   }
 });
 
+app.post('/auth/change-email', authMiddleware, async (req, res) => {
+  try {
+    const { newEmail, password } = req.body;
+    if (!newEmail || !password) return res.status(400).json({ error: 'Email and password are required' });
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newEmail.trim()) || newEmail.length > 255) {
+      return res.status(400).json({ error: 'Invalid email address' });
+    }
+
+    const user = await db.get('SELECT id, password_hash FROM users WHERE id = ?', [req.user.id]);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const match = await bcrypt.compare(password, user.password_hash);
+    if (!match) return res.status(401).json({ error: 'Incorrect password' });
+
+    const existing = await db.get('SELECT id FROM users WHERE email = ? COLLATE NOCASE AND id != ?', [newEmail.trim(), req.user.id]);
+    if (existing) return res.status(409).json({ error: 'That email is already in use by another account' });
+
+    await db.run('UPDATE users SET email = ? WHERE id = ?', [newEmail.trim().toLowerCase(), req.user.id]);
+    return res.status(200).json({ success: true, message: 'Email updated successfully' });
+  } catch (err) {
+    console.error('Change email error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 app.post('/auth/logout-all', authMiddleware, async (req, res) => {
   try {
     await db.run('UPDATE users SET invalidate_before = ? WHERE id = ?', [Date.now(), req.user.id]);
@@ -611,43 +638,67 @@ app.post('/auth/forgot-password', forgotPasswordLimiter, async (req, res) => {
     const user = await db.get('SELECT id FROM users WHERE email = ? COLLATE NOCASE', [sanitizedEmail]);
 
     if (user) {
-      const token = crypto.randomBytes(32).toString('hex');
+      const code = String(Math.floor(100000 + Math.random() * 900000)); // 6-digit code
       const expiry = Date.now() + 15 * 60 * 1000; // 15 mins
-      
-      // CHECK 5 - Save the reset token before the email is sent
-      await db.run('UPDATE users SET reset_token = ?, reset_token_expiry = ? WHERE id = ?', [token, expiry, user.id]);
 
-      const resetLink = `${process.env.APP_URL || 'http://localhost:5173'}/?reset_token=${token}`;
-      
+      await db.run('UPDATE users SET reset_token = ?, reset_token_expiry = ? WHERE id = ?', [code, expiry, user.id]);
+
       const mailOptions = {
         from: process.env.EMAIL_USER || '"Bata Takbo Support" <noreply@batatakbo.com>',
         to: sanitizedEmail,
-        subject: 'Password Reset Request',
-        text: `You requested a password reset. Click the following link to reset your password. This link will expire in 15 minutes.\n\n${resetLink}`,
-        html: `<p>You requested a password reset. Click the link below to reset your password. This link will expire in 15 minutes.</p><p><a href="${resetLink}">${resetLink}</a></p>`
+        subject: 'Your Password Reset Code — Bata, Takbo!',
+        html: `
+          <div style="font-family: monospace; background: #130f04; color: #f0e6d3; padding: 32px; max-width: 480px; margin: 0 auto; border-radius: 8px;">
+            <h2 style="color: #E4CFC0; letter-spacing: 2px; margin-bottom: 0.5rem;">BATA, TAKBO!</h2>
+            <p style="color: #a89b8c; font-size: 0.9rem; margin-bottom: 1.5rem;">You requested a password reset. Enter this code in the app:</p>
+            <div style="background: #201c11; border: 2px solid #E4CFC0; border-radius: 4px; padding: 20px; text-align: center; font-size: 2.5rem; letter-spacing: 8px; margin: 0 0 1.5rem; color: #fff;">${code}</div>
+            <p style="color: #a89b8c; font-size: 0.8rem; margin-bottom: 0.5rem;">This code expires in <b style="color:#f0e6d3;">15 minutes</b>.</p>
+            <p style="color: #5a5068; font-size: 0.75rem;">If you did not request this, you can safely ignore this email.</p>
+          </div>
+        `
       };
 
-      // CHECK 3 - Proper try/catch for email send function
       try {
-        console.log(`[INFO] Attempting to send reset email to: ${sanitizedEmail}...`); // CHECK 1 - Log before email send
+        console.log(`[INFO] Sending reset code to: ${sanitizedEmail}`);
         await transporter.sendMail(mailOptions);
-        console.log(`[INFO] Successfully sent reset email to: ${sanitizedEmail}`); // CHECK 1 - Log after email send
+        console.log(`[INFO] Reset code sent to: ${sanitizedEmail}`);
       } catch (emailErr) {
-        console.error(`[ERROR] Failed to send reset email to ${sanitizedEmail}:`, emailErr); // CHECK 3 - Log the error so it's visible
+        console.error(`[ERROR] Failed to send reset code to ${sanitizedEmail}:`, emailErr);
       }
     }
 
-    return res.status(200).json({ success: true, message: 'If the email exists a reset link was sent' });
+    return res.status(200).json({ success: true, message: 'If that email is registered, a 6-digit code was sent.' });
   } catch (err) {
     console.error('Forgot password error:', err);
     return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
+app.post('/auth/verify-reset-code', async (req, res) => {
+  try {
+    const { email, code } = req.body;
+    if (!email || !code) return res.status(400).json({ error: 'Email and code are required' });
+
+    const user = await db.get('SELECT id, reset_token, reset_token_expiry FROM users WHERE email = ? COLLATE NOCASE', [email.trim()]);
+
+    if (!user || user.reset_token !== String(code).trim()) {
+      return res.status(400).json({ error: 'Incorrect code. Please check your email and try again.' });
+    }
+    if (Date.now() > user.reset_token_expiry) {
+      return res.status(400).json({ error: 'expired' });
+    }
+
+    return res.status(200).json({ success: true });
+  } catch (err) {
+    console.error('Verify reset code error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 app.post('/auth/reset-password', async (req, res) => {
   try {
-    const { token, newPassword } = req.body;
-    if (!token || !newPassword) return res.status(400).json({ error: 'Missing token or password' });
+    const { email, code, newPassword } = req.body;
+    if (!email || !code || !newPassword) return res.status(400).json({ error: 'Missing required fields' });
 
     // Validate password complexity
     if (newPassword.length < 8 || newPassword.length > 50) {
@@ -663,14 +714,13 @@ app.post('/auth/reset-password', async (req, res) => {
       return res.status(400).json({ error: 'Password cannot contain spaces' });
     }
 
-    const user = await db.get('SELECT id, reset_token_expiry FROM users WHERE reset_token = ?', [token]);
-    
-    if (!user) {
-      return res.status(400).json({ error: 'Invalid or expired reset token' });
-    }
+    const user = await db.get('SELECT id, reset_token, reset_token_expiry FROM users WHERE email = ? COLLATE NOCASE', [email.trim()]);
 
+    if (!user || user.reset_token !== String(code).trim()) {
+      return res.status(400).json({ error: 'Invalid or expired code.' });
+    }
     if (Date.now() > user.reset_token_expiry) {
-      return res.status(400).json({ error: 'Invalid or expired reset token' });
+      return res.status(400).json({ error: 'expired' });
     }
 
     const salt = await bcrypt.genSalt(12);
