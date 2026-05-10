@@ -19,6 +19,7 @@ export async function initDb() {
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT UNIQUE NOT NULL,
+      email TEXT UNIQUE,
       password_hash TEXT NOT NULL,
       encrypted_data TEXT,
       game_data TEXT,
@@ -28,11 +29,16 @@ export async function initDb() {
       banned INTEGER DEFAULT 0,
       ban_reason TEXT,
       cheat_score REAL DEFAULT 0,
-      last_login INTEGER
+      last_login INTEGER,
+      reset_token TEXT,
+      reset_token_expiry INTEGER,
+      username_changed_at INTEGER,
+      invalidate_before INTEGER
     )
   `);
 
   // Migrate older databases by adding new columns if they are missing
+  try { await db.exec('ALTER TABLE users ADD COLUMN email TEXT'); } catch(e) {}
   try { await db.exec('ALTER TABLE users ADD COLUMN game_data TEXT'); } catch(e) {}
   try { await db.exec('ALTER TABLE users ADD COLUMN failed_attempts INTEGER DEFAULT 0'); } catch(e) {}
   try { await db.exec('ALTER TABLE users ADD COLUMN lockout_time INTEGER DEFAULT 0'); } catch(e) {}
@@ -41,6 +47,10 @@ export async function initDb() {
   try { await db.exec('ALTER TABLE users ADD COLUMN ban_reason TEXT'); } catch(e) {}
   try { await db.exec('ALTER TABLE users ADD COLUMN cheat_score REAL DEFAULT 0'); } catch(e) {}
   try { await db.exec('ALTER TABLE users ADD COLUMN last_login INTEGER'); } catch(e) {}
+  try { await db.exec('ALTER TABLE users ADD COLUMN reset_token TEXT'); } catch(e) {}
+  try { await db.exec('ALTER TABLE users ADD COLUMN reset_token_expiry INTEGER'); } catch(e) {}
+  try { await db.exec('ALTER TABLE users ADD COLUMN username_changed_at INTEGER'); } catch(e) {}
+  try { await db.exec('ALTER TABLE users ADD COLUMN invalidate_before INTEGER'); } catch(e) {}
 
   // Seed data for testing (password is 'password' for all)
   try {

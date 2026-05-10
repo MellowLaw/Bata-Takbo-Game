@@ -1,4 +1,4 @@
-﻿/**
+/**
  * main.js — Application entry point
  * Initializes the screen manager and navigates to the main menu
  */
@@ -60,32 +60,43 @@ async function init() {
     console.warn('Gesture controller background initialization error:', e);
   }
 
-  // Check if session exists
-  const sessionData = localStorage.getItem('guest_session');
-  if (sessionData) {
-    let isValid = true;
-    try {
-      const parsed = JSON.parse(sessionData);
-      if (parsed && parsed.is_guest === false) {
-        // Registered user: attempt to hydrate. If it fails (e.g. 401), we should clear session and login.
-        const hydrated = await state.hydrateFromServer();
-        if (hydrated === false) {
-          isValid = false;
+  // Check for reset_token in URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const resetToken = urlParams.get('reset_token');
+  
+  if (resetToken) {
+    // Clear session and go to login/reset screen
+    localStorage.removeItem('guest_session');
+    window.history.replaceState({}, document.title, window.location.pathname);
+    await screenManager.navigate('login-screen', { resetToken }, false);
+  } else {
+    // Check if session exists
+    const sessionData = localStorage.getItem('guest_session');
+    if (sessionData) {
+      let isValid = true;
+      try {
+        const parsed = JSON.parse(sessionData);
+        if (parsed && parsed.is_guest === false) {
+          // Registered user: attempt to hydrate. If it fails (e.g. 401), we should clear session and login.
+          const hydrated = await state.hydrateFromServer();
+          if (hydrated === false) {
+            isValid = false;
+          }
         }
+      } catch(e) {
+        // It's an encrypted guest session string, which is always valid locally
       }
-    } catch(e) {
-      // It's an encrypted guest session string, which is always valid locally
-    }
 
-    if (isValid) {
-      await screenManager.navigate('main-menu', {}, false);
+      if (isValid) {
+        await screenManager.navigate('main-menu', {}, false);
+      } else {
+        localStorage.removeItem('guest_session');
+        await screenManager.navigate('login-screen', {}, false);
+      }
     } else {
-      localStorage.removeItem('guest_session');
+      // Navigate to login screen
       await screenManager.navigate('login-screen', {}, false);
     }
-  } else {
-    // Navigate to login screen
-    await screenManager.navigate('login-screen', {}, false);
   }
   
   // Hide loading overlay
