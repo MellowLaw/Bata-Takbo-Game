@@ -1,5 +1,8 @@
 {
   "devDependencies": {
     "image-size": "^2.0.2"
+  },
+  "dependencies": {
+    "canvas": "^3.2.3"
   }
 }

@@ -2162,91 +2162,104 @@ a {
 }
 
 /* === CHARACTER SELECT SCREEN === */
-.char-select-overlay {
+.cs-screen {
   position: relative;
   width: 100%;
   height: 100%;
-  background-image: url('/assets/ui/backgrounds/chapterselect_background.png');
-  background-size: cover;
-  background-position: center;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.char-select-modal {
-  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: clamp(14px, 2vh, 28px);
-  padding: clamp(24px, 3.5vw, 52px) clamp(28px, 5vw, 70px);
-  background: var(--bg-primary);
-  border: 2px solid var(--accent-gold-dim);
-  box-shadow: 0 0 0 1px rgba(0,0,0,0.8), 0 0 40px rgba(0,0,0,0.95), inset 0 0 60px rgba(0,0,0,0.6);
-  animation: fadeInUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  justify-content: center;
+  background-image: url('/assets/ui/backgrounds/chapterselect_background.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  padding: var(--space-xl);
+  overflow: hidden;
 }
 
-.char-select-title {
-  font-family: var(--font-display);
-  font-size: clamp(1.4rem, 3.5vw, 2.6rem);
-  color: var(--accent-gold);
-  text-shadow: 2px 2px 0 #000, 0 0 18px rgba(255, 215, 0, 0.3);
-  letter-spacing: 4px;
-  margin: 0;
-}
-
-.char-select-subtitle {
-  font-family: var(--font-ui);
-  font-size: var(--text-xs);
-  color: var(--text-secondary);
-  letter-spacing: 1px;
-  margin: 0;
-}
-
-.char-select-cards {
+/* ── Step containers ── */
+.cs-step {
   display: flex;
-  gap: clamp(16px, 3.5vw, 48px);
-  align-items: stretch;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(12px, 2.5vh, 28px);
+  z-index: 2;
+  width: 100%;
 }
 
-.char-card {
+.cs-step--hidden {
+  display: none;
+}
+
+/* Subtitle under the screen-title */
+.cs-sub {
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  letter-spacing: 1.5px;
+  margin: 0;
+  text-align: center;
+  opacity: 0;
+  animation: fadeInUp 0.5s 0.15s ease forwards;
+}
+
+/* ── Item row (shared by both steps) ── */
+.cs-items {
+  display: flex;
+  gap: clamp(24px, 5vw, 80px);
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: clamp(8px, 2vh, 20px);
+}
+
+@keyframes csItemIn {
+  from {
+    opacity: 0;
+    transform: translateY(32px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ── Each selectable item ── */
+.cs-item {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  width: clamp(130px, 16vw, 200px);
-  padding: 16px 14px;
-  background: var(--bg-panel);
-  border: 2px solid rgba(255, 255, 255, 0.08);
   cursor: pointer;
-  transition: border-color var(--transition-normal), background var(--transition-normal), transform var(--transition-fast);
-  animation: fadeInUp 0.45s ease forwards;
+  opacity: 0;
+  animation: csItemIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  transition: transform 0.2s, filter 0.2s;
+  filter: drop-shadow(0 8px 20px rgba(0,0,0,0.7));
 }
 
-.char-card:hover {
-  border-color: var(--accent-gold);
-  background: var(--bg-secondary);
-  transform: translateY(-3px);
-  box-shadow: var(--glow-gold);
+.cs-item:hover {
+  transform: translateY(-6px);
+  filter: drop-shadow(0 12px 28px rgba(0,0,0,0.8)) drop-shadow(0 0 12px rgba(255,215,0,0.25));
 }
 
-.char-card:active {
-  transform: scale(0.97);
+.cs-item:active {
+  transform: scale(0.96);
 }
 
-.char-card__portrait {
-  width: 100%;
+/* ── Character portrait (step 1) ── */
+.cs-portrait {
+  width: clamp(110px, 16vw, 190px);
   aspect-ratio: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-secondary);
   overflow: hidden;
-  border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(0,0,0,0.4);
 }
 
-.char-card__canvas {
+.cs-canvas {
   image-rendering: pixelated;
   max-width: 100%;
   max-height: 100%;
@@ -2254,72 +2267,30 @@ a {
   height: auto;
 }
 
-.char-card__info {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  width: 100%;
+/* ── Control icon (step 2) ── */
+.cs-ctrl-icon {
+  width: clamp(80px, 12vw, 150px);
+  height: auto;
+  object-fit: contain;
+  image-rendering: pixelated;
 }
 
-.char-card__name {
+/* ── Labels ── */
+.cs-name {
   font-family: var(--font-display);
-  font-size: clamp(0.9rem, 2.2vw, 1.25rem);
+  font-size: clamp(0.85rem, 2.2vw, 1.2rem);
   color: var(--text-primary);
   letter-spacing: 3px;
   text-shadow: 2px 2px 0 #000;
+  text-align: center;
 }
 
-.char-card__gender-tag {
+.cs-tag {
   font-family: var(--font-ui);
   font-size: var(--text-xs);
   color: var(--accent-orange-bright);
-  letter-spacing: 3px;
-}
-
-.char-card__control-badge {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  margin-top: 4px;
-  padding: 3px 8px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.09);
-}
-
-.char-card__control-icon {
-  font-size: 0.85rem;
-}
-
-.char-card__control-label {
-  font-family: var(--font-ui);
-  font-size: var(--text-xs);
-  color: var(--text-secondary);
-  letter-spacing: 0.5px;
-  white-space: nowrap;
-}
-
-.char-card__select-btn {
-  margin-top: auto;
-  width: 100%;
-  padding: 7px 0;
+  letter-spacing: 2px;
   text-align: center;
-  font-family: var(--font-display);
-  font-size: var(--text-sm);
-  color: var(--accent-gold);
-  letter-spacing: 3px;
-  background: rgba(255, 215, 0, 0.07);
-  border: 1px solid var(--accent-gold-dim);
-  transition: background var(--transition-fast), box-shadow var(--transition-fast);
-}
-
-.char-card:hover .char-card__select-btn {
-  background: rgba(255, 215, 0, 0.15);
-  box-shadow: 0 0 8px rgba(255, 215, 0, 0.25);
-}
-
-.char-select-back {
-  margin-top: 4px;
 }
 
 /* === IN-GAME D-PAD (Female character — pixel arrows, no bg, no border) === */
@@ -2329,12 +2300,11 @@ a {
   display: grid;
   grid-template-areas:
     ".    up    ."
-    "left .     right"
-    ".    down  .";
+    "left down right";
   grid-template-columns: 1fr 1fr 1fr;
-  grid-template-rows: 1fr 1fr 1fr;
-  gap: 2px;
-  padding: 6px;
+  grid-template-rows: 1fr 1fr;
+  gap: 4px;
+  padding: 0 0 16px 0;
   background: transparent;
   pointer-events: auto;
   box-sizing: border-box;
@@ -2351,31 +2321,26 @@ a {
   user-select: none;
   -webkit-user-select: none;
   touch-action: none;
-  padding: 0;
+  padding: 2px;
 }
 
 .dpad-arrow-icon {
-  font-family: var(--font-ui);
-  font-size: clamp(28px, 4.5vw, 48px);
-  color: var(--text-primary);
-  text-shadow: 1px 1px 0 #000, 0 0 6px rgba(0,0,0,0.8);
-  transition: color var(--transition-fast), transform var(--transition-fast), text-shadow var(--transition-fast);
   display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
   image-rendering: pixelated;
-  line-height: 1;
+  transition: transform var(--transition-fast), filter var(--transition-fast);
+  filter: drop-shadow(1px 1px 0 rgba(0,0,0,0.8));
+  user-select: none;
+  pointer-events: none;
 }
 
-.dpad-btn:hover .dpad-arrow-icon {
-  color: var(--accent-gold);
-  text-shadow: 0 0 8px rgba(255, 215, 0, 0.6), 1px 1px 0 #000;
-  transform: scale(1.15);
-}
 
 .dpad-btn:active .dpad-arrow-icon,
 .dpad-btn--active .dpad-arrow-icon {
-  color: var(--accent-gold);
   transform: scale(0.88);
-  text-shadow: 0 0 16px rgba(255, 215, 0, 1), 0 0 32px rgba(255, 215, 0, 0.6);
+  filter: drop-shadow(0 0 10px rgba(255, 215, 0, 1)) brightness(1.4);
 }
 
 .dpad-up    { grid-area: up;    }

@@ -346,7 +346,13 @@ export class HUDScene extends Phaser.Scene {
 
     if (this.character === 'female') {
       // ── D-PAD (on-screen arrow buttons) ──────────────────────────────────
-      this._buildDpad(boxPadX, camBoxY, bossBoxW, camBoxH);
+      // Layout is 2 rows (up / left-down-right), so height = ~2/3 of width
+      const availH = height - puEndY - 16;
+      const dpadW = bossBoxW - 8;
+      const dpadH = Math.min(Math.floor(dpadW * 2 / 3), availH);
+      const dpadX = boxPadX + Math.floor((bossBoxW - dpadW) / 2);
+      const dpadY = puEndY + Math.floor((availH - dpadH) / 2) + 8;
+      this._buildDpad(dpadX, dpadY, dpadW, dpadH);
     } else {
       // ── CAMERA PiP (male / gesture mode) ────────────────────────────────
       this.panelBg.fillStyle(0x100c04, 1);
@@ -436,25 +442,35 @@ export class HUDScene extends Phaser.Scene {
     dpad.style.height = `${boxH}px`;
 
     const arrows = [
-      { dir: 'up',    label: '\u25b2', cls: 'dpad-up'    },
-      { dir: 'left',  label: '\u25c4', cls: 'dpad-left'  },
-      { dir: 'right', label: '\u25ba', cls: 'dpad-right' },
-      { dir: 'down',  label: '\u25bc', cls: 'dpad-down'  },
+      { dir: 'up',    cls: 'dpad-up'    },
+      { dir: 'left',  cls: 'dpad-left'  },
+      { dir: 'right', cls: 'dpad-right' },
+      { dir: 'down',  cls: 'dpad-down'  },
     ];
 
-    arrows.forEach(({ dir, label, cls }) => {
+    arrows.forEach(({ dir, cls }) => {
       const btn = document.createElement('button');
       btn.className = `dpad-btn ${cls}`;
       btn.setAttribute('aria-label', dir);
-      btn.innerHTML = `<span class="dpad-arrow-icon">${label}</span>`;
+
+      const img = document.createElement('img');
+      img.className = 'dpad-arrow-icon';
+      img.src = `/assets/ui/dpad/arrow-${dir}.png`;
+      img.draggable = false;
+      btn.appendChild(img);
 
       const fire = () => {
         const gs = this.scene.get('GameScene');
         if (gs && !gs.isGameOver) gs.player.move(dir);
       };
 
-      // Touch (mobile) and click (desktop)
-      btn.addEventListener('pointerdown', (e) => { e.preventDefault(); fire(); });
+      btn.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        img.src = `/assets/ui/dpad/arrow-${dir}-pressed.png`;
+        fire();
+      });
+      btn.addEventListener('pointerup',     () => { img.src = `/assets/ui/dpad/arrow-${dir}.png`; });
+      btn.addEventListener('pointerleave',  () => { img.src = `/assets/ui/dpad/arrow-${dir}.png`; });
 
       dpad.appendChild(btn);
     });
