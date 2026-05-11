@@ -305,6 +305,10 @@ a {
   transition: color var(--transition-normal), transform var(--transition-normal);
   text-shadow: 0 0 0px transparent;
   white-space: nowrap;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .main-menu .menu-btn::before {
@@ -1320,8 +1324,21 @@ a {
 
 /* Hover: flip to front (both unlocked and locked) */
 .ch-flip-wrapper.unlocked:hover .ch-flip-inner,
-.ch-flip-wrapper.locked:hover .ch-flip-inner {
+.ch-flip-wrapper.locked:hover .ch-flip-inner,
+.ch-flip-wrapper.flipped .ch-flip-inner {
   transform: rotateY(180deg);
+}
+
+/* Hint text below title */
+.ch-hint {
+  font-family: var(--font-ui);
+  font-size: clamp(0.65rem, 2vw, 0.85rem);
+  color: rgba(255,255,255,0.55);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  text-align: center;
+  margin: 0 0 var(--space-md);
+  transition: opacity 0.4s ease;
 }
 
 /* Faces */
@@ -1372,17 +1389,20 @@ a {
   image-rendering: pixelated;
 }
 
-/* On hover: static fades, canvas shows */
-.ch-flip-wrapper.unlocked:hover .ch-front-static {
+/* On hover/flipped: static fades, canvas shows */
+.ch-flip-wrapper.unlocked:hover .ch-front-static,
+.ch-flip-wrapper.unlocked.flipped .ch-front-static {
   opacity: 0;
 }
 
-.ch-flip-wrapper.unlocked:hover .ch-front-idle-canvas {
+.ch-flip-wrapper.unlocked:hover .ch-front-idle-canvas,
+.ch-flip-wrapper.unlocked.flipped .ch-front-idle-canvas {
   opacity: 1;
 }
 
-/* Hover glow */
-.ch-flip-wrapper.unlocked:hover {
+/* Hover/flipped glow */
+.ch-flip-wrapper.unlocked:hover,
+.ch-flip-wrapper.unlocked.flipped {
   filter: drop-shadow(0px 0px 22px rgba(255, 136, 0, 0.55)) drop-shadow(0px 12px 24px rgba(0, 0, 0, 0.7));
 }
 

@@ -158,6 +158,9 @@ export const GameScreen = {
         console.warn('Camera failed to start in game', e);
       }
 
+      // Camera permission popup exits fullscreen — restore on next touch
+      if (window.__scheduleRestoreFullscreen) window.__scheduleRestoreFullscreen();
+
       // 2. Adjust PiP view depending on settings
       const currentSettings = state.get('settings');
       if (currentSettings && currentSettings.camera && !currentSettings.camera.showSkeleton && currentSettings.camera.privacyMode) {
@@ -191,16 +194,32 @@ export const GameScreen = {
 
     // Refresh Phaser scale on viewport changes (fullscreen toggle, window resize, orientation)
     this._onWindowResize = () => {
-      if (this.game && this.game.scale) {
-        this.game.scale.refresh();
-      }
+      if (!this.game || !this.game.scale) return;
+      // Immediate refresh for resize events
+      this.game.scale.refresh();
     };
+
+    this._onFullscreenChange = () => {
+      if (!this.game || !this.game.scale) return;
+      // Delay refresh on fullscreen change — browser needs time to update viewport
+      // dimensions before Phaser reads them, otherwise black bars appear
+      const doRefresh = () => {
+        if (!this.game || !this.game.scale) return;
+        // Force container to fill new viewport
+        if (this.container) {
+          this.container.style.width  = '100%';
+          this.container.style.height = '100%';
+        }
+        this.game.scale.refresh();
+      };
+      setTimeout(doRefresh, 50);
+      setTimeout(doRefresh, 200); // second pass for slow browsers
+    };
+
     window.addEventListener('resize', this._onWindowResize);
-    window.addEventListener('orientationchange', this._onWindowResize);
-    if (document.addEventListener) {
-      document.addEventListener('fullscreenchange', this._onWindowResize);
-      document.addEventListener('webkitfullscreenchange', this._onWindowResize);
-    }
+    window.addEventListener('orientationchange', this._onFullscreenChange);
+    document.addEventListener('fullscreenchange', this._onFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', this._onFullscreenChange);
 
     // Add scenes manually ONCE with the correct data, preventing double-start
     this.game.events.on('ready', () => {
@@ -287,10 +306,13 @@ export const GameScreen = {
     }
     if (this._onWindowResize) {
       window.removeEventListener('resize', this._onWindowResize);
-      window.removeEventListener('orientationchange', this._onWindowResize);
-      document.removeEventListener('fullscreenchange', this._onWindowResize);
-      document.removeEventListener('webkitfullscreenchange', this._onWindowResize);
       this._onWindowResize = null;
+    }
+    if (this._onFullscreenChange) {
+      window.removeEventListener('orientationchange', this._onFullscreenChange);
+      document.removeEventListener('fullscreenchange', this._onFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', this._onFullscreenChange);
+      this._onFullscreenChange = null;
     }
     if (state.get('selectedCharacter') !== 'female') gestureController.stopCamera();
     state.set('currentScreen', null);

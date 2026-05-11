@@ -127,6 +127,25 @@ document.addEventListener('click', (e) => {
   }
 });
 
+// Global mobile tap fix — forward touchend to click for all interactive elements
+// This eliminates the 300ms delay and tap-cancellation on mobile browsers
+(function mobileTapFix() {
+  const SELECTORS = 'button, .menu-btn, .back-btn, .gesture-dir-btn, .ch-flip-wrapper, .cs-item, .leaderboard-tab, .spellbook-entry, .char-option, #icon-profile, .main-menu__logout-btn';
+  let touchMoved = false;
+
+  document.addEventListener('touchstart', () => { touchMoved = false; }, { passive: true });
+  document.addEventListener('touchmove',  () => { touchMoved = true;  }, { passive: true });
+
+  document.addEventListener('touchend', (e) => {
+    if (touchMoved) return;
+    const target = e.target.closest(SELECTORS);
+    if (!target) return;
+    // Only preventDefault on the matched target to avoid swallowing unrelated clicks
+    e.preventDefault();
+    target.click();
+  }, { passive: false });
+})();
+
 // Global hover sound
 const hoverAudio = new Audio('/assets/audio/hovering_sound.mp3');
 hoverAudio.volume = 0.5;
@@ -197,21 +216,61 @@ document.addEventListener('keydown', (e) => {
     }, 2500);
   }
 
-  // Double-tap detection — ignore taps on interactive elements
+  // Double-tap anywhere that isn't an interactive element to toggle fullscreen
+  const BLOCK_FS = [
+    'button', 'a', 'input', 'select', 'textarea',
+    '[role="button"]',
+    '.menu-btn', '.back-btn', '.gesture-dir-btn', '.dpad-btn',
+    '.cs-item', '.ch-flip-wrapper',
+    '.leaderboard-tab', '.spellbook-entry',
+    '.dialogue-box', '.dialogue-box__buttons',
+    '.tutorial-overlay',
+    '#icon-profile', '#btn-logout',
+    '#webcam-canvas',
+    '#gesture-recording-hint', '#fs-hint', '#fs-lost-toast',
+    // UI images that aren't backgrounds
+    '.main-menu__title', '.cs-portrait', '.cs-ctrl-icon',
+    '.dpad-arrow-icon',
+  ].join(', ');
+
   let lastTap = 0;
   const DOUBLE_TAP_MS = 300;
-  const INTERACTIVE = 'button, a, input, select, textarea, canvas, [role="button"], .dpad-btn, .gesture-dir-btn, .menu-btn, .back-btn';
+
+  // Register a one-shot listener that re-enters fullscreen on the very next touch
+  // Called whenever something (camera popup, system dialog) exits fullscreen unexpectedly
+  const scheduleRestoreOnNextTouch = () => {
+    const handler = (e) => {
+      if (e.defaultPrevented) return;
+      if (document.fullscreenElement) return; // already fullscreen
+      document.documentElement.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
+    };
+    document.addEventListener('touchend', handler, { once: true, passive: true });
+    document.addEventListener('click',    handler, { once: true });
+  };
+
+  // Expose globally so GestureTraining and GameScreen can call it after startCamera()
+  window.__scheduleRestoreFullscreen = scheduleRestoreOnNextTouch;
+
+  const requestFS = () => {
+    document.documentElement.requestFullscreen({ navigationUI: 'hide' }).catch(() => {
+      // Blocked after popup — schedule a one-shot restore on next touch
+      sessionStorage.removeItem('fs_hint_shown');
+      scheduleRestoreOnNextTouch();
+    });
+  };
 
   const onTap = (e) => {
-    // Ignore if tapped on or inside an interactive element
-    if (e.target.closest(INTERACTIVE)) return;
+    // If mobileTapFix already handled this touch (a button was tapped), skip
+    if (e.defaultPrevented) return;
+    // Block if tapped on or inside any interactive / UI element
+    if (e.target.closest(BLOCK_FS)) return;
 
     const now = Date.now();
     if (now - lastTap < DOUBLE_TAP_MS) {
       if (document.fullscreenElement) {
         document.exitFullscreen().catch(() => {});
       } else {
-        document.documentElement.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
+        requestFS();
       }
       lastTap = 0;
     } else {
@@ -219,7 +278,43 @@ document.addEventListener('keydown', (e) => {
     }
   };
 
-  document.addEventListener('touchend', onTap);
+  // When fullscreen exits unexpectedly (system popup, back gesture, etc.)
+  // show a small persistent toast so user knows they can double-tap to restore
+  let _fsToast = null;
+  document.addEventListener('fullscreenchange', () => {
+    if (!document.fullscreenElement) {
+      // Fullscreen was lost — schedule restore on next user touch
+      scheduleRestoreOnNextTouch();
+      // Also show a non-intrusive reminder
+      if (_fsToast) return; // already showing
+      _fsToast = document.createElement('div');
+      _fsToast.id = 'fs-lost-toast';
+      _fsToast.textContent = '👆👆 Double-tap to go fullscreen';
+      _fsToast.style.cssText = `
+        position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+        background: rgba(0,0,0,0.82); color: white;
+        padding: 9px 18px; border-radius: 20px;
+        font-family: 'GigaSaturn', sans-serif;
+        font-size: clamp(0.6rem, 2vw, 0.8rem);
+        letter-spacing: 2px; z-index: 99998;
+        pointer-events: none; white-space: nowrap;
+        animation: fsFadeIn 0.3s ease forwards;
+      `;
+      document.body.appendChild(_fsToast);
+      // Auto-dismiss after 4s
+      setTimeout(() => {
+        if (_fsToast) {
+          _fsToast.style.animation = 'fsFadeOut 0.4s ease forwards';
+          setTimeout(() => { if (_fsToast) { _fsToast.remove(); _fsToast = null; } }, 420);
+        }
+      }, 4000);
+    } else {
+      // Fullscreen restored — remove toast if visible
+      if (_fsToast) { _fsToast.remove(); _fsToast = null; }
+    }
+  });
+
+  document.addEventListener('touchend', onTap, { passive: true });
 })();
 
 // PWA: Register service worker

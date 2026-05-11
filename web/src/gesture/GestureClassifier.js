@@ -59,7 +59,9 @@ export class GestureClassifier {
     this.classifier = knnClassifier.create();
     this.isLoaded = false;
     this.labels = ['up', 'down', 'left', 'right', 'idle'];
-    this.K_VALUE = 4; // Num neighbors to poll
+    this.K_VALUE = 4;
+    this._cachedTotal = 0;   // cached total sample count — avoids reading dataset every frame
+    this._countDirty = true; // flag to recompute on next predict
   }
 
   async initialize() {
@@ -79,6 +81,7 @@ export class GestureClassifier {
       const tensor = tf.tensor(features);
       this.classifier.addExample(tensor, label);
     });
+    this._countDirty = true; // invalidate cache
   }
 
   /**
@@ -103,17 +106,20 @@ export class GestureClassifier {
    * @returns {Object} result - { label: string, confidence: number }
    */
   async predict(features) {
-    // Provide early exit if no active dataset
     if (this.classifier.getNumClasses() === 0 || !features || features.length === 0) {
       return { label: 'idle', confidence: 1.0 };
     }
 
     try {
-      const counts = this.getClassExampleCount();
-      const totalSamples = Object.values(counts).reduce((a, b) => a + b, 0);
-      if (totalSamples === 0) return { label: 'idle', confidence: 1.0 };
-      
-      let k = Math.min(this.K_VALUE, totalSamples);
+      // Recompute total only when samples changed (addExample/reset), not every frame
+      if (this._countDirty) {
+        const counts = this.getClassExampleCount();
+        this._cachedTotal = Object.values(counts).reduce((a, b) => a + b, 0);
+        this._countDirty = false;
+      }
+      if (this._cachedTotal === 0) return { label: 'idle', confidence: 1.0 };
+
+      let k = Math.min(this.K_VALUE, this._cachedTotal);
 
       // Need tf.tidy to automatically clean up memory, but classifier async makes it tricky.
       const tensor = tf.tensor(features);
@@ -198,6 +204,8 @@ export class GestureClassifier {
     this.classifier.clearAllClasses();
     await clearIDB();
     this.isLoaded = false;
+    this._cachedTotal = 0;
+    this._countDirty = true;
   }
 
   /**

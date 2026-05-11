@@ -110,9 +110,10 @@ export const TutorialScreen = {
         onEnter: () => {
           // Queue a small combat sequence: attack 0 → attack 1 → golden tile
           // Boss._tutorialSimpleAttack takes ~3s (2s warning + ~1s explosion).
-          setTimeout(() => state.emit('tutorial:triggerAttack', 0), 800);
-          setTimeout(() => state.emit('tutorial:triggerAttack', 1), 4500);
-          setTimeout(() => state.emit('tutorial:spawnDamageTile'), 8500);
+          const t1 = setTimeout(() => state.emit('tutorial:triggerAttack', 0), 800);
+          const t2 = setTimeout(() => state.emit('tutorial:triggerAttack', 1), 4500);
+          const t3 = setTimeout(() => state.emit('tutorial:spawnDamageTile'), 8500);
+          this._pendingTimers = [t1, t2, t3];
         },
         autoAdvance: { type: 'bossDamaged' }
       },
@@ -162,6 +163,7 @@ export const TutorialScreen = {
     if (this._startDelay) { clearTimeout(this._startDelay); this._startDelay = null; }
     if (this._timePoll) { clearInterval(this._timePoll); this._timePoll = null; }
     if (this._stepTimer) { clearTimeout(this._stepTimer); this._stepTimer = null; }
+    if (this._pendingTimers) { this._pendingTimers.forEach(clearTimeout); this._pendingTimers = []; }
 
     // Unsubscribe all state listeners
     if (this._unsubs) { this._unsubs.forEach(fn => fn()); this._unsubs = []; }

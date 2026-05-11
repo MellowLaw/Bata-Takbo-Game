@@ -130,6 +130,8 @@ export const GestureTraining = {
     try {
       await gestureController.initialize(this.videoEl, this.canvasEl);
       await gestureController.startCamera();
+      // Camera permission popup exits fullscreen — restore on next touch
+      if (window.__scheduleRestoreFullscreen) window.__scheduleRestoreFullscreen();
       // Hide loading spinner
       this.loadingUi.style.display = 'none';
       this._updateUIFromCounts();
@@ -275,6 +277,8 @@ export const GestureTraining = {
     if (this.unsubSampleAdded) this.unsubSampleAdded();
     if (this.unsubGestureDetected) this.unsubGestureDetected();
 
+    this._hideRecordingHint();
+
     if (this.tutorialManager) {
       this.tutorialManager.skip();
       this.tutorialManager = null;
@@ -374,57 +378,87 @@ export const GestureTraining = {
       },
       {
         text: "Let's train the UP gesture. Make a clear upward hand signal, then press and hold the Record button until the bar fills.",
-        highlight: "#btn-record",
         portrait: portrait,
         position: 'center',
-        onEnter: () => el.querySelector('#dir-up').click(),
+        buttons: [{ label: '▶ Start Recording', action: 'next' }]
+      },
+      {
+        hideDialogue: true,
+        onEnter: () => {
+          el.querySelector('#dir-up').click();
+          this._showRecordingHint(el, '▲ UP', 'Hold the Record button with your UP gesture');
+        },
         autoAdvance: {
           type: 'sampleAdded',
-          check: (counts) => counts.up >= 10
+          check: (counts) => { if (counts.up >= 10) { this._hideRecordingHint(); return true; } return false; }
         }
       },
       {
         text: "Great! Now do the same for DOWN. Make a downward signal and hold record.",
-        highlight: "#btn-record",
         portrait: portrait,
         position: 'center',
-        onEnter: () => el.querySelector('#dir-down').click(),
+        buttons: [{ label: '▶ Record DOWN', action: 'next' }]
+      },
+      {
+        hideDialogue: true,
+        onEnter: () => {
+          el.querySelector('#dir-down').click();
+          this._showRecordingHint(el, '▼ DOWN', 'Hold the Record button with your DOWN gesture');
+        },
         autoAdvance: {
           type: 'sampleAdded',
-          check: (counts) => counts.down >= 10
+          check: (counts) => { if (counts.down >= 10) { this._hideRecordingHint(); return true; } return false; }
         }
       },
       {
         text: "Now point LEFT.",
-        highlight: "#btn-record",
         portrait: portrait,
         position: 'center',
-        onEnter: () => el.querySelector('#dir-left').click(),
+        buttons: [{ label: '▶ Record LEFT', action: 'next' }]
+      },
+      {
+        hideDialogue: true,
+        onEnter: () => {
+          el.querySelector('#dir-left').click();
+          this._showRecordingHint(el, '◀ LEFT', 'Hold the Record button with your LEFT gesture');
+        },
         autoAdvance: {
           type: 'sampleAdded',
-          check: (counts) => counts.left >= 10
+          check: (counts) => { if (counts.left >= 10) { this._hideRecordingHint(); return true; } return false; }
         }
       },
       {
         text: "And point RIGHT.",
-        highlight: "#btn-record",
         portrait: portrait,
         position: 'center',
-        onEnter: () => el.querySelector('#dir-right').click(),
+        buttons: [{ label: '▶ Record RIGHT', action: 'next' }]
+      },
+      {
+        hideDialogue: true,
+        onEnter: () => {
+          el.querySelector('#dir-right').click();
+          this._showRecordingHint(el, '▶ RIGHT', 'Hold the Record button with your RIGHT gesture');
+        },
         autoAdvance: {
           type: 'sampleAdded',
-          check: (counts) => counts.right >= 10
+          check: (counts) => { if (counts.right >= 10) { this._hideRecordingHint(); return true; } return false; }
         }
       },
       {
         text: "One more — make your REST pose. This is what your hand looks like when you are NOT moving (e.g., an open palm or fist).",
-        highlight: "#btn-record",
         portrait: portrait,
         position: 'center',
-        onEnter: () => el.querySelector('#dir-idle').click(),
+        buttons: [{ label: '▶ Record REST', action: 'next' }]
+      },
+      {
+        hideDialogue: true,
+        onEnter: () => {
+          el.querySelector('#dir-idle').click();
+          this._showRecordingHint(el, '✋ REST', 'Hold the Record button with your REST / idle pose');
+        },
         autoAdvance: {
           type: 'sampleAdded',
-          check: (counts) => counts.idle >= 10
+          check: (counts) => { if (counts.idle >= 10) { this._hideRecordingHint(); return true; } return false; }
         }
       },
       {
@@ -450,18 +484,61 @@ export const GestureTraining = {
     });
   },
 
+  _showRecordingHint(el, direction, instruction) {
+    this._hideRecordingHint(); // remove any existing
+    const hint = document.createElement('div');
+    hint.id = 'gesture-recording-hint';
+    hint.innerHTML = `
+      <span style="font-size:1.4em; display:block; margin-bottom:4px;">${direction}</span>
+      <span style="font-size:0.75em; opacity:0.85; letter-spacing:1px;">${instruction}</span>
+    `;
+    hint.style.cssText = `
+      position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
+      background: rgba(255,107,26,0.92); color: white;
+      padding: 8px 20px; border-radius: 20px;
+      font-family: 'GigaSaturn', sans-serif;
+      font-size: clamp(0.8rem, 2.5vw, 1rem);
+      text-align: center; z-index: 10001;
+      pointer-events: none; letter-spacing: 2px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+      animation: fsFadeIn 0.25s ease forwards;
+      white-space: nowrap;
+    `;
+    document.body.appendChild(hint);
+  },
+
+  _hideRecordingHint() {
+    const existing = document.getElementById('gesture-recording-hint');
+    if (existing) existing.remove();
+  },
+
   async _skipTutorial(fromPlay) {
-    // Case 1 — user opened Gesture Setup directly: just close the prompt, stay here
-    // Case 2 — user came via Play button and skipped: skip tutorial and go to game
     if (fromPlay) {
+      // Came via Play button — skip tutorial, go straight to chapter select
       console.log('[TUTORIAL-DEBUG] GestureTraining._skipTutorial(): setting tutorialComplete = true');
       gestureController.stopCamera();
       window.__screenManager.history = ['main-menu'];
       state.set('tutorialComplete', true);
       await state.saveTutorialState();
       window.__screenManager.navigate('chapter-select', {}, false);
+    } else {
+      // Opened Gesture Setup directly — stay on screen, show a brief toast
+      const toast = document.createElement('div');
+      toast.textContent = 'Tutorial skipped. Train your gestures manually below.';
+      toast.style.cssText = `
+        position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+        background: rgba(0,0,0,0.85); color: white; padding: 10px 20px;
+        border-radius: 8px; font-family: 'GigaSaturn', sans-serif;
+        font-size: clamp(0.6rem,2vw,0.8rem); z-index: 99999;
+        pointer-events: none; letter-spacing: 1px;
+        animation: fsFadeIn 0.3s ease forwards;
+      `;
+      document.body.appendChild(toast);
+      setTimeout(() => {
+        toast.style.animation = 'fsFadeOut 0.4s ease forwards';
+        setTimeout(() => toast.remove(), 400);
+      }, 2500);
     }
-    // else: do nothing — dialogue already hides itself via TutorialManager.skip()
   },
   
   async _completeTutorial(fromPlay = false) {

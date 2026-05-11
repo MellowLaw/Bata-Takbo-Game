@@ -269,6 +269,8 @@ export const MainMenu = {
       portrait,
       portraitFrames,
       position: 'center',
+      overlay: true,
+      typewriter: true,
       buttons: [
         { label: '▶ Continue Tutorial', action: 'tutorial' },
         { label: '⚡ Skip Tutorial', action: 'skip' }

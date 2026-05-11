@@ -42,8 +42,8 @@ export class HUDScene extends Phaser.Scene {
     const timeOffsetX  = isSmall ? 100 : 160;
     const scoreOffsetX = isSmall ? 210 : 310;
 
-    // Pause button
-    const pauseBtn = this.add.text(topBarX, topBarY - 6, '❚❚ PAUSE', {
+    // Pause button (icon only, no text)
+    const pauseBtn = this.add.text(topBarX, topBarY - 6, '❚❚', {
       fontFamily: 'DungeonFont', fontSize: pauseFontSize, color: '#f0e6d3'
     }).setInteractive({ useHandCursor: true }).setDepth(20);
 

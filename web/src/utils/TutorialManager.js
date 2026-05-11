@@ -87,13 +87,21 @@ export class TutorialManager {
       buttons: step.buttons || []
     };
 
-    // If it requires a manual button click to advance
-    if (!step.autoAdvance && !config.buttons.some(b => b.action === 'next')) {
-      config.buttons.unshift({ label: 'Next', action: 'next' });
+    const isLastStep = this.currentStep === this.steps.length - 1;
+
+    // If no manual next button: add one
+    // For autoAdvance steps, add it as a subtle fallback so player isn't stuck
+    if (!config.buttons.some(b => b.action === 'next')) {
+      if (!step.autoAdvance) {
+        config.buttons.unshift({ label: 'Next', action: 'next' });
+      } else {
+        // Fallback for autoAdvance in case event never fires (e.g. camera issue)
+        config.buttons.push({ label: 'Skip Step', action: 'next', style: 'subtle' });
+      }
     }
 
-    // Always have a skip button
-    if (!config.buttons.some(b => b.action === 'skip')) {
+    // Last step: replace skip with a done-style label, or omit entirely
+    if (!isLastStep && !config.buttons.some(b => b.action === 'skip')) {
       config.buttons.push({ label: 'Skip Tutorial', action: 'skip', style: 'subtle' });
     }
 

@@ -48,6 +48,8 @@ export const ChapterSelect = {
           SELECT CHAPTER
         </h1>
 
+        <p class="ch-hint" id="ch-tap-hint">Tap a card to reveal &nbsp;·&nbsp; Tap again to play</p>
+
         <div class="chapter-select__cards">
           ${cardsHtml}
         </div>
@@ -67,14 +69,19 @@ export const ChapterSelect = {
       let animationId = null;
       let frameIndex = 0;
       let lastFrameTime = 0;
-      const FRAME_DURATION = 70; // ms per frame (12.5 fps - smooth but not too fast)
-      const TOTAL_FRAMES = 100; // Only animate first 100 frames (10x10), skip empty ones
+      const FRAME_DURATION = 70;
+      const TOTAL_FRAMES = 100;
       const COLS = 11;
       const ROWS = 10;
 
+      // Hoist img/animate to card scope so click handler can always reference them
+      let img = null;
+      let animate = null;
+      let drawFrame = null;
+
       if (canvas) {
         const ctx = canvas.getContext('2d');
-        const img = new Image();
+        img = new Image();
         img.src = canvas.dataset.idle;
         img.onload = () => {
           // Set canvas size to match single frame size (not compressed)
@@ -86,7 +93,7 @@ export const ChapterSelect = {
           drawFrame(0);
         };
 
-        function drawFrame(idx) {
+        drawFrame = (idx) => {
           const col = idx % COLS;
           const row = Math.floor(idx / COLS);
           const fw = img.width / COLS;
@@ -95,11 +102,10 @@ export const ChapterSelect = {
           const sy = row * fh;
 
           ctx.clearRect(0, 0, canvas.width, canvas.height);
-          // Draw at native resolution - no stretching
           ctx.drawImage(img, sx, sy, fw, fh, 0, 0, canvas.width, canvas.height);
-        }
+        };
 
-        function animate(timestamp) {
+        animate = (timestamp) => {
           if (!lastFrameTime) lastFrameTime = timestamp;
           const elapsed = timestamp - lastFrameTime;
 
@@ -110,7 +116,7 @@ export const ChapterSelect = {
           }
 
           animationId = requestAnimationFrame(animate);
-        }
+        };
 
         // Start animation on hover (after flip completes), stop on leave
         card.addEventListener('mouseenter', () => {
@@ -133,9 +139,32 @@ export const ChapterSelect = {
         });
       }
 
+      const isTouchDevice = () => window.matchMedia('(hover: none)').matches;
+
       card.addEventListener('click', () => {
         const chapterId = parseInt(card.dataset.chapter);
-        window.__screenManager.navigate('character-select', { chapterId });
+
+        if (isTouchDevice()) {
+          // Mobile: first tap flips, second tap navigates
+          if (!card.classList.contains('flipped')) {
+            card.classList.add('flipped');
+            // Hide hint once any card is flipped
+            const hint = document.getElementById('ch-tap-hint');
+            if (hint) hint.style.opacity = '0';
+            // Start idle animation after flip completes
+            if (canvas && img && img.complete && animate) {
+              setTimeout(() => {
+                lastFrameTime = 0;
+                animationId = requestAnimationFrame(animate);
+              }, 650);
+            }
+          } else {
+            window.__screenManager.navigate('character-select', { chapterId });
+          }
+        } else {
+          // Desktop: hover flips, click navigates immediately
+          window.__screenManager.navigate('character-select', { chapterId });
+        }
       });
     });
 

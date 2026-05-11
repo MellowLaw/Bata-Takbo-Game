@@ -21,17 +21,29 @@ export class HandDetector {
     this.video = videoElement;
     this.canvas = canvasElement;
     this.ctx = canvasElement ? canvasElement.getContext('2d') : null;
+
+    // Lower resolution on mobile for performance
+    const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+    this._camW = isMobile ? 320 : 640;
+    this._camH = isMobile ? 240 : 480;
+
+    // Throttle: only send a frame to MediaPipe every N ms
+    this._frameInterval = isMobile ? 80 : 50; // ~12fps mobile, ~20fps desktop
+    this._lastFrameTime = 0;
     
     if (this.camera) this.camera.stop();
     if (this.video && this.hands) {
       this.camera = new Camera(this.video, {
         onFrame: async () => {
           if (!this.video.paused && !this.video.ended) {
+            const now = performance.now();
+            if (now - this._lastFrameTime < this._frameInterval) return;
+            this._lastFrameTime = now;
             await this.hands.send({ image: this.video });
           }
         },
-        width: 640,
-        height: 480
+        width: this._camW,
+        height: this._camH
       });
     }
   }
@@ -41,21 +53,20 @@ export class HandDetector {
       locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
     });
 
+    const isMobile = /Mobi|Android/i.test(navigator.userAgent);
     this.hands.setOptions({
-      maxNumHands: 1, // Only tracking one hand
-      modelComplexity: 1, // 0 or 1. 1 is more accurate but heavier
-      minDetectionConfidence: 0.5,
+      maxNumHands: 1,
+      modelComplexity: 0,          // Always use lite model — fast enough for KNN
+      minDetectionConfidence: 0.6,
       minTrackingConfidence: 0.5,
-      selfieMode: true, // Mirror the camera
+      selfieMode: true,
     });
 
-    this.hands.onResults(this._onResults.bind(this));
-
-    this.hands.onResults(this._onResults.bind(this));
+    this.hands.onResults(this._onResults.bind(this)); // register ONCE
 
     // Initialize the camera loop now that hands is ready
     if (this.video) {
-        this.bindElements(this.video, this.canvas);
+      this.bindElements(this.video, this.canvas);
     }
   }
 
