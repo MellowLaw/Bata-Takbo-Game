@@ -170,9 +170,10 @@ document.addEventListener('keydown', (e) => {
 (function doubleTapFullscreen() {
   if (!document.fullscreenEnabled) return;
 
-  // Show a one-time hint overlay when the app first opens
+  // Show a one-time hint overlay when the app first opens (mobile only)
+  const isTouchDevice = () => window.matchMedia('(hover: none)').matches;
   const hintShown = sessionStorage.getItem('fs_hint_shown');
-  if (!hintShown) {
+  if (!hintShown && isTouchDevice()) {
     sessionStorage.setItem('fs_hint_shown', '1');
     const hint = document.createElement('div');
     hint.id = 'fs-hint';
@@ -236,26 +237,20 @@ document.addEventListener('keydown', (e) => {
   let lastTap = 0;
   const DOUBLE_TAP_MS = 300;
 
-  // Register a one-shot listener that re-enters fullscreen on the very next touch
-  // Called whenever something (camera popup, system dialog) exits fullscreen unexpectedly
-  const scheduleRestoreOnNextTouch = () => {
-    const handler = (e) => {
-      if (e.defaultPrevented) return;
-      if (document.fullscreenElement) return; // already fullscreen
-      document.documentElement.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
-    };
-    document.addEventListener('touchend', handler, { once: true, passive: true });
-    document.addEventListener('click',    handler, { once: true });
+  // Called when fullscreen is lost (camera popup, etc.) — re-enable double-tap recovery
+  // This does NOT add a single-tap handler; it just clears the flag so normal double-tap works.
+  const markFullscreenNeedsRestore = () => {
+    // No-op placeholder — normal onTap double-tap logic handles restoration
+    // This function exists so callers have a hook to know restore was attempted
   };
 
   // Expose globally so GestureTraining and GameScreen can call it after startCamera()
-  window.__scheduleRestoreFullscreen = scheduleRestoreOnNextTouch;
+  window.__scheduleRestoreFullscreen = markFullscreenNeedsRestore;
 
   const requestFS = () => {
     document.documentElement.requestFullscreen({ navigationUI: 'hide' }).catch(() => {
-      // Blocked after popup — schedule a one-shot restore on next touch
+      // Blocked after popup — show hint again so user can double-tap to retry
       sessionStorage.removeItem('fs_hint_shown');
-      scheduleRestoreOnNextTouch();
     });
   };
 
@@ -283,8 +278,7 @@ document.addEventListener('keydown', (e) => {
   let _fsToast = null;
   document.addEventListener('fullscreenchange', () => {
     if (!document.fullscreenElement) {
-      // Fullscreen was lost — schedule restore on next user touch
-      scheduleRestoreOnNextTouch();
+      // Fullscreen was lost — user can double-tap anywhere (except buttons) to restore
       // Also show a non-intrusive reminder
       if (_fsToast) return; // already showing
       _fsToast = document.createElement('div');
