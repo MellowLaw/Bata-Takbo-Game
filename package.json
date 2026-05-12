@@ -3,6 +3,7 @@
     "image-size": "^2.0.2"
   },
   "dependencies": {
-    "canvas": "^3.2.3"
+    "canvas": "^3.2.3",
+    "nodemailer": "^8.0.7"
   }
 }

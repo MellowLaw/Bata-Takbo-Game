@@ -1435,6 +1435,7 @@ export class Boss {
 
     this._ch2UltimateActive = true;
     this.scene.events.emit('boss:attack');
+    this.scene.events.emit('boss:ch2_ult');
     this.scene.cameras.main.shake(350, 0.012);
 
     const spiralTiles = this._buildInwardSpiralTiles();
@@ -1482,6 +1483,7 @@ export class Boss {
 
     this._ch2UltimateActive = true;
     this.scene.events.emit('boss:attack');
+    this.scene.events.emit('boss:ch2_ult');
     this.scene.cameras.main.shake(450, 0.018);
 
     const WAVE_COUNT = 4;

@@ -61,7 +61,7 @@ export class GameScene extends Phaser.Scene {
 
     if (this.chapterId === 1) {
       this.load.spritesheet('boss_idle', '/assets/entity/boss/chapter1/chapter-1-idle-sprite.png', { frameWidth: 576, frameHeight: 324 });
-      this.load.spritesheet('boss_cast', '/assets/entity/boss/chapter1/boss_cast.png', { frameWidth: 122, frameHeight: 110 });
+      this.load.spritesheet('boss_ult_attack', '/assets/entity/boss/chapter1/chapter-1-attack-sprite.png', { frameWidth: 672, frameHeight: 378 });
 
       // Phase 5: Dynamic Loading of Custom Blood/Gore Sequence Projectiles
       for (let i = 0; i <= 14; i++) {
@@ -99,8 +99,9 @@ export class GameScene extends Phaser.Scene {
 
     } else if (this.chapterId === 2) {
       // ===== CHAPTER 2: BUNGISNGIS ASSETS =====
-      this.load.spritesheet('boss_idle', '/assets/entity/boss/chapter2/boss_idle.png', { frameWidth: 87, frameHeight: 110 });
+      this.load.spritesheet('boss_idle', '/assets/entity/boss/chapter2/chapter-2-idle-sprite.png', { frameWidth: 672, frameHeight: 378 });
       this.load.spritesheet('boss_cast', '/assets/entity/boss/chapter2/boss_idle.png', { frameWidth: 87, frameHeight: 110 });
+      this.load.spritesheet('boss_ch2_ult_attack', '/assets/entity/boss/chapter2/chapter-2-attack-sprite.png.png', { frameWidth: 672, frameHeight: 378 });
 
       // Attack projectiles
       this.load.spritesheet('ch2_beeswarm', '/assets/projectiles/chapter-2/bee-swarm.png', { frameWidth: 192, frameHeight: 192 });
@@ -735,6 +736,11 @@ export class GameScene extends Phaser.Scene {
       }
     });
 
+    this.events.on('boss:ch2_ult', () => {
+      const hud = this.scene.get('HUDScene');
+      if (hud && hud.playBossUltAttack) hud.playBossUltAttack();
+    });
+
     this.events.on('boss:attack', () => {
       const hud = this.scene.get('HUDScene');
       if (hud && hud.playBossAttack) hud.playBossAttack();
@@ -841,6 +847,9 @@ export class GameScene extends Phaser.Scene {
   _triggerUltimate() {
     if (this.isGameOver || !this.boss || this.boss.hp <= 0) return;
     this.isUltimateActive = true;
+
+    const hud = this.scene.get('HUDScene');
+    if (hud && hud.playBossUltAttack) hud.playBossUltAttack();
 
     const { width, height } = this.scale;
     const leftWidth = Math.max(width < 768 ? 160 : 250, Math.min(450, width * 0.28));

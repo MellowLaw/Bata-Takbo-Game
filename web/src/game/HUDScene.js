@@ -134,25 +134,46 @@ export class HUDScene extends Phaser.Scene {
     }).setOrigin(0, 0);
 
     // *** BOSS ANIMATED SPRITE — rendered HERE in HUDScene so it's visible ***
-    // The boss_idle and boss_cast spritesheets were loaded by GameScene.
+    // The boss_idle and boss_ult_attack spritesheets were loaded by GameScene.
     const bossCenterX = boxPadX + bossBoxW / 2;
     const bossCenterY = bossBoxY + bossBoxH / 2;
 
     // Create boss animations first
     if (!this.anims.exists('anim_boss_idle')) {
       const isCh1 = this.chapterId === 1;
+      const isCh2 = this.chapterId === 2;
       this.anims.create({
         key: 'anim_boss_idle',
-        frames: isCh1 ? this.anims.generateFrameNumbers('boss_idle', { start: 0, end: 54 }) : this.anims.generateFrameNumbers('boss_idle'), // 55 frame vs 1 frame placeholder
+        frames: isCh1 ? this.anims.generateFrameNumbers('boss_idle', { start: 0, end: 54 })
+                      : isCh2 ? this.anims.generateFrameNumbers('boss_idle', { start: 0, end: 24 })
+                      : this.anims.generateFrameNumbers('boss_idle'),
         frameRate: 24,
         repeat: -1
       });
-      this.anims.create({
-        key: 'anim_boss_attack',
-        frames: isCh1 ? this.anims.generateFrameNumbers('boss_cast', { start: 0, end: 7 }) : this.anims.generateFrameNumbers('boss_cast'), // 8 frame vs 1 frame placeholder
-        frameRate: 10,
-        repeat: 0
-      });
+      if (!isCh1 && !isCh2) {
+        this.anims.create({
+          key: 'anim_boss_attack',
+          frames: this.anims.generateFrameNumbers('boss_cast'),
+          frameRate: 10,
+          repeat: 0
+        });
+      }
+      if (isCh1) {
+        this.anims.create({
+          key: 'anim_boss_ult_attack',
+          frames: this.anims.generateFrameNumbers('boss_ult_attack', { start: 0, end: 56 }),
+          frameRate: 12,
+          repeat: 0
+        });
+      }
+      if (isCh2) {
+        this.anims.create({
+          key: 'anim_boss_ch2_ult_attack',
+          frames: this.anims.generateFrameNumbers('boss_ch2_ult_attack', { start: 0, end: 35 }),
+          frameRate: 12,
+          repeat: 0
+        });
+      }
     }
 
     this.bossSprite = this.add.sprite(bossCenterX, bossCenterY, 'boss_idle');
@@ -167,8 +188,22 @@ export class HUDScene extends Phaser.Scene {
 
     updateBossScale();
 
-    // Revert to idle after attacking
+    // Revert to idle after attacking (ch2+)
     this.bossSprite.on('animationcomplete-anim_boss_attack', () => {
+      this.bossSprite.setTexture('boss_idle');
+      updateBossScale();
+      this.bossSprite.play('anim_boss_idle');
+    });
+
+    // Revert to idle after ult attack (ch1)
+    this.bossSprite.on('animationcomplete-anim_boss_ult_attack', () => {
+      this.bossSprite.setTexture('boss_idle');
+      updateBossScale();
+      this.bossSprite.play('anim_boss_idle');
+    });
+
+    // Revert to idle after ult attack (ch2)
+    this.bossSprite.on('animationcomplete-anim_boss_ch2_ult_attack', () => {
       this.bossSprite.setTexture('boss_idle');
       updateBossScale();
       this.bossSprite.play('anim_boss_idle');
@@ -288,9 +323,22 @@ export class HUDScene extends Phaser.Scene {
     this.bossFrameOverlay.setDepth(15);
     // Make HUD expose playBossAttack for the GameScene to call
     this.playBossAttack = () => {
+      if (this.chapterId === 1 || this.chapterId === 2) return;
       this.bossSprite.setTexture('boss_cast');
       updateBossScale();
       this.bossSprite.play('anim_boss_attack');
+    };
+
+    this.playBossUltAttack = () => {
+      if (this.chapterId === 1) {
+        this.bossSprite.setTexture('boss_ult_attack');
+        updateBossScale();
+        this.bossSprite.play('anim_boss_ult_attack');
+      } else if (this.chapterId === 2) {
+        this.bossSprite.setTexture('boss_ch2_ult_attack');
+        updateBossScale();
+        this.bossSprite.play('anim_boss_ch2_ult_attack');
+      }
     };
 
 
@@ -517,6 +565,7 @@ export class HUDScene extends Phaser.Scene {
 
   playBossAttack() {
     if (!this.bossSprite) return;
+    if (this.chapterId === 1 || this.chapterId === 2) return;
     this.bossSprite.play('anim_boss_attack');
     this.bossSprite.once('animationcomplete', () => {
       this.bossSprite.play('anim_boss_idle');
