@@ -1182,8 +1182,8 @@ a {
 }
 
 .main-menu__top-right #icon-profile {
-  width: clamp(36px, 6vw, 52px);
-  height: clamp(36px, 6vw, 52px);
+  width: clamp(44px, 7vw, 56px);
+  height: clamp(44px, 7vw, 56px);
   cursor: pointer;
   border-radius: 50%;
   border: 2px solid rgba(255,255,255,0.2);
@@ -1200,11 +1200,11 @@ a {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: clamp(36px, 6vw, 48px);
-  height: clamp(36px, 6vw, 48px);
+  width: clamp(44px, 7vw, 52px);
+  height: clamp(44px, 7vw, 52px);
   min-width: unset;
   min-height: unset;
-  font-size: clamp(16px, 2.5vw, 22px);
+  font-size: clamp(18px, 3vw, 24px);
   color: var(--text-secondary);
   background: var(--bg-panel);
   border: 2px solid rgba(255,255,255,0.2) !important;
