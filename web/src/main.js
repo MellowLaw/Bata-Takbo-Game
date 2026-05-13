@@ -11,13 +11,14 @@ import { ChapterSelect } from './screens/ChapterSelect.js';
 import { CharacterSelect } from './screens/CharacterSelect.js';
 import { Settings } from './screens/Settings.js';
 import { GestureTraining } from './screens/GestureTraining.js';
-import { Spellbook } from './screens/Spellbook.js';
+import { HowToPlay } from './screens/HowToPlay.js';
 import { Leaderboard } from './screens/Leaderboard.js';
 import { About } from './screens/About.js';
 import { GameScreen } from './screens/GameScreen.js';
 import { ResultsScreen } from './screens/ResultsScreen.js';
 import { LoginScreen } from './screens/LoginScreen.js';
 import { TutorialScreen } from './screens/TutorialScreen.js';
+import { PracticeTutorial } from './screens/PracticeTutorial.js';
 import { ProfileScreen } from './screens/ProfileScreen.js';
 import { AdminDashboard } from './screens/AdminDashboard.js';
 import { TermsScreen } from './screens/TermsScreen.js';
@@ -38,13 +39,14 @@ screenManager.register('chapter-select', ChapterSelect);
 screenManager.register('character-select', CharacterSelect);
 screenManager.register('settings', Settings);
 screenManager.register('gesture-training', GestureTraining);
-screenManager.register('spellbook', Spellbook);
+screenManager.register('how-to-play', HowToPlay);
 screenManager.register('leaderboard', Leaderboard);
 screenManager.register('about', About);
 screenManager.register('game-screen', GameScreen);
 screenManager.register('results-screen', ResultsScreen);
 screenManager.register('login-screen', LoginScreen);
 screenManager.register('tutorial-screen', TutorialScreen);
+screenManager.register('practice-tutorial', PracticeTutorial);
 screenManager.register('profile-screen', ProfileScreen);
 screenManager.register('admin-dashboard', AdminDashboard);
 screenManager.register('terms-screen', TermsScreen);
@@ -223,7 +225,7 @@ document.addEventListener('keydown', (e) => {
     '[role="button"]',
     '.menu-btn', '.back-btn', '.gesture-dir-btn', '.dpad-btn',
     '.cs-item', '.ch-flip-wrapper',
-    '.leaderboard-tab', '.spellbook-entry',
+    '.leaderboard-tab', '.htp-slide',
     '.dialogue-box', '.dialogue-box__buttons',
     '.tutorial-overlay',
     '#icon-profile', '#btn-logout',

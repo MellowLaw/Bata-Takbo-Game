@@ -3,6 +3,7 @@ import { state } from '../utils/StateManager.js';
 import { Grid } from './Grid.js';
 import { Player } from './Player.js';
 import { Boss } from './Boss.js';
+import { audioManager } from './AudioManager.js';
 
 export class GameScene extends Phaser.Scene {
   constructor() {
@@ -12,9 +13,11 @@ export class GameScene extends Phaser.Scene {
   init(data) {
     this.chapterId = data.chapterId || 1;
     this.isTutorial = data.isTutorial || false;
+    this.isPracticeTutorial = data.isPracticeTutorial || false;
     this.character = data.character || 'male';
+    this.control = data.control || 'keyboard'; // 'gesture' or 'keyboard'
     this.isGameOver = false;
-    console.log(`[GameScene] Initializing Chapter ${this.chapterId} (Tutorial: ${this.isTutorial}, Character: ${this.character})`);
+    console.log(`[GameScene] Initializing Chapter ${this.chapterId} (Tutorial: ${this.isTutorial}, Practice: ${this.isPracticeTutorial}, Character: ${this.character}, Control: ${this.control})`);
   }
 
   preload() {
@@ -35,6 +38,14 @@ export class GameScene extends Phaser.Scene {
     }
     this.load.image('boss_frame', '/assets/ui/game-ui/boss-frame.png');
     this.load.image('red_tile', '/assets/ui/game-ui/red_tile.png');
+    
+    // For practice tutorial, use chapter select background (neutral, no spoilers)
+    // For regular game, use the left panel background
+    if (this.isPracticeTutorial) {
+      this.load.image('left_panel_bg', '/assets/ui/backgrounds/chapterselect_background.png');
+    } else {
+      this.load.image('left_panel_bg', '/assets/ui/backgrounds/left_panel.png');
+    }
 
     // Player sprites: load based on selected character
     if (this.character === 'female') {
@@ -58,28 +69,29 @@ export class GameScene extends Phaser.Scene {
     }
 
     // Boss sprite sheets
+    // For practice tutorial, skip loading heavy boss assets (not needed for simple tutorial)
+    if (!this.isPracticeTutorial) {
+      if (this.chapterId === 1 || this.chapterId === 4) {
+        this.load.spritesheet('boss_idle', '/assets/entity/boss/chapter1/chapter-1-idle-sprite.png', { frameWidth: 576, frameHeight: 324 });
+        this.load.spritesheet('boss_ult_attack', '/assets/entity/boss/chapter1/chapter-1-attack-sprite.png', { frameWidth: 672, frameHeight: 378 });
 
-    if (this.chapterId === 1) {
-      this.load.spritesheet('boss_idle', '/assets/entity/boss/chapter1/chapter-1-idle-sprite.png', { frameWidth: 576, frameHeight: 324 });
-      this.load.spritesheet('boss_ult_attack', '/assets/entity/boss/chapter1/chapter-1-attack-sprite.png', { frameWidth: 672, frameHeight: 378 });
+        // Phase 5: Dynamic Loading of Custom Blood/Gore Sequence Projectiles
+        for (let i = 0; i <= 14; i++) {
+          this.load.image(`dark_blood_${i}`, `/assets/projectiles/chapter-1/dark-blood/1_${i}.png`);
+        }
+        this.load.spritesheet('blood_chem', '/assets/projectiles/chapter-1/blood_chem.png', { frameWidth: 1540, frameHeight: 93 });
+        for (let i = 0; i <= 59; i++) {
+          const str = i.toString().padStart(3, '0');
+          this.load.image(`blood_splat_${str}`, `/assets/projectiles/chapter-1/blood-splat/1_${str}.png`);
+        }
+        this.load.spritesheet('ch1_eye', '/assets/projectiles/chapter-1/eye/eyeball.png', { frameWidth: 64, frameHeight: 64 });
+        this.load.spritesheet('eye_explosion', '/assets/fx/eye_explosion.png', { frameWidth: 96, frameHeight: 96 });
+        this.load.image('ch1_hand1', '/assets/projectiles/chapter-1/hands-1.png');
+        this.load.image('ch1_hand2', '/assets/projectiles/chapter-1/hand-2.png');
+        this.load.image('ch1_hand3', '/assets/projectiles/chapter-1/hand-3.png');
 
-      // Phase 5: Dynamic Loading of Custom Blood/Gore Sequence Projectiles
-      for (let i = 0; i <= 14; i++) {
-        this.load.image(`dark_blood_${i}`, `/assets/projectiles/chapter-1/dark-blood/1_${i}.png`);
-      }
-      this.load.spritesheet('blood_chem', '/assets/projectiles/chapter-1/blood_chem.png', { frameWidth: 1540, frameHeight: 93 });
-      for (let i = 0; i <= 59; i++) {
-        const str = i.toString().padStart(3, '0');
-        this.load.image(`blood_splat_${str}`, `/assets/projectiles/chapter-1/blood-splat/1_${str}.png`);
-      }
-      this.load.spritesheet('ch1_eye', '/assets/projectiles/chapter-1/eye/eyeball.png', { frameWidth: 64, frameHeight: 64 });
-      this.load.spritesheet('eye_explosion', '/assets/fx/eye_explosion.png', { frameWidth: 96, frameHeight: 96 });
-      this.load.image('ch1_hand1', '/assets/projectiles/chapter-1/hands-1.png');
-      this.load.image('ch1_hand2', '/assets/projectiles/chapter-1/hand-2.png');
-      this.load.image('ch1_hand3', '/assets/projectiles/chapter-1/hand-3.png');
-
-      // Random horizontal projectiles
-      this.load.image('ch1_monster_hand', '/assets/projectiles/shared/monster-hand.png');
+        // Random horizontal projectiles
+        this.load.image('ch1_monster_hand', '/assets/projectiles/shared/monster-hand.png');
       this.load.image('ch1_monster_finger', '/assets/projectiles/shared/monster-finger.png');
       this.load.image('ch1_monster_feet', '/assets/projectiles/shared/monster-feet.png');
       this.load.image('ch1_heart', '/assets/projectiles/shared/heart.png');
@@ -101,7 +113,7 @@ export class GameScene extends Phaser.Scene {
       // ===== CHAPTER 2: BUNGISNGIS ASSETS =====
       this.load.spritesheet('boss_idle', '/assets/entity/boss/chapter2/chapter-2-idle-sprite.png', { frameWidth: 672, frameHeight: 378 });
       this.load.spritesheet('boss_cast', '/assets/entity/boss/chapter2/boss_idle.png', { frameWidth: 87, frameHeight: 110 });
-      this.load.spritesheet('boss_ch2_ult_attack', '/assets/entity/boss/chapter2/chapter-2-attack-sprite.png.png', { frameWidth: 672, frameHeight: 378 });
+      this.load.spritesheet('boss_ch2_ult_attack', '/assets/entity/boss/chapter2/chapter-2-attack-sprite.png', { frameWidth: 672, frameHeight: 378 });
 
       // Attack projectiles
       this.load.spritesheet('ch2_beeswarm', '/assets/projectiles/chapter-2/bee-swarm.png', { frameWidth: 192, frameHeight: 192 });
@@ -131,8 +143,9 @@ export class GameScene extends Phaser.Scene {
 
     } else if (this.chapterId === 3) {
       // ===== CHAPTER 3: KATAW ASSETS =====
-      this.load.spritesheet('boss_idle', '/assets/entity/boss/chapter2/boss_idle.png', { frameWidth: 87, frameHeight: 110 }); // Temp fallback
+      this.load.spritesheet('boss_idle', '/assets/entity/boss/chapter3/chapter-3-idle-sprite.png', { frameWidth: 672, frameHeight: 378 });
       this.load.spritesheet('boss_cast', '/assets/entity/boss/chapter2/boss_idle.png', { frameWidth: 87, frameHeight: 110 });
+      this.load.spritesheet('boss_ch3_ult_attack', '/assets/entity/boss/chapter3/chapter-3-attack-sprite.png', { frameWidth: 672, frameHeight: 378 });
       
       // Blue FX (129x32 strip → 4 frames of 32x32)
       this.load.spritesheet('ch3_fx_bubble',    '/assets/projectiles/chapter-3/blue/blue5.png',  { frameWidth: 32, frameHeight: 32 });
@@ -154,6 +167,13 @@ export class GameScene extends Phaser.Scene {
       this.load.spritesheet('ch3_fishking_idle',  '/assets/projectiles/chapter-3/Fish-king/Idle.png',    { frameWidth: 250, frameHeight: 250 });
       this.load.spritesheet('ch3_fishking_wand',  '/assets/projectiles/chapter-3/Fish-king/Attack1.png', { frameWidth: 250, frameHeight: 250 });
       this.load.spritesheet('ch3_fishking_spell', '/assets/projectiles/chapter-3/Fish-king/Attack2.png', { frameWidth: 250, frameHeight: 250 });
+
+      // Monster2Pack (256x192 → 4x6 grid, 64x32 frames)
+      this.load.spritesheet('ch3_monster2', '/assets/projectiles/chapter-3/Monster2Pack.png', { frameWidth: 64, frameHeight: 32 });
+      // Monster6Pack (384x512 → 4x8 grid, 96x64 frames)
+      this.load.spritesheet('ch3_monster6', '/assets/projectiles/chapter-3/Monster6Pack.png', { frameWidth: 96, frameHeight: 64 });
+      // Explosion2 (864x48 → 18x1 strip, 48x48 frames) - for ultimate attack
+      this.load.spritesheet('ch3_explosion2', '/assets/projectiles/chapter-3/Explosion 2 SpriteSheet.png', { frameWidth: 48, frameHeight: 48 });
 
       // Jellyfish (192x48 → 4 frames of 48x48; Death 288x48 → 6 frames)
       this.load.spritesheet('ch3_jelly_idle',   '/assets/projectiles/chapter-3/JellyFish/Idle.png',   { frameWidth: 48, frameHeight: 48 });
@@ -205,10 +225,25 @@ export class GameScene extends Phaser.Scene {
       this.load.spritesheet('ch3_firebomb',   '/assets/projectiles/chapter-3/water-beams/Fire-bomb.png',   { frameWidth: 64, frameHeight: 64 });
       this.load.spritesheet('ch3_lightning',  '/assets/projectiles/chapter-3/water-beams/Lightning.png',   { frameWidth: 64, frameHeight: 128 });
       this.load.spritesheet('ch3_spark',      '/assets/projectiles/chapter-3/water-beams/spark.png',       { frameWidth: 32, frameHeight: 32 });
+      this.load.spritesheet('ch3_tide_lightning', '/assets/projectiles/chapter-3/water-beams/tide_lightinging.png', { frameWidth: 64, frameHeight: 128 });
       this.load.spritesheet('ch3_waterspiral','/assets/projectiles/chapter-3/water-beams/water-spiral.png',{ frameWidth: 32, frameHeight: 32 });
       this.load.spritesheet('ch3_waterbeam',  '/assets/projectiles/chapter-3/water-beams/water-beam.png',  { frameWidth: 63, frameHeight: 32 });
       this.load.spritesheet('ch3_waterbeam2', '/assets/projectiles/chapter-3/water-beams/water-beam2.png', { frameWidth: 48, frameHeight: 32 });
       this.load.spritesheet('ch3_waterburst', '/assets/projectiles/chapter-3/water-beams/water-burst.png', { frameWidth: 63, frameHeight: 48 });
+      // Multi-directional beam and explosion
+      this.load.spritesheet('ch3_beam_multidir', '/assets/projectiles/chapter-3/water-beams/sprite_sheet (3).png', { frameWidth: 64, frameHeight: 64 });
+      this.load.spritesheet('ch3_light_showers', '/assets/projectiles/chapter-3/water-beams/light_showers.png', { frameWidth: 64, frameHeight: 64 });
+      // Ultimate effect - DitheredFire 6 cols x 5 rows = 30 frames
+      this.load.spritesheet('ch3_dithered_fire', '/assets/projectiles/chapter-3/water-beams/Effect_DitheredFire.png', { frameWidth: 64, frameHeight: 64 });
+      // Ultimate water beam - Anima 6 cols x 5 rows = 30 frames of 437x437
+      this.load.spritesheet('ch3_water_beam', '/assets/projectiles/chapter-3/water-beams/Effect_Anima_1_437x437.png', { frameWidth: 437, frameHeight: 437 });
+      
+      // Siren1 animations - 13x1 Walk, 10x1 Attack
+      this.load.spritesheet('ch3_siren1_walk', '/assets/projectiles/chapter-3/Siren1/Walk.png', { frameWidth: 64, frameHeight: 64 });
+      this.load.spritesheet('ch3_siren1_attack', '/assets/projectiles/chapter-3/Siren1/Attack_3.png', { frameWidth: 64, frameHeight: 64 });
+      
+      // FX for damage effects
+      this.load.spritesheet('eye_explosion', '/assets/fx/eye_explosion.png', { frameWidth: 64, frameHeight: 64 });
       
       this.load.spritesheet('ch3_explosion_1', '/assets/projectiles/chapter-3/EXPLOSIONS/explosion-1-b.png', { frameWidth: 80, frameHeight: 48 });
       this.load.spritesheet('ch3_explosion_2', '/assets/projectiles/chapter-3/EXPLOSIONS/explosion-2-b.png', { frameWidth: 48, frameHeight: 48 });
@@ -222,13 +257,14 @@ export class GameScene extends Phaser.Scene {
       this.load.spritesheet('ch3_explosion_1d', '/assets/projectiles/chapter-3/EXPLOSIONS/explosion-1-d.png', { frameWidth: 64, frameHeight: 64 });
       this.load.spritesheet('ch3_explosion_2d', '/assets/projectiles/chapter-3/EXPLOSIONS/explosion-2-d.png', { frameWidth: 128, frameHeight: 80 });
       this.load.spritesheet('ch3_explosion_3d', '/assets/projectiles/chapter-3/EXPLOSIONS/explosion-3-d.png', { frameWidth: 192, frameHeight: 192 });
-    } else {
-      // Default fallback for future chapters
-      this.load.spritesheet('boss_idle', '/assets/entity/boss/chapter2/boss_idle.png', { frameWidth: 87, frameHeight: 110 });
-      this.load.spritesheet('boss_cast', '/assets/entity/boss/chapter2/boss_idle.png', { frameWidth: 87, frameHeight: 110 });
-    }
+      } else {
+        // Default fallback for future chapters
+        this.load.spritesheet('boss_idle', '/assets/entity/boss/chapter2/boss_idle.png', { frameWidth: 87, frameHeight: 110 });
+        this.load.spritesheet('boss_cast', '/assets/entity/boss/chapter2/boss_idle.png', { frameWidth: 87, frameHeight: 110 });
+      }
+    } // End of !isPracticeTutorial block - boss assets only needed for regular game
 
-    // UI elements like Hearts
+    // UI elements like Hearts (needed for all modes)
     this.load.spritesheet('ui_buttons', '/assets/ui/buttons.png', { frameWidth: 16, frameHeight: 16 });
 
     // Projectiles 
@@ -263,14 +299,23 @@ export class GameScene extends Phaser.Scene {
     this.load.image('blood_screen_1_5left', '/assets/ui/game-ui/blood-screen/1.5left.png');
     this.load.image('blood_screen_1left', '/assets/ui/game-ui/blood-screen/1left.png');
     this.load.image('blood_screen_halfleft', '/assets/ui/game-ui/blood-screen/halfleft.png');
+
+    // Load chapter-specific SFX via AudioManager
+    audioManager.loadChapterSFX(this, this.chapterId);
   }
 
   create() {
     const { width, height } = this.scale;
 
+    // Initialize AudioManager with this scene
+    audioManager.init(this);
+
+    // Endless mode: treat like chapter 1 grid
+    const isEndless = this.chapterId === 4;
+
     // 1. Initialize dynamic Grid based on Chapter ID
     let gridCols = 7, gridRows = 7;
-    if (this.chapterId === 1) {
+    if (this.chapterId === 1 || isEndless) {
       gridCols = 5;
       gridRows = 5;
     } else if (this.chapterId === 2) {
@@ -281,7 +326,7 @@ export class GameScene extends Phaser.Scene {
       gridRows = 9;
     }
 
-    this.grid = new Grid(this, gridCols, gridRows);
+    this.grid = new Grid(this, gridCols, gridRows, this.isPracticeTutorial);
 
     // 2. Initialize Player on the grid
     this.player = new Player(this, this.grid);
@@ -292,11 +337,22 @@ export class GameScene extends Phaser.Scene {
       this.player.isInvincible = true;
     }
 
+    // Endless mode: 3 lives, boss attacks but can't be killed
+    if (isEndless) {
+      this.player.hp = 3;
+      this.player.maxHp = 3;
+    }
+
     // Admin Test Mode: Enable invincibility, one-hit kill, etc.
     this._checkAdminTestMode();
 
     // 3. Initialize Boss (attack logic only — sprite lives in HUDScene)
+    // Endless mode: create a boss (ch1 attacks) but with infinite HP so it never dies
     this.boss = new Boss(this, this.grid, this.isTutorial);
+    if (isEndless) {
+      this.boss.hp = Infinity;
+      this.boss.maxHp = Infinity;
+    }
     this.goldenTile = null;
     this.isUltimateActive = false;
     this._ultCooldown = false;
@@ -419,6 +475,13 @@ export class GameScene extends Phaser.Scene {
         // Angler
         this.anims.create({ key: 'anim_ch3_angler', frames: this.anims.generateFrameNumbers('ch3_angler', { start: 0, end: 3 }), frameRate: 10, repeat: -1 });
 
+        // Monster2Pack (24 frames)
+        this.anims.create({ key: 'anim_ch3_monster2', frames: this.anims.generateFrameNumbers('ch3_monster2', { start: 0, end: 23 }), frameRate: 12, repeat: 0 });
+        // Monster6Pack (32 frames)
+        this.anims.create({ key: 'anim_ch3_monster6', frames: this.anims.generateFrameNumbers('ch3_monster6', { start: 0, end: 31 }), frameRate: 10, repeat: 0 });
+        // Explosion2 (18 frames)
+        this.anims.create({ key: 'anim_ch3_explosion2', frames: this.anims.generateFrameNumbers('ch3_explosion2', { start: 0, end: 17 }), frameRate: 15, repeat: 0 });
+
         // Nemo – all 64x64, 4 frames each (2x2 grids)
         this.anims.create({ key: 'anim_ch3_nemo',        frames: this.anims.generateFrameNumbers('ch3_nemo_swim',   { start: 0, end: 3 }), frameRate: 12, repeat: -1 });
         this.anims.create({ key: 'anim_ch3_nemo_chomp',  frames: this.anims.generateFrameNumbers('ch3_nemo_chomp',  { start: 0, end: 3 }), frameRate: 14, repeat: 0 });
@@ -449,6 +512,7 @@ export class GameScene extends Phaser.Scene {
         this.anims.create({ key: 'anim_ch3_firebomb',    frames: this.anims.generateFrameNumbers('ch3_firebomb',    { start: 0, end: 14 }), frameRate: 15, repeat: 0  });
         this.anims.create({ key: 'anim_ch3_lightning',   frames: this.anims.generateFrameNumbers('ch3_lightning',   { start: 0, end: 10 }), frameRate: 12, repeat: -1 });
         this.anims.create({ key: 'anim_ch3_spark',       frames: this.anims.generateFrameNumbers('ch3_spark',       { start: 0, end: 7  }), frameRate: 15, repeat: -1 });
+        this.anims.create({ key: 'anim_ch3_tide_lightning', frames: this.anims.generateFrameNumbers('ch3_tide_lightning', { start: 0, end: 10 }), frameRate: 12, repeat: -1 });
         // waterspiral: 192x32 → 6 frames of 32x32
         this.anims.create({ key: 'anim_ch3_waterspiral', frames: this.anims.generateFrameNumbers('ch3_waterspiral', { start: 0, end: 5  }), frameRate: 12, repeat: -1 });
         // waterbeam/2: 4 frames each, looping
@@ -456,6 +520,20 @@ export class GameScene extends Phaser.Scene {
         this.anims.create({ key: 'anim_ch3_waterbeam2',  frames: this.anims.generateFrameNumbers('ch3_waterbeam2',  { start: 0, end: 3  }), frameRate: 12, repeat: -1 });
         // waterburst: 6 frames, plays once
         this.anims.create({ key: 'anim_ch3_waterburst',  frames: this.anims.generateFrameNumbers('ch3_waterburst',  { start: 0, end: 5  }), frameRate: 15, repeat: 0 });
+        // Multi-directional beam and light showers explosion
+        this.anims.create({ key: 'anim_ch3_beam_multidir', frames: this.anims.generateFrameNumbers('ch3_beam_multidir', { start: 0, end: 7 }), frameRate: 12, repeat: -1 });
+        this.anims.create({ key: 'anim_ch3_light_showers', frames: this.anims.generateFrameNumbers('ch3_light_showers', { start: 0, end: 11 }), frameRate: 15, repeat: 0 });
+        // DitheredFire ultimate effect - 30 frames, loops continuously
+        this.anims.create({ key: 'anim_ch3_dithered_fire', frames: this.anims.generateFrameNumbers('ch3_dithered_fire', { start: 0, end: 29 }), frameRate: 12, repeat: -1 });
+        // Water beam ultimate effect - 30 frames, loops continuously
+        this.anims.create({ key: 'anim_ch3_water_beam', frames: this.anims.generateFrameNumbers('ch3_water_beam', { start: 0, end: 29 }), frameRate: 15, repeat: -1 });
+        
+        // Siren1 animations - Walk (13 frames looping), Attack (10 frames once)
+        this.anims.create({ key: 'anim_ch3_siren1_walk',   frames: this.anims.generateFrameNumbers('ch3_siren1_walk',   { start: 0, end: 12 }), frameRate: 15, repeat: -1 });
+        this.anims.create({ key: 'anim_ch3_siren1_attack', frames: this.anims.generateFrameNumbers('ch3_siren1_attack', { start: 0, end: 9  }), frameRate: 12, repeat: 0 });
+        
+        // Eye explosion for damage effects (9x1 frames)
+        this.anims.create({ key: 'anim_eye_explosion', frames: this.anims.generateFrameNumbers('eye_explosion', { start: 0, end: 8 }), frameRate: 15, repeat: 0 });
 
         this.anims.create({ key: 'anim_ch3_explosion_1', frames: this.anims.generateFrameNumbers('ch3_explosion_1', { start: 0, end: 12 }), frameRate: 15, repeat: 0 });
         this.anims.create({ key: 'anim_ch3_explosion_2', frames: this.anims.generateFrameNumbers('ch3_explosion_2', { start: 0, end: 7 }), frameRate: 15, repeat: 0 });
@@ -478,6 +556,8 @@ export class GameScene extends Phaser.Scene {
     // --- GAME LOGIC EVENTS ---
 
     this.events.on('projectile:landed', (col, row) => {
+      // Play chapter-specific impact SFX
+      audioManager.playImpact(this.chapterId);
       if (this.player.col === col && this.player.row === row) {
         this.player.takeDamage();
       }
@@ -498,6 +578,7 @@ export class GameScene extends Phaser.Scene {
       // 2. Emerge attack_up at the MIDPOINT of the smoke (525ms) while smoke is still playing
       this.time.delayedCall(525, () => {
         if (!this.goldenTile || this.goldenTile.col !== col || this.goldenTile.row !== row) return;
+        audioManager.play('sfx_sword_spawn');
         const shadow = this.add.ellipse(pos.x, pos.y + 20, 35, 15, 0x000000).setDepth(14).setAlpha(0);
 
         const glowSpr = this.add.sprite(pos.x, pos.y, 'attack_up')
@@ -563,12 +644,21 @@ export class GameScene extends Phaser.Scene {
           this.tweens.killTweensOf(this.goldenTile.shadow);
           this.goldenTile.shadow.destroy();
         }
-        this.boss.takeDamage();
-        // Fire golden particles from the tile toward the boss
-        const hitPos = this.grid.getPixelPosition(col, row);
-        this.launchAttackParticles(hitPos.x, hitPos.y);
-        this.goldenTile = null;
-        this.grid.render();
+        if (this.goldenTile && this.goldenTile.col === col && this.goldenTile.row === row) {
+          audioManager.play('sfx_sword_pickup');
+          if (this.chapterId !== 4) {
+            this.boss.takeDamage();
+          } else {
+            // Endless: sword pickup gives brief invincibility instead of boss damage
+            this.player.isInvincible = true;
+            this.time.delayedCall(2500, () => { if (this.player) this.player.isInvincible = false; });
+          }
+          // Fire golden particles from the tile toward the boss
+          const hitPos = this.grid.getPixelPosition(col, row);
+          this.launchAttackParticles(hitPos.x, hitPos.y);
+          this.goldenTile = null;
+          this.grid.render();
+        }
       }
       // Check for chest collision
       if (this.grid.hasChestAt(col, row)) {
@@ -633,6 +723,8 @@ export class GameScene extends Phaser.Scene {
     });
 
     this.events.on('chest:opened', (rarity) => {
+      // Play positive pickup SFX
+      audioManager.play('sfx_ui_click');
       // ── Particle Burst (grey / blue / gold by rarity) ──
       const particleColors = [0x999999, 0x44aaff, 0xffdd00];
       const px = this.player.sprite.x;
@@ -717,6 +809,8 @@ export class GameScene extends Phaser.Scene {
     });
 
     this.events.on('boss:damaged', (current, max) => {
+      // Play boss hit SFX
+      audioManager.play(`sfx_melee_hit`);
       const hud = this.scene.get('HUDScene');
       if (hud && hud.updateBossHp) hud.updateBossHp(current, max);
 
@@ -737,11 +831,22 @@ export class GameScene extends Phaser.Scene {
     });
 
     this.events.on('boss:ch2_ult', () => {
+      // Play ultimate explosion SFX
+      audioManager.play('sfx_explosion');
+      const hud = this.scene.get('HUDScene');
+      if (hud && hud.playBossUltAttack) hud.playBossUltAttack();
+    });
+
+    this.events.on('boss:ch3_ult', () => {
+      // Play ultimate explosion SFX
+      audioManager.play('sfx_explosion');
       const hud = this.scene.get('HUDScene');
       if (hud && hud.playBossUltAttack) hud.playBossUltAttack();
     });
 
     this.events.on('boss:attack', () => {
+      // Play chapter-specific spawn/attack SFX
+      audioManager.playSpawn(this.chapterId);
       const hud = this.scene.get('HUDScene');
       if (hud && hud.playBossAttack) hud.playBossAttack();
 
@@ -755,7 +860,10 @@ export class GameScene extends Phaser.Scene {
     });
 
     this.events.on('player:died', () => this.showGameOver(false));
-    this.events.on('boss:died', () => this.showGameOver(true));
+    this.events.on('boss:died', () => {
+      if (this.chapterId === 4) return; // endless — boss never truly dies
+      this.showGameOver(true);
+    });
 
     // ─── Helper: Generate the particle texture once ───────────────────────────
     if (!this.textures.exists('attack_particle')) {
@@ -770,10 +878,10 @@ export class GameScene extends Phaser.Scene {
     }
 
     // Launch HUD
-    this.scene.launch('HUDScene', { chapterId: this.chapterId, character: this.character });
+    this.scene.launch('HUDScene', { chapterId: this.chapterId, character: this.character, control: this.control, isPracticeTutorial: this.isPracticeTutorial });
 
-    // Gesture controller — only active for male character
-    if (this.character !== 'female') {
+    // Gesture controller — only active when gesture control was selected
+    if (this.control === 'gesture') {
       this.unsubGesture = state.on('gesture:detected', (direction) => {
         this.handleGesture(direction);
       });
@@ -1104,7 +1212,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   spawnHorizontalProjectile() {
-    if (this.isGameOver || (this.boss && this.boss.hp <= 0)) return;
+    if (this.isGameOver || !this.boss || this.boss.hp <= 0) return;
 
     const keys = ['ch1_monster_hand', 'ch1_monster_finger', 'ch1_monster_feet', 'ch1_heart', 'ch1_brain'];
     const key = Phaser.Math.RND.pick(keys);
@@ -1177,7 +1285,8 @@ export class GameScene extends Phaser.Scene {
     dirs.forEach(dir => {
       if (Phaser.Input.Keyboard.JustDown(this.cursors[dir])) {
         this.player.move(dir);
-        if (this.character === 'female') {
+        // Visual feedback for D-pad controls
+        if (this.control === 'keyboard') {
           const btn = document.querySelector(`.dpad-${dir}`);
           if (btn) {
             btn.classList.add('dpad-btn--active');
@@ -1382,7 +1491,9 @@ export class GameScene extends Phaser.Scene {
 
       state.set('lastGameResult', {
         chapterId: this.chapterId, isVictory,
-        timeSurvived: elapsedSecs, score: finalScore
+        timeSurvived: elapsedSecs, score: finalScore,
+        isEndless: this.chapterId === 4,
+        control: this.control
       });
       if (window.__screenManager) {
         window.__screenManager.navigate('results-screen', {}, false);
@@ -1413,6 +1524,24 @@ export class GameScene extends Phaser.Scene {
       if (settings.oneHitKill) {
         this.boss.oneHitKill = true;
         console.log('[ADMIN] One-hit kill enabled');
+      }
+      
+      // Store attack ID for testing specific attacks
+      if (settings.attackId !== undefined) {
+        this._adminTestAttackId = settings.attackId;
+        console.log('[ADMIN] Locked to attack ID:', settings.attackId);
+      }
+      
+      // Ultimate mode test
+      if (settings.mode === 'test_ultimate') {
+        this._adminTestUltimate = true;
+        console.log('[ADMIN] Ultimate test mode enabled');
+        // Trigger ultimate after short delay
+        this.time.delayedCall(2000, () => {
+          if (this.boss && this.boss.ch3UltimateRotatingBarrage) {
+            this.boss.ch3UltimateRotatingBarrage();
+          }
+        });
       }
       
       // Clear the test mode so it doesn't persist on restart

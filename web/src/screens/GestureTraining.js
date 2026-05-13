@@ -107,6 +107,8 @@ export const GestureTraining = {
     // If true: user was sent here from the Play button (gesture setup is required)
     // If false: user navigated here directly via the Gesture Setup button
     this.fromPlay = params.fromPlay || false;
+    // If true: after gesture setup, go to practice tutorial instead of the old tutorial-screen
+    this.toPracticeAfter = params.toPracticeAfter || false;
 
     // Force canvas size to match video aspect locally
     this.canvasEl.width = 640;
@@ -470,11 +472,11 @@ export const GestureTraining = {
       },
       {
         text: fromPlay
-          ? "You're all set! Your gesture model has been saved. Let's jump into the game!"
+          ? "Your gesture model has been saved! Now let's test your gestures and learn how to play."
           : "You're all set! Your gesture model has been saved. You can come back anytime to retrain.",
         portrait: portrait,
         position: 'center',
-        buttons: [{ label: fromPlay ? 'Start Tutorial' : 'Done', action: 'next' }]
+        buttons: [{ label: fromPlay ? (this.toPracticeAfter ? 'Continue to Practice' : 'Start Tutorial') : 'Done', action: 'next' }]
       }
     ];
 
@@ -514,13 +516,15 @@ export const GestureTraining = {
 
   async _skipTutorial(fromPlay) {
     if (fromPlay) {
-      // Came via Play button — skip tutorial, go straight to chapter select
-      console.log('[TUTORIAL-DEBUG] GestureTraining._skipTutorial(): setting tutorialComplete = true');
+      // Came via Play button — skip gesture training but still do practice tutorial
+      console.log('[TUTORIAL-DEBUG] GestureTraining._skipTutorial(): setting gestureSetupComplete = true');
       gestureController.stopCamera();
       window.__screenManager.history = ['main-menu'];
-      state.set('tutorialComplete', true);
-      await state.saveTutorialState();
-      window.__screenManager.navigate('chapter-select', {}, false);
+      state.set('gestureSetupComplete', true);
+      state.set('selectedControl', 'gesture');
+      await state.saveGestureSetupState();
+      // Navigate to practice tutorial even if gesture training was skipped
+      window.__screenManager.navigate('practice-tutorial', { control: 'gesture' }, false);
     } else {
       // Opened Gesture Setup directly — stay on screen, show a brief toast
       const toast = document.createElement('div');
@@ -547,18 +551,17 @@ export const GestureTraining = {
     // Mark gesture setup as complete so the welcome prompt skips this step
     console.log('[TUTORIAL-DEBUG] GestureTraining._finish(): setting gestureSetupComplete = true');
     state.set('gestureSetupComplete', true);
+    state.set('selectedControl', 'gesture');
     console.log('[TUTORIAL-DEBUG] GestureTraining._finish(): state after setting:', state.get('gestureSetupComplete'));
     await state.saveGestureSetupState();
     console.log('[TUTORIAL-DEBUG] GestureTraining._finish(): saved gesture setup state');
 
-    // We don't set tutorialComplete = true here because the gameplay tutorial is next.
-    // It will be set to true at the end of TutorialScreen.js
-
     if (fromPlay) {
-      // Came from Play — proceed to game tutorial
+      // Came from Play — proceed to practice tutorial
       gestureController.stopCamera();
       window.__screenManager.history = ['main-menu'];
-      window.__screenManager.navigate('tutorial-screen', {}, false);
+      // Navigate to practice tutorial with gesture control
+      window.__screenManager.navigate('practice-tutorial', { control: 'gesture' }, false);
     }
     // else: user opened Gesture Setup directly — just stay on the screen.
     // The dialogue has already closed, model is saved, they can keep training.

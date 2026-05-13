@@ -37,6 +37,18 @@ export async function initDb() {
     )
   `);
 
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS endless_scores (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      username TEXT NOT NULL,
+      survival_seconds INTEGER NOT NULL,
+      control_type TEXT NOT NULL CHECK(control_type IN ('gesture', 'keyboard')),
+      created_at INTEGER NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
   // Migrate older databases by adding new columns if they are missing
   try { await db.exec('ALTER TABLE users ADD COLUMN email TEXT'); } catch(e) {}
   try { await db.exec('ALTER TABLE users ADD COLUMN game_data TEXT'); } catch(e) {}
@@ -61,6 +73,28 @@ export async function initDb() {
     await db.run('INSERT OR IGNORE INTO users (username, password_hash, encrypted_data) VALUES (?, ?, ?)', ['TESTER', hash, null]);
     // Update existing ADMIN to have is_admin=1
     await db.run('UPDATE users SET is_admin = 1 WHERE username = ?', ['ADMIN']);
+
+    // Ensure ADMIN always has all chapters unlocked for testing purposes
+    const adminRow = await db.get('SELECT game_data FROM users WHERE username = ?', ['ADMIN']);
+    if (adminRow) {
+      let adminData = {};
+      try {
+        if (adminRow.game_data) adminData = JSON.parse(adminRow.game_data);
+      } catch (e) { /* ignore parse errors */ }
+
+      adminData.tutorialComplete = true;
+      adminData.gestureSetupComplete = true;
+      const existingCompleted = adminData.chapterProgress?.chaptersCompleted || [];
+      const allCompleted = [1, 2, 3].reduce((arr, id) => arr.includes(id) ? arr : [...arr, id], existingCompleted);
+      adminData.chapterProgress = {
+        ...(adminData.chapterProgress || {}),
+        chaptersUnlocked: [1, 2, 3],
+        chaptersCompleted: allCompleted,
+        bestScores: adminData.chapterProgress?.bestScores || {}
+      };
+
+      await db.run('UPDATE users SET game_data = ? WHERE username = ?', [JSON.stringify(adminData), 'ADMIN']);
+    }
   } catch (e) {
     console.error('Error seeding data:', e);
   }

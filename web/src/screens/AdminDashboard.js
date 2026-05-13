@@ -310,6 +310,22 @@ export const AdminDashboard = {
         </div>
       </div>
 
+      <div class="settings-group" style="animation: fadeInUp 0.3s ease 0.15s forwards; margin-top: var(--space-md); opacity: 0;">
+        <h3 style="color: var(--accent-orange); margin-bottom: var(--space-xs);">Chapter 3 Attack Testing</h3>
+        <p style="color:var(--text-dim);font-size:var(--text-xs);margin-bottom:var(--space-md);">Test individual attacks for polishing. Launches Chapter 3 in test mode.</p>
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-sm);">
+          <button class="admin-action-btn" data-action="test-ch3-0">#0 Kataw Explosion</button>
+          <button class="admin-action-btn" data-action="test-ch3-1">#1 Fish King Spell</button>
+          <button class="admin-action-btn" data-action="test-ch3-2">#2 Shark Lanes</button>
+          <button class="admin-action-btn" data-action="test-ch3-3">#3 Bat Dive Bomb</button>
+          <button class="admin-action-btn" data-action="test-ch3-4">#4 Sirens Lure</button>
+          <button class="admin-action-btn" data-action="test-ch3-5">#5 Diamond Storm</button>
+          <button class="admin-action-btn" data-action="test-ch3-6" style="border-color: var(--accent-gold); color: var(--accent-gold);">#6 Monster Ambush</button>
+          <button class="admin-action-btn" data-action="test-ch3-7" style="border-color: #ff00ff; color: #ff00ff;">#7 Abyssal Spiral</button>
+          <button class="admin-action-btn" data-action="test-ch3-ult" style="grid-column: span 2; border-color: #ff0000; color: #ff0000; font-weight: bold;">ULTIMATE: Rotating Barrage</button>
+        </div>
+      </div>
+
       <div class="settings-group" style="animation: fadeInUp 0.3s ease 0.2s forwards; margin-top: var(--space-md); opacity: 0;">
         <h3 style="color: var(--accent-orange); margin-bottom: var(--space-xs);">Debug Tools</h3>
         <p style="color:var(--text-dim);font-size:var(--text-xs);margin-bottom:var(--space-md);">Affects your local browser storage only.</p>
@@ -523,6 +539,86 @@ export const AdminDashboard = {
         sessionStorage.setItem('admin_test_mode', JSON.stringify({ 
           mode: 'god_mode',
           chapterId: 1,
+          invincible: true
+        }));
+        window.__screenManager.navigate('game-screen');
+        break;
+      case 'test-ch3-0':
+        sessionStorage.setItem('admin_test_mode', JSON.stringify({ 
+          mode: 'test_attack',
+          chapterId: 3,
+          attackId: 0,
+          invincible: true
+        }));
+        window.__screenManager.navigate('game-screen');
+        break;
+      case 'test-ch3-1':
+        sessionStorage.setItem('admin_test_mode', JSON.stringify({ 
+          mode: 'test_attack',
+          chapterId: 3,
+          attackId: 1,
+          invincible: true
+        }));
+        window.__screenManager.navigate('game-screen');
+        break;
+      case 'test-ch3-2':
+        sessionStorage.setItem('admin_test_mode', JSON.stringify({ 
+          mode: 'test_attack',
+          chapterId: 3,
+          attackId: 2,
+          invincible: true
+        }));
+        window.__screenManager.navigate('game-screen');
+        break;
+      case 'test-ch3-3':
+        sessionStorage.setItem('admin_test_mode', JSON.stringify({ 
+          mode: 'test_attack',
+          chapterId: 3,
+          attackId: 3,
+          invincible: true
+        }));
+        window.__screenManager.navigate('game-screen');
+        break;
+      case 'test-ch3-4':
+        sessionStorage.setItem('admin_test_mode', JSON.stringify({ 
+          mode: 'test_attack',
+          chapterId: 3,
+          attackId: 4,
+          invincible: true
+        }));
+        window.__screenManager.navigate('game-screen');
+        break;
+      case 'test-ch3-5':
+        sessionStorage.setItem('admin_test_mode', JSON.stringify({ 
+          mode: 'test_attack',
+          chapterId: 3,
+          attackId: 5,
+          invincible: true
+        }));
+        window.__screenManager.navigate('game-screen');
+        break;
+      case 'test-ch3-6':
+        sessionStorage.setItem('admin_test_mode', JSON.stringify({ 
+          mode: 'test_attack',
+          chapterId: 3,
+          attackId: 6,
+          invincible: true
+        }));
+        window.__screenManager.navigate('game-screen');
+        break;
+      case 'test-ch3-7':
+        sessionStorage.setItem('admin_test_mode', JSON.stringify({ 
+          mode: 'test_attack',
+          chapterId: 3,
+          attackId: 7,
+          invincible: true
+        }));
+        window.__screenManager.navigate('game-screen');
+        break;
+      case 'test-ch3-ult':
+        sessionStorage.setItem('admin_test_mode', JSON.stringify({ 
+          mode: 'test_ultimate',
+          chapterId: 3,
           invincible: true
         }));
         window.__screenManager.navigate('game-screen');

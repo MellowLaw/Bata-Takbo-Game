@@ -1,6 +1,7 @@
 import * as Phaser from 'phaser';
 import { Projectile } from './Projectile.js';
 import { state } from '../utils/StateManager.js';
+import { audioManager } from './AudioManager.js';
 
 export class Boss {
   /**
@@ -217,39 +218,31 @@ export class Boss {
         else currentAttackDuration = this.ch2AttackGolemQuakeNotes();
       } else if (this.scene.chapterId === 3) {
         this.scene.events.emit('boss:attack');
-        // 11 Unique attacks with anti-repeat
+        // 9 Unique attacks with anti-repeat
         let pattern;
-        do {
-          pattern = Phaser.Math.Between(0, 22);
-        } while (pattern === this.lastAttackId);
         
-        this.secondLastAttackId = this.lastAttackId;
-        this.lastAttackId = pattern;
+        // Admin test mode: lock to specific attack ID
+        if (this.scene._adminTestAttackId !== undefined) {
+          pattern = this.scene._adminTestAttackId;
+        } else {
+          do {
+            pattern = Phaser.Math.Between(0, 8);
+          } while (pattern === this.lastAttackId);
+          this.secondLastAttackId = this.lastAttackId;
+          this.lastAttackId = pattern;
+        }
 
         // Route to the completely randomized Kataw attacks
         switch (pattern) {
           case 0: currentAttackDuration = this.ch3KatawExplosionPattern1(); break;
           case 1: currentAttackDuration = this.ch3FishKingMultiSpell(); break;
           case 2: currentAttackDuration = this.ch3SharkLanes(); break;
-          case 3: currentAttackDuration = this.ch3JellyfishCurtain(); break;
-          case 4: currentAttackDuration = this.ch3NemoSwarm(); break;
-          case 5: currentAttackDuration = this.ch3BatDiveBomb(); break;
-          case 7: currentAttackDuration = this.ch3WhirlpoolMaze(); break;
-          case 8: currentAttackDuration = this.ch3SirensLure(); break;
-          case 9: currentAttackDuration = this.ch3MedusaGaze(); break;
-          case 10: currentAttackDuration = this.ch3CthulhuRifts(); break;
-          case 11: currentAttackDuration = this.ch3SirenSnakeChase(); break;
-          case 12: currentAttackDuration = this.ch3FishKingSummonerWave(); break;
-          case 13: currentAttackDuration = this.ch3KatawExplosionPattern2(); break;
-          case 14: currentAttackDuration = this.ch3KatawExplosionPattern3(); break;
-          case 15: currentAttackDuration = this.ch3AbyssalCrossPattern1(); break;
-          case 16: currentAttackDuration = this.ch3AbyssalCrossPattern2(); break;
-          case 17: currentAttackDuration = this.ch3AbyssalCrossPattern3(); break;
-          case 18: currentAttackDuration = this.ch3AbyssalCrossPattern4(); break;
-          case 19: currentAttackDuration = this.ch3DiamondStormPattern1(); break;
-          case 20: currentAttackDuration = this.ch3DiamondStormPattern2(); break;
-          case 21: currentAttackDuration = this.ch3DiamondStormPattern3(); break;
-          case 22: currentAttackDuration = this.ch3DiamondStormPattern4(); break;
+          case 3: currentAttackDuration = this.ch3BatDiveBomb(); break;
+          case 4: currentAttackDuration = this.ch3SirensLure(); break;
+          case 5: currentAttackDuration = this.ch3DiamondStormPattern1(); break;
+          case 6: currentAttackDuration = this.ch3MonsterAmbush(); break;
+          case 7: currentAttackDuration = this.ch3PrismaticBeamStorm(); break;
+          case 8: currentAttackDuration = this.ch3AbyssalSpiral(); break;
           default: currentAttackDuration = 2000;
         }
       } else {
@@ -378,6 +371,7 @@ export class Boss {
             // Scale up the 32px splat to 5x
             const splat = this.scene.add.sprite(dest.x, dest.y, 'blood_splat_000').setScale(5.0).setDepth(20);
             splat.play('anim_blood_splat').once('animationcomplete', () => splat.destroy());
+            audioManager.playBloodHit();
 
             // Native Area Damage Check
             if (this.scene.player.col === c && this.scene.player.row === r) {
@@ -524,6 +518,7 @@ export class Boss {
               trailTimer.remove();
               const splat = this.scene.add.sprite(dest.x, dest.y, 'blood_splat_000').setScale(5.0).setDepth(20);
               splat.play('anim_blood_splat').once('animationcomplete', () => splat.destroy());
+              audioManager.playBloodHit();
 
               if (this.scene.player.col === targetCol && this.scene.player.row === targetRow) {
                 this.scene.player.takeDamage();
@@ -1701,6 +1696,11 @@ export class Boss {
         ? this.ch2AttackBunnyStampedeUltimate()
         : this.ch2AttackNoteBurstUltimate();
       this.attackTimer = this.scene.time.delayedCall(ultimateDuration + 3000, this.executeAttack, [], this);
+    } else if (!this.isTutorial && this.scene.chapterId === 3) {
+      // Chapter 3 Ultimate: Rotating Asterisk Fire
+      if (this.attackTimer) this.attackTimer.remove();
+      const ultimateDuration = this.ch3UltimateRotatingBarrage();
+      this.attackTimer = this.scene.time.delayedCall(ultimateDuration + 3000, this.executeAttack, [], this);
     }
   }
 
@@ -2107,7 +2107,7 @@ R8: . . . . Y . . . .
               this.scene.time.delayedCall(600, () => {
                 if (this.hp <= 0 || this.scene.isGameOver) return;
                 const shark = this.scene.add.sprite(startPix.x, startPix.y, 'ch3_shark_walk')
-                  .setDepth(35).setFlipX(true).setDisplaySize(ts * 1.5, ts * 1.5).play('anim_ch3_shark_walk'); // bigger shark
+                  .setDepth(35).setFlipX(true).setDisplaySize(ts * 2, ts * 2).play('anim_ch3_shark_walk');
                 
                 this.scene.tweens.add({
                   targets: shark, x: endPix.x, duration: 2500,
@@ -2358,54 +2358,59 @@ R8: . . . . Y . . . .
   // ─── ATTACK 3: Shark Lanes ────────────────────────────────────────
   ch3SharkLanes() {
     const ts = this.grid.tileSize;
+    const rows = this.grid.rows;
 
-    // 2 sharks, each covers a 3-row lane
-    const usedStarts = new Set();
-    const laneStarts = [];
-    while (laneStarts.length < 2) {
-      const s = Phaser.Math.Between(0, this.grid.rows - 3);
-      if (!usedStarts.has(s) && !usedStarts.has(s-1) && !usedStarts.has(s+1)) { 
-        usedStarts.add(s); laneStarts.push(s); 
-      }
+    // Leave 2 safe rows for player to dodge
+    const safeRows = new Set();
+    while (safeRows.size < 2) {
+      safeRows.add(Phaser.Math.Between(0, rows - 1));
     }
 
-    laneStarts.forEach(startRow => {
-      const laneRows = [startRow, startRow + 1, startRow + 2];
-      const midRow   = startRow + 1;
+    // Telegraph only rows that will have sharks
+    for (let r = 0; r < rows; r++) {
+      if (!safeRows.has(r)) this.grid.telegraphRow(r, 1200);
+    }
 
-      laneRows.forEach(r => this.grid.telegraphRow(r, 1200));
-
-      const idleX = this.grid.getPixelPosition(this.grid.cols, midRow).x + ts * 2;
-      const idleY = this.grid.getPixelPosition(0, midRow).y;
+    // Spawn 1 shark per row (except safe rows)
+    for (let row = 0; row < rows; row++) {
+      if (safeRows.has(row)) continue; // Skip safe rows
+      const idleX = this.grid.getPixelPosition(this.grid.cols, row).x + ts * 1.5;
+      const idleY = this.grid.getPixelPosition(0, row).y;
       
-      this.scene.time.delayedCall(1200, () => {
+      this.scene.time.delayedCall(1200 + row * 100, () => {
         this._spawnSmoke(idleX, idleY, () => {
           if (this.hp <= 0 || this.scene.isGameOver) return;
           const shark = this.scene.add.sprite(idleX, idleY, 'ch3_shark_walk')
-            .setDepth(40).setFlipX(true).setDisplaySize(ts * 3, ts * 3).play('anim_ch3_shark_walk'); // 3 rows tall
+            .setDepth(40)
+            .setFlipX(true)
+            .setDisplaySize(ts * 2.5, ts * 2.5)
+            .play('anim_ch3_shark_walk');
 
-          const destX = this.grid.getPixelPosition(-4, midRow).x;
+          const destX = this.grid.getPixelPosition(-2, row).x;
           this.scene.tweens.add({
-            targets: shark, x: destX, duration: 1000,
+            targets: shark, x: destX, duration: 800,
             onUpdate: () => {
               if (!shark.active || !this.scene.player) return;
-              // Only check collision every 2nd frame (approx)
-              if (Math.floor(shark.x / 10) % 2 !== 0) return;
-              const pPix = this.grid.getPixelPosition(this.scene.player.col, this.scene.player.row);
-              if (laneRows.includes(this.scene.player.row) && Math.abs(shark.x - pPix.x) < ts * 1.5) {
-                shark.play('anim_ch3_shark_attack', true);
-                this.scene.player.takeDamage();
+              // Check collision with player on same row
+              if (this.scene.player.row === row) {
+                const pPix = this.grid.getPixelPosition(this.scene.player.col, this.scene.player.row);
+                if (Math.abs(shark.x - pPix.x) < ts * 0.6) {
+                  shark.play('anim_ch3_shark_attack', true);
+                  this.scene.player.takeDamage();
+                }
               }
             },
             onComplete: () => {
-              this._spawnSmoke(shark.x, shark.y, null);
-              shark.destroy();
+              if (shark && shark.active) {
+                this._spawnSmoke(shark.x, shark.y, null);
+                shark.destroy();
+              }
             }
           });
         });
       });
-    });
-    return 5500;
+    }
+    return 3500;
   }
 
   // ─── ATTACK 4: Jellyfish Curtain ─────────────────────────────────
@@ -2540,67 +2545,270 @@ R8: . . . . Y . . . .
     return 9500;
   }
 
-  // ─── ATTACK 6: Bat Dive Bomb ──────────────────────────────────────
+  // ─── ATTACK 6: Bat Swarm Assault ──────────────────────────────────────
   ch3BatDiveBomb() {
     const ts = this.grid.tileSize;
-    const batSize = ts * 3; // covers 3x3 tiles
-
-    // Pick 5 random unique center points (minimum 2 tiles apart to prevent overlap)
-    const centers = [];
-    let attempts = 0;
-    while(centers.length < 5 && attempts < 100) {
-      attempts++;
-      const c = Phaser.Math.Between(1, this.grid.cols - 2);
-      const r = Phaser.Math.Between(1, this.grid.rows - 2);
-      // Check if too close to existing centers
-      let tooClose = false;
-      for (const existing of centers) {
-        if (Math.abs(existing.c - c) <= 2 && Math.abs(existing.r - r) <= 2) {
-          tooClose = true;
-          break;
+    const batSize = ts * 2.5;
+    
+    // Entrance flash only - reduced shake
+    this.scene.cameras.main.flash(400, 80, 0, 120);
+    this.scene.cameras.main.shake(100, 0.01);
+    
+    // 4 WAVES of bats - more waves
+    let waveCount = 0;
+    const maxWaves = 4;
+    
+    const spawnWave = () => {
+      if (waveCount >= maxWaves || this.hp <= 0 || this.scene.isGameOver) return;
+      
+      // Wave flash only
+      this.scene.cameras.main.flash(200, 60, 0, 100, 0.4);
+      
+      // Pick 10 random unique points per wave - MORE BATS
+      const centers = [];
+      let attempts = 0;
+      while(centers.length < 10 && attempts < 200) {
+        attempts++;
+        const c = Phaser.Math.Between(0, this.grid.cols - 1);
+        const r = Phaser.Math.Between(0, this.grid.rows - 1);
+        // Check if too close to existing centers
+        let tooClose = false;
+        for (const existing of centers) {
+          if (Math.abs(existing.c - c) <= 1 && Math.abs(existing.r - r) <= 1) {
+            tooClose = true;
+            break;
+          }
         }
+        if (!tooClose) centers.push({c, r});
       }
-      if (!tooClose) centers.push({c, r});
-    }
-
-    centers.forEach((pt, idx) => {
-      this.scene.time.delayedCall(idx * 400, () => { // Faster spawn rate
-        if (this.hp <= 0 || this.scene.isGameOver) return;
-        const pix = this.grid.getPixelPosition(pt.c, pt.r);
-
-        for (let dc = -1; dc <= 1; dc++)
-          for (let dr = -1; dr <= 1; dr++)
-             this.grid.telegraph(pt.c + dc, pt.r + dr, 800); // Shorter telegraph
-
-        this.scene.time.delayedCall(800, () => {
+      
+      // Spawn bats with faster staggered timing
+      centers.forEach((pt, idx) => {
+        this.scene.time.delayedCall(idx * 180, () => {
           if (this.hp <= 0 || this.scene.isGameOver) return;
+          const pix = this.grid.getPixelPosition(pt.c, pt.r);
+          
+          // ONLY 1 red tile per bat (not 3x3)
+          this.grid.telegraph(pt.c, pt.r, 500);
+          
+          this.scene.time.delayedCall(500, () => {
+            if (this.hp <= 0 || this.scene.isGameOver) return;
+            
+            // Lightning burst FX at dive start (no smoke)
+            const lightning = this.scene.add.sprite(pix.x, pix.y - 300, 'lightning_burst')
+              .setDepth(68).setScale(2).play('anim_lightning_burst');
+            this.scene.time.delayedCall(400, () => lightning.destroy());
 
-          const bat = this.scene.add.sprite(pix.x, pix.y - 400, 'ch3_bat_fly')
-            .setDepth(70).setDisplaySize(batSize, batSize).play('anim_ch3_bat_fly');
+            const bat = this.scene.add.sprite(pix.x, pix.y - 500, 'ch3_bat_fly')
+              .setDepth(70).setDisplaySize(batSize, batSize).play('anim_ch3_bat_fly');
 
-          this.scene.tweens.add({
-            targets: bat, y: pix.y, duration: 250, ease: 'Quad.easeIn', // Faster dive
-            onComplete: () => {
-              bat.play('anim_ch3_bat_hit');
-              this.scene.cameras.main.shake(140, 0.016);
+            this.scene.tweens.add({
+              targets: bat, 
+              y: pix.y, 
+              duration: 550, 
+              ease: 'Quad.easeIn',
+              onComplete: () => {
+                bat.play('anim_ch3_bat_hit');
+                // Reduced shake
+                this.scene.cameras.main.shake(80, 0.01);
+                
+                // Impact FX - lightning only (no smoke)
+                const impactLightning = this.scene.add.sprite(pix.x, pix.y, 'lightning_burst')
+                  .setDepth(72).setScale(1.5).play('anim_lightning_burst');
+                this.scene.time.delayedCall(400, () => impactLightning.destroy());
 
-              if (this.scene.player && Math.abs(this.scene.player.col - pt.c) <= 1 && Math.abs(this.scene.player.row - pt.r) <= 1) {
-                  this.scene.player.takeDamage();
+                // Damage only on exact tile (not 3x3 area)
+                if (this.scene.player && this.scene.player.col === pt.c && this.scene.player.row === pt.r) {
+                    this.scene.player.takeDamage();
+                    // Eye explosion on player damage
+                    const eyeExplosion = this.scene.add.sprite(
+                      this.grid.getPixelPosition(this.scene.player.col, this.scene.player.row).x,
+                      this.grid.getPixelPosition(this.scene.player.col, this.scene.player.row).y,
+                      'eye_explosion'
+                    ).setDepth(200).setScale(1.5).play('anim_eye_explosion');
+                    this.scene.time.delayedCall(600, () => eyeExplosion.destroy());
+                }
+
+                bat.once('animationcomplete', () => {
+                  bat.play('anim_ch3_bat_fly');
+                  this.scene.tweens.add({ 
+                    targets: bat, 
+                    y: pix.y - 600, 
+                    alpha: 0, 
+                    duration: 500, 
+                    onComplete: () => bat.destroy() 
+                  });
+                });
               }
-
-              bat.once('animationcomplete', () => {
-                bat.play('anim_ch3_bat_fly');
-                this.scene.tweens.add({ targets: bat, y: pix.y - 500, alpha: 0, duration: 400, onComplete: () => bat.destroy() });
-              });
-            }
+            });
           });
         });
       });
-    });
-    return 4000;
+      
+      waveCount++;
+      // Next wave after delay
+      this.scene.time.delayedCall(2200, spawnWave);
+    };
+    
+    // Start first wave
+    spawnWave();
+    
+    return 10000; // Longer duration for 4 waves
   }
 
-  // ─── ATTACK 7: Bioluminescent Blackout ───────────────────────────
+  // ─── ATTACK 7: Prismatic Beam Storm ─────────────────────────────
+  ch3PrismaticBeamStorm() {
+    const ts = this.grid.tileSize;
+    
+    // Entrance flash
+    this.scene.cameras.main.flash(400, 100, 0, 150);
+    this.scene.cameras.main.shake(80, 0.008);
+    
+    // 4 waves of multi-directional beams
+    let waveCount = 0;
+    const maxWaves = 4;
+    
+    const spawnWave = () => {
+      if (waveCount >= maxWaves || this.hp <= 0 || this.scene.isGameOver) return;
+      
+      // Wave flash
+      this.scene.cameras.main.flash(150, 80, 0, 120, 0.3);
+      
+      // Pick 6 random tiles to shoot beams from
+      const beamOrigins = [];
+      let attempts = 0;
+      while(beamOrigins.length < 6 && attempts < 100) {
+        attempts++;
+        const c = Phaser.Math.Between(0, this.grid.cols - 1);
+        const r = Phaser.Math.Between(0, this.grid.rows - 1);
+        let tooClose = false;
+        for (const existing of beamOrigins) {
+          if (Math.abs(existing.c - c) <= 1 && Math.abs(existing.r - r) <= 1) {
+            tooClose = true;
+            break;
+          }
+        }
+        if (!tooClose) beamOrigins.push({c, r});
+      }
+      
+      // For each origin, shoot in a direction (horizontal, vertical, or diagonal)
+      beamOrigins.forEach((pt, idx) => {
+        this.scene.time.delayedCall(idx * 200, () => {
+          if (this.hp <= 0 || this.scene.isGameOver) return;
+          const pix = this.grid.getPixelPosition(pt.c, pt.r);
+          
+          // Choose direction: 0=horizontal, 1=vertical, 2=diagonal-down, 3=diagonal-up
+          const direction = Phaser.Math.Between(0, 3);
+          
+          // Telegraph single tile
+          this.grid.telegraph(pt.c, pt.r, 500);
+          
+          this.scene.time.delayedCall(500, () => {
+            if (this.hp <= 0 || this.scene.isGameOver) return;
+            
+            // Spawn beam based on direction
+            let beam, startX, startY, endX, endY, angle;
+            const speed = 1400; // Beam travel duration
+            
+            switch(direction) {
+              case 0: // Horizontal - left to right
+                startX = this.grid.getPixelPosition(-2, pt.r).x;
+                endX = this.grid.getPixelPosition(this.grid.cols + 2, pt.r).x;
+                startY = pix.y;
+                endY = pix.y;
+                angle = 0;
+                break;
+              case 1: // Vertical - top to bottom
+                startX = pix.x;
+                endX = pix.x;
+                startY = this.grid.getPixelPosition(pt.c, -2).y;
+                endY = this.grid.getPixelPosition(pt.c, this.grid.rows + 2).y;
+                angle = 90;
+                break;
+              case 2: // Diagonal down-right
+                startX = this.grid.getPixelPosition(-2, -2).x;
+                startY = this.grid.getPixelPosition(-2, -2).y;
+                endX = this.grid.getPixelPosition(this.grid.cols + 2, this.grid.rows + 2).x;
+                endY = this.grid.getPixelPosition(this.grid.cols + 2, this.grid.rows + 2).y;
+                // Adjust based on origin position
+                startX = pix.x - (this.grid.cols * ts);
+                startY = pix.y - (this.grid.rows * ts);
+                endX = pix.x + (this.grid.cols * ts);
+                endY = pix.y + (this.grid.rows * ts);
+                angle = 45;
+                break;
+              case 3: // Diagonal up-right
+                startX = pix.x - (this.grid.cols * ts);
+                startY = pix.y + (this.grid.rows * ts);
+                endX = pix.x + (this.grid.cols * ts);
+                endY = pix.y - (this.grid.rows * ts);
+                angle = -45;
+                break;
+            }
+            
+            beam = this.scene.add.sprite(startX, startY, 'ch3_beam_multidir')
+              .setDepth(15).setDisplaySize(ts * 2, ts * 2).setAngle(angle).play('anim_ch3_beam_multidir');
+            
+            // Light showers explosion at origin
+            const explosion = this.scene.add.sprite(pix.x, pix.y, 'ch3_light_showers')
+              .setDepth(16).setScale(1.5).play('anim_ch3_light_showers');
+            this.scene.time.delayedCall(800, () => explosion.destroy());
+            
+            // Camera shake on explosion
+            this.scene.cameras.main.shake(60, 0.005);
+            
+            // Move beam
+            this.scene.tweens.add({
+              targets: beam,
+              x: endX,
+              y: endY,
+              duration: speed,
+              ease: 'Linear',
+              onUpdate: () => {
+                if (!beam.active) return;
+                // Check collision with player based on direction
+                let hit = false;
+                const pPix = this.grid.getPixelPosition(this.scene.player.col, this.scene.player.row);
+                
+                switch(direction) {
+                  case 0: // Horizontal - check if same row and beam passing through
+                    if (this.scene.player.row === pt.r && Math.abs(beam.x - pPix.x) < ts * 0.8) hit = true;
+                    break;
+                  case 1: // Vertical - check if same col
+                    if (this.scene.player.col === pt.c && Math.abs(beam.y - pPix.y) < ts * 0.8) hit = true;
+                    break;
+                  case 2: // Diagonal down - distance check
+                  case 3: // Diagonal up
+                    const dist = Phaser.Math.Distance.Between(beam.x, beam.y, pPix.x, pPix.y);
+                    if (dist < ts * 0.8) hit = true;
+                    break;
+                }
+                
+                if (hit && !this.scene.player.isInvulnerable) {
+                  this.scene.player.takeDamage();
+                  // Eye explosion on damage
+                  const eyeExplosion = this.scene.add.sprite(pPix.x, pPix.y, 'eye_explosion')
+                    .setDepth(200).setScale(1.5).play('anim_eye_explosion');
+                  this.scene.time.delayedCall(600, () => eyeExplosion.destroy());
+                }
+              },
+              onComplete: () => {
+                beam.destroy();
+              }
+            });
+          });
+        });
+      });
+      
+      waveCount++;
+      this.scene.time.delayedCall(2800, spawnWave);
+    };
+    
+    spawnWave();
+    return 12000; // Duration for 4 waves
+  }
+
+  // ─── ATTACK 8: Bioluminescent Blackout ───────────────────────────
   ch3BioluminescentBlackout() {
     const ts = this.grid.tileSize;
     const cx = this.grid.offsetX + (this.grid.cols * ts) / 2;
@@ -2764,108 +2972,437 @@ R8: . . . . Y . . . .
 
     this._spawnSmoke(pix.x, pix.y, () => {
       if (this.hp <= 0 || this.scene.isGameOver) return;
-      const siren = this.scene.add.sprite(pix.x, pix.y, 'ch3_siren1')
-        .setDepth(100).setScale(1.2).play('anim_ch3_siren1');
+      
+      // Create siren with new Walk/Attack sprites - positioned at TOP of grid
+      // Position siren at row 0 (top of grid) for maximum visibility
+      const sirenRow = 0;
+      const sirenY = this.grid.getPixelPosition(0, sirenRow).y - (this.grid.tileSize * 0.3); // Slightly above row 0
+      const leftPos = this.grid.getPixelPosition(1, sirenRow);
+      const rightPos = this.grid.getPixelPosition(this.grid.cols - 2, sirenRow);
+      
+      // Position container at sirenY for both X and Y consistency
+      const sirenContainer = this.scene.add.container(leftPos.x, sirenY).setDepth(100);
+      
+      // Main siren sprite - using Walk animation (13x1 frames), visible scale
+      const siren = this.scene.add.sprite(0, 0, 'ch3_siren1_walk')
+        .setDepth(100).setScale(2.0).play('anim_ch3_siren1_walk');
+      sirenContainer.add(siren);
+      
+      // HORIZONTAL WALKING - Siren paces back and forth like a boss
+      const walkDuration = 3000;
+      let walkDirection = 1; // 1 = right, -1 = left
+      
+      const sirenWalkTween = this.scene.tweens.add({
+        targets: sirenContainer,
+        x: rightPos.x,
+        duration: walkDuration,
+        ease: 'Linear',
+        yoyo: true,
+        repeat: -1,
+        onYoyo: () => {
+          walkDirection = -1;
+          siren.setFlipX(true); // Face left when walking left
+        },
+        onRepeat: () => {
+          walkDirection = 1;
+          siren.setFlipX(false); // Face right when walking right
+        }
+      });
+      
+      // Function to play attack animation during beam attacks
+      const playAttackAnim = () => {
+        siren.play('anim_ch3_siren1_attack');
+        siren.once('animationcomplete', () => {
+          siren.play('anim_ch3_siren1_walk');
+        });
+      };
 
-      const warn = this.scene.add.text(
-        this.grid.getPixelPosition(Math.floor(this.grid.cols / 2), 4).x, 
-        this.grid.getPixelPosition(Math.floor(this.grid.cols / 2), 4).y - 40,
-        "CONTROLS INVERTED!", { fontSize: '24px', color: '#ff00aa', fontStyle: 'bold', stroke: '#000', strokeThickness: 5 }
-      ).setOrigin(0.5).setDepth(200);
-      this.scene.tweens.add({ targets: warn, alpha: 0.4, yoyo: true, repeat: 5, duration: 400, onComplete: () => warn.destroy() });
+      // Flashy entrance effects
+      this.scene.cameras.main.flash(500, 255, 0, 200);
+      this.scene.cameras.main.shake(300, 0.02);
+      
+      // BIG TEXT: "SIREN'S KISS" with subtext that fades out with giga saturn font
+      const centerX = this.grid.getPixelPosition(Math.floor(this.grid.cols / 2), Math.floor(this.grid.rows / 2)).x;
+      const centerY = this.grid.getPixelPosition(Math.floor(this.grid.cols / 2), Math.floor(this.grid.rows / 2)).y;
+      
+      const sirenText = this.scene.add.text(
+        centerX,
+        centerY - 20,
+        "SIREN'S KISS", 
+        { fontFamily: 'GigaSaturn', fontSize: '72px', color: '#ff00aa', fontStyle: 'bold', stroke: '#000', strokeThickness: 10 }
+      ).setOrigin(0.5).setDepth(300).setAlpha(0).setScale(0.5);
+      
+      // Subtext: "inverted controllers"
+      const subText = this.scene.add.text(
+        centerX,
+        centerY + 40,
+        "inverted controllers", 
+        { fontFamily: 'GigaSaturn', fontSize: '28px', color: '#ffffff', stroke: '#000', strokeThickness: 4 }
+      ).setOrigin(0.5).setDepth(300).setAlpha(0);
+      
+      // Pop in and fade out animation for both texts
+      this.scene.tweens.add({
+        targets: sirenText,
+        alpha: 1,
+        scale: 1.2,
+        duration: 400,
+        ease: 'Back.easeOut',
+        onComplete: () => {
+          this.scene.tweens.add({
+            targets: sirenText,
+            alpha: 0,
+            y: sirenText.y - 50,
+            duration: 800,
+            delay: 600,
+            ease: 'Power2',
+            onComplete: () => sirenText.destroy()
+          });
+        }
+      });
+      
+      this.scene.tweens.add({
+        targets: subText,
+        alpha: 0.9,
+        duration: 400,
+        delay: 200,
+        ease: 'Back.easeOut',
+        onComplete: () => {
+          this.scene.tweens.add({
+            targets: subText,
+            alpha: 0,
+            y: subText.y - 50,
+            duration: 800,
+            delay: 400,
+            ease: 'Power2',
+            onComplete: () => subText.destroy()
+          });
+        }
+      });
 
-      this.scene.cameras.main.flash(300, 0, 80, 255);
       this.scene.player.isCharmed = true;
+      
+      // TELEPORT player to bottom row (last row of 9x9 grid)
+      const bottomRow = this.grid.rows - 1;
+      const targetCol = Math.floor(this.grid.cols / 2); // Center column
+      
+      // Force teleport to bottom row
+      this.scene.player.col = targetCol;
+      this.scene.player.row = bottomRow;
+      const bottomPos = this.grid.getPixelPosition(targetCol, bottomRow);
+      
+      this.scene.tweens.add({
+        targets: this.scene.player.sprite,
+        x: bottomPos.x,
+        y: bottomPos.y,
+        duration: 300,
+        ease: 'Power2'
+      });
+      
+      // RESTRICT movement: player can ONLY walk on bottom row during attack
+      const originalMove = this.scene.player.move.bind(this.scene.player);
+      this.scene.player.move = function(direction) {
+        // Siren's Lure: reverse controls
+        let actDir = direction;
+        if (this.isCharmed) {
+            if (direction === 'up') actDir = 'down';
+            else if (direction === 'down') actDir = 'up';
+            else if (direction === 'left') actDir = 'right';
+            else if (direction === 'right') actDir = 'left';
+        }
+        
+        // Only allow left/right movement on bottom row
+        if (actDir === 'up' || actDir === 'down') {
+          // Block vertical movement - flash red to indicate blocked
+          this.scene.cameras.main.flash(100, 255, 0, 0, 0.3);
+          return;
+        }
+        
+        let dCol = 0, dRow = 0;
+        if (actDir === 'left') dCol = -1;
+        else if (actDir === 'right') dCol = 1;
+        else return;
+        
+        const dist = this.hasDash ? 3 : 1;
+        let targetCol = this.col + (dCol * dist);
+        
+        // Clamp to grid bounds
+        if (targetCol < 0) targetCol = 0;
+        if (targetCol >= this.grid.cols) targetCol = this.grid.cols - 1;
+        
+        // Must stay on bottom row
+        let targetRow = bottomRow;
+        
+        if (this.isMoving || this.isFrozen || this.isPetrified) return;
+        if (targetCol < 0 || targetCol >= this.grid.cols) return;
+        
+        // Check Chapter 2 Obstacles
+        if (this.grid.cells[targetRow][targetCol].status === 'locked') return;
+        
+        // Track history
+        this.history.push({ col: this.col, row: this.row });
+        if (this.history.length > 10) this.history.shift();
+        
+        this.isMoving = true;
+        this.facing = actDir;
+        this.col = targetCol;
+        this.row = targetRow;
+        
+        const targetPos = this.grid.getPixelPosition(this.col, this.row);
+        
+        // Play directional dash animation
+        this.sprite.play(`dash_${direction}`);
+        
+        let duration = this.isSpeedBoosted ? 75 : 150;
+        if (this.hasDash) duration = 200;
+        
+        if (this.hasDash) {
+            this.hasDash = false;
+        }
+        
+        this.scene.tweens.add({
+          targets: this.sprite,
+          x: targetPos.x,
+          y: targetPos.y,
+          duration: duration,
+          ease: 'Power2',
+          onComplete: () => {
+            this.isMoving = false;
+            this.sprite.play(`idle_${this.facing}`);
+            this.scene.events.emit('player:moved', this.col, this.row);
+          }
+        });
+      };
 
-      // 5 waves of beams
+      // 5 waves of beams (easier difficulty)
       let wave = 0;
       const doWave = () => {
          if (wave >= 5 || this.hp <= 0 || this.scene.isGameOver) return;
          
-         const isGiant = Math.random() < 0.25;
+         // Siren attacks at start of each wave
+         playAttackAnim();
+         
+         // Subtle flash at start of each wave
+         if (wave > 0) {
+           this.scene.cameras.main.flash(80, 0, 100, 255, 0.2);
+         }
+         
+         // Cycle through different beam types for visual variety
+         const beamType = wave % 3; // 0 = spark, 1 = tide lightning, 2 = spark
+         
+         const isGiant = Math.random() < 0.25; // 25% chance for giant beams (easier)
+         
+         // Add cross-beam pattern - every 3rd wave
+         const isCrossPattern = wave % 3 === 2 && wave > 0;
 
-         if (isGiant) {
+         if (isCrossPattern) {
+           // CROSS PATTERN: 3 beams with spark and tide lightning only
+           const crossCols = [2, 4, 6];
+           const beamAssets = ['ch3_spark', 'ch3_tide_lightning', 'ch3_spark'];
+           const beamAnims = ['anim_ch3_spark', 'anim_ch3_tide_lightning', 'anim_ch3_spark'];
+           
+           crossCols.forEach((mgC, idx) => {
+             this.scene.time.delayedCall(idx * 200, () => {
+               if (this.hp <= 0 || this.scene.isGameOver) return;
+               
+               this.grid.telegraphCol(mgC - 1, 600);
+               this.grid.telegraphCol(mgC, 600);
+               this.grid.telegraphCol(mgC + 1, 600);
+               
+               this.scene.time.delayedCall(600, () => {
+                  if (this.hp <= 0 || this.scene.isGameOver) return;
+                  const beamX = this.grid.getPixelPosition(mgC, 0).x;
+                  const beamStartY = this.grid.getPixelPosition(mgC, -3).y;
+                  const beamEndY   = this.grid.getPixelPosition(mgC, this.grid.rows + 3).y;
+
+                  // Use different asset for each beam in cross pattern (no tint)
+                  const assetIdx = idx % 3;
+                  const beam = this.scene.add.sprite(beamX, beamStartY, beamAssets[assetIdx])
+                    .setDepth(15).setDisplaySize(ts * 3, ts * 3).play(beamAnims[assetIdx]);
+                  
+                  // Spark particle trail
+                  const trailTimer = this.scene.time.addEvent({
+                    delay: 80,
+                    repeat: 12,
+                    callback: () => {
+                      if (!beam.active) return;
+                      const trail = this.scene.add.sprite(beam.x + Phaser.Math.Between(-15, 15), beam.y + Phaser.Math.Between(-20, 20), 'ch3_spark')
+                        .setDepth(14).setScale(1.2).setAlpha(0.7).play('anim_ch3_spark');
+                      this.scene.time.delayedCall(400, () => trail.destroy());
+                    }
+                  });
+
+                  // SLOWER duration for easier difficulty (1000ms instead of 600)
+                  this.scene.tweens.add({
+                    targets: beam, 
+                    y: beamEndY, 
+                    duration: 1000,
+                    ease: 'Power2',
+                    onUpdate: () => {
+                      if (!beam.active) return;
+                      if (Math.abs(this.scene.player.col - mgC) <= 1) {
+                        const pPix = this.grid.getPixelPosition(this.scene.player.col, this.scene.player.row);
+                        if (Math.abs(beam.y - pPix.y) < ts * 1.5) {
+                          this.scene.player.takeDamage();
+                          // Eye explosion effect on damage
+                          const eyeExplosion = this.scene.add.sprite(pPix.x, pPix.y, 'eye_explosion')
+                            .setDepth(200).setScale(1.5).play('anim_eye_explosion');
+                          this.scene.time.delayedCall(600, () => eyeExplosion.destroy());
+                        }
+                      }
+                    },
+                    onComplete: () => {
+                      trailTimer.remove();
+                      beam.destroy();
+                    }
+                  });
+               });
+             });
+           });
+         } else if (isGiant) {
             const mgC = Phaser.Math.Between(1, this.grid.cols - 2);
-            this.grid.telegraphCol(mgC - 1, 550);
-            this.grid.telegraphCol(mgC, 550);
-            this.grid.telegraphCol(mgC + 1, 550);
+            this.grid.telegraphCol(mgC - 1, 700);
+            this.grid.telegraphCol(mgC, 700);
+            this.grid.telegraphCol(mgC + 1, 700);
             
-            this.scene.time.delayedCall(550, () => {
+            this.scene.time.delayedCall(700, () => {
                if (this.hp <= 0 || this.scene.isGameOver) return;
                const beamX = this.grid.getPixelPosition(mgC, 0).x;
                const beamStartY = this.grid.getPixelPosition(mgC, -3).y;
                const beamEndY   = this.grid.getPixelPosition(mgC, this.grid.rows + 3).y;
 
-               const isBeam2 = Math.random() > 0.5;
-               const beamAnim = isBeam2 ? 'anim_ch3_waterbeam2' : 'anim_ch3_waterbeam';
-               const angle = isBeam2 ? 270 : 90;
+               // Randomly choose between tide lightning and spark for variety
+               const useTideLightning = Math.random() > 0.5;
+               const beamAsset = useTideLightning ? 'ch3_tide_lightning' : 'ch3_spark';
+               const beamAnim = useTideLightning ? 'anim_ch3_tide_lightning' : 'anim_ch3_spark';
 
-               const beam = this.scene.add.sprite(beamX, beamStartY, 'ch3_waterbeam')
-                 .setDepth(15).setDisplaySize(ts * 3, ts * 3).setAngle(angle).play(beamAnim);
+               const beam = this.scene.add.sprite(beamX, beamStartY, beamAsset)
+                 .setDepth(15).setDisplaySize(ts * 2.5, ts * 2.5).play(beamAnim);
 
+               // Add spark effects around the beam
+               const sparkTimer = this.scene.time.addEvent({
+                 delay: 100,
+                 repeat: 10,
+                 callback: () => {
+                   if (!beam.active) return;
+                   const spark = this.scene.add.sprite(
+                     beam.x + Phaser.Math.Between(-30, 30), 
+                     beam.y + Phaser.Math.Between(-40, 40), 
+                     'ch3_spark'
+                   ).setDepth(16).setScale(0.8).setAlpha(0.8).play('anim_ch3_spark');
+                   this.scene.time.delayedCall(300, () => spark.destroy());
+                 }
+               });
+
+               // SLOWER duration (1100ms instead of 600)
                this.scene.tweens.add({
-                 targets: beam, y: beamEndY, duration: 800, // fast
+                 targets: beam, y: beamEndY, duration: 1100,
+                 ease: 'Power2',
                  onUpdate: () => {
                    if (!beam.active) return;
                    if (Math.abs(this.scene.player.col - mgC) <= 1) {
                      const pPix = this.grid.getPixelPosition(this.scene.player.col, this.scene.player.row);
-                     if (Math.abs(beam.y - pPix.y) < ts * 1.5) this.scene.player.takeDamage();
+                     if (Math.abs(beam.y - pPix.y) < ts * 1.5) {
+                       this.scene.player.takeDamage();
+                       // Eye explosion effect on damage
+                       const eyeExplosion = this.scene.add.sprite(pPix.x, pPix.y, 'eye_explosion')
+                         .setDepth(200).setScale(1.5).play('anim_eye_explosion');
+                       this.scene.time.delayedCall(600, () => eyeExplosion.destroy());
+                     }
                    }
                  },
-                 onComplete: () => beam.destroy()
+                 onComplete: () => {
+                   sparkTimer.remove();
+                   beam.destroy();
+                 }
                });
             });
          } else {
+            // Regular beams - 3 columns (easier than 4)
             const colsToHit = [];
             while (colsToHit.length < 3) {
                const rc = Phaser.Math.Between(0, this.grid.cols - 1);
                if (!colsToHit.includes(rc)) colsToHit.push(rc);
             }
             
-            colsToHit.forEach(c => {
-               this.grid.telegraphCol(c, 700);
-               this.scene.time.delayedCall(700, () => {
-                  if (this.hp <= 0 || this.scene.isGameOver) return;
-                  const beamX = this.grid.getPixelPosition(c, 0).x;
-                  const beamStartY = this.grid.getPixelPosition(c, -3).y;
-                  const beamEndY   = this.grid.getPixelPosition(c, this.grid.rows + 3).y;
+            // Choose beam style based on wave type - spark and tide lightning only
+            const beamStyles = [
+              { asset: 'ch3_spark', anim: 'anim_ch3_spark', scaleX: 1.0, scaleY: 1.0 },
+              { asset: 'ch3_tide_lightning', anim: 'anim_ch3_tide_lightning', scaleX: 1.0, scaleY: 1.2 },
+              { asset: 'ch3_spark', anim: 'anim_ch3_spark', scaleX: 1.2, scaleY: 1.0 }
+            ];
+            const style = beamStyles[beamType];
+            
+            colsToHit.forEach((c, idx) => {
+               this.scene.time.delayedCall(idx * 150, () => {
+                 this.grid.telegraphCol(c, 700);
+                 this.scene.time.delayedCall(700, () => {
+                    if (this.hp <= 0 || this.scene.isGameOver) return;
+                    const beamX = this.grid.getPixelPosition(c, 0).x;
+                    const beamStartY = this.grid.getPixelPosition(c, -3).y;
+                    const beamEndY   = this.grid.getPixelPosition(c, this.grid.rows + 3).y;
 
-                  const isBeam2 = Math.random() > 0.5;
-                  const beamAnim = isBeam2 ? 'anim_ch3_waterbeam2' : 'anim_ch3_waterbeam';
-                  const angle = isBeam2 ? 270 : 90;
+                    const beam = this.scene.add.sprite(beamX, beamStartY, style.asset)
+                      .setDepth(15).setDisplaySize(ts * style.scaleX, ts * style.scaleY).play(style.anim);
 
-                  const beam = this.scene.add.sprite(beamX, beamStartY, 'ch3_waterbeam')
-                    .setDepth(15).setDisplaySize(ts, ts * 0.5).setAngle(angle).play(beamAnim);
+                    // Add occasional spark
+                    if (Math.random() > 0.5) {
+                      const spark = this.scene.add.sprite(beamX, beamStartY + 50, 'ch3_spark')
+                        .setDepth(16).setScale(0.6).play('anim_ch3_spark');
+                      this.scene.time.delayedCall(400, () => spark.destroy());
+                    }
 
-                  this.scene.tweens.add({
-                    targets: beam, y: beamEndY, duration: 1800, // slower
-                    onUpdate: () => {
-                      if (!beam.active) return;
-                      if (this.scene.player.col === c) {
-                        const pPix = this.grid.getPixelPosition(c, this.scene.player.row);
-                        if (Math.abs(beam.y - pPix.y) < ts * 0.5) this.scene.player.takeDamage();
-                      }
-                    },
-                    onComplete: () => beam.destroy()
-                  });
+                    // SLOWER duration (1600ms - easier than 1200 but still challenging)
+                    this.scene.tweens.add({
+                      targets: beam, y: beamEndY, duration: 1600,
+                      ease: 'Power2',
+                      onUpdate: () => {
+                        if (!beam.active) return;
+                        if (this.scene.player.col === c) {
+                          const pPix = this.grid.getPixelPosition(c, this.scene.player.row);
+                          if (Math.abs(beam.y - pPix.y) < ts * 0.5) {
+                            this.scene.player.takeDamage();
+                            // Eye explosion effect on damage
+                            const eyeExplosion = this.scene.add.sprite(pPix.x, pPix.y, 'eye_explosion')
+                              .setDepth(200).setScale(1.5).play('anim_eye_explosion');
+                            this.scene.time.delayedCall(600, () => eyeExplosion.destroy());
+                          }
+                        }
+                      },
+                      onComplete: () => beam.destroy()
+                    });
+                 });
                });
             });
          }
          
          wave++;
+         // Normal wave interval (2200ms - easier than 1800)
          this.scene.time.delayedCall(2200, doWave);
       };
       
       this.scene.time.delayedCall(600, doWave);
 
-      this.scene.time.delayedCall(12000, () => {
-        if (this.scene.player) this.scene.player.isCharmed = false;
-        if (siren && siren.active) this._spawnSmoke(siren.x, siren.y, null);
-        if (siren && siren.active) siren.destroy();
+      // Cleanup after 13 seconds (5 waves at 2200ms each + buffer)
+      this.scene.time.delayedCall(13000, () => {
+        if (this.scene.player) {
+          this.scene.player.isCharmed = false;
+          // Restore original move function
+          this.scene.player.move = originalMove;
+        }
+        
+        // Stop siren walking
+        if (sirenWalkTween) sirenWalkTween.stop();
+        
+        // Flashy exit
+        this.scene.cameras.main.flash(400, 255, 255, 255);
+        if (sirenContainer && sirenContainer.active) {
+          this._spawnSmoke(sirenContainer.x, sirenContainer.y, null);
+          sirenContainer.destroy();
+        }
       });
     });
 
-    return 11000;
+    return 13500; // Return duration for 5 waves
   }
 
 
@@ -3166,5 +3703,571 @@ R8: . . . . Y . . . .
     });
 
     return 11000;
+  }
+
+  // ─── ATTACK 7: Monster Ambush ────────────────────────────────────────
+  ch3MonsterAmbush() {
+    const ts = this.grid.tileSize;
+    const cols = this.grid.cols;
+    const rows = this.grid.rows;
+    const scene = this.scene;
+
+    // Flashy intro - screen shake and flash
+    scene.cameras.main.shake(600, 0.025);
+    scene.cameras.main.flash(600, 50, 0, 100, true);
+
+    const centerC = Math.floor(cols / 2);
+    const centerR = Math.floor(rows / 2);
+
+    // Bigger flower pattern: organized in waves for sequential spawn
+    // Wave 0: Center
+    const wave0 = [{ c: centerC, r: centerR }];
+    // Wave 1: Cardinal directions (close)
+    const wave1 = [
+      { c: centerC, r: centerR - 1 }, { c: centerC, r: centerR + 1 },
+      { c: centerC - 1, r: centerR }, { c: centerC + 1, r: centerR }
+    ];
+    // Wave 2: Cardinal directions (far)
+    const wave2 = [
+      { c: centerC, r: centerR - 2 }, { c: centerC, r: centerR - 3 }, { c: centerC, r: centerR - 4 },
+      { c: centerC, r: centerR + 2 }, { c: centerC, r: centerR + 3 }, { c: centerC, r: centerR + 4 },
+      { c: centerC - 2, r: centerR }, { c: centerC - 3, r: centerR }, { c: centerC - 4, r: centerR },
+      { c: centerC + 2, r: centerR }, { c: centerC + 3, r: centerR }, { c: centerC + 4, r: centerR }
+    ];
+    // Wave 3: Diagonals (all)
+    const wave3 = [
+      { c: centerC - 1, r: centerR - 1 }, { c: centerC - 2, r: centerR - 2 }, { c: centerC - 3, r: centerR - 3 },
+      { c: centerC + 1, r: centerR - 1 }, { c: centerC + 2, r: centerR - 2 }, { c: centerC + 3, r: centerR - 3 },
+      { c: centerC - 1, r: centerR + 1 }, { c: centerC - 2, r: centerR + 2 }, { c: centerC - 3, r: centerR + 3 },
+      { c: centerC + 1, r: centerR + 1 }, { c: centerC + 2, r: centerR + 2 }, { c: centerC + 3, r: centerR + 3 }
+    ];
+
+    const waves = [wave0, wave1, wave2, wave3];
+    const waveDelay = 500; // ms between waves
+    const telegraphDuration = 400;
+
+    // Process each wave in sequence
+    waves.forEach((wave, waveIndex) => {
+      // Filter valid positions
+      const validWave = wave.filter(pos => 
+        pos.c >= 0 && pos.c < cols && pos.r >= 0 && pos.r < rows
+      );
+
+      if (validWave.length === 0) return;
+
+      // Telegraph this wave
+      scene.time.delayedCall(waveIndex * waveDelay, () => {
+        validWave.forEach(pos => this.grid.telegraph(pos.c, pos.r, telegraphDuration));
+      });
+
+      // Spawn this wave after telegraph
+      scene.time.delayedCall(waveIndex * waveDelay + telegraphDuration, () => {
+        scene.cameras.main.shake(150 + waveIndex * 50, 0.015 + waveIndex * 0.005);
+        validWave.forEach(pos => {
+          this._spawnBigMonsterOnGrid(pos.c, pos.r, ts);
+        });
+      });
+    });
+
+    return waves.length * waveDelay + 2000;
+  }
+
+  // Helper for Monster Ambush - spawns BIG monster that fills the grid tile
+  _spawnBigMonsterOnGrid(c, r, ts) {
+    const pos = this.grid.getPixelPosition(c, r);
+
+    // Smoke spawn effect
+    this._spawnSmoke(pos.x, pos.y, () => {
+      if (this.hp <= 0 || this.scene.isGameOver) return;
+
+      // Create the monster BIG - proper aspect ratio (64x32 = 2:1)
+      // Width: 2 tiles, Height: 1 tile, bottom-aligned to grid tile
+      const monster = this.scene.add.sprite(pos.x, pos.y + ts * 0.5, 'ch3_monster2')
+        .setDepth(70)
+        .setOrigin(0.5, 1) // Bottom-center anchor
+        .setDisplaySize(ts * 2, ts * 1) // 2:1 aspect ratio, fills tile
+        .play('anim_ch3_monster2');
+
+      // Damage player if on same tile
+      if (this.scene.player.col === c && this.scene.player.row === r) {
+        this.scene.player.takeDamage();
+      }
+
+      // Despawn after animation
+      this.scene.time.delayedCall(2000, () => {
+        if (monster.active) {
+          this._spawnSmoke(monster.x, monster.y, null);
+          monster.destroy();
+        }
+      });
+    });
+  }
+
+  // ─── ATTACK 8: Abyssal Spiral ────────────────────────────────────────
+  ch3AbyssalSpiral() {
+    const ts = this.grid.tileSize;
+    const cols = this.grid.cols;
+    const rows = this.grid.rows;
+    const scene = this.scene;
+
+    // Beautiful intro - slow dramatic build (minimal shake)
+    scene.cameras.main.shake(400, 0.008);
+    scene.cameras.main.flash(500, 255, 255, 255, true);
+
+    const centerC = Math.floor(cols / 2);
+    const centerR = Math.floor(rows / 2);
+
+    // Create a beautiful spiral pattern - expanding rings with rotation
+    const spiralRings = [];
+    const maxRadius = Math.min(centerC, centerR);
+
+    for (let radius = 0; radius <= maxRadius; radius++) {
+      const ring = [];
+      if (radius === 0) {
+        ring.push({ c: centerC, r: centerR });
+      } else {
+        // Create ring positions at this radius
+        for (let angle = 0; angle < 360; angle += 45) {
+          const rad = (angle * Math.PI) / 180;
+          const c = Math.round(centerC + radius * Math.cos(rad));
+          const r = Math.round(centerR + radius * Math.sin(rad));
+          // Only add unique positions within bounds
+          if (c >= 0 && c < cols && r >= 0 && r < rows) {
+            if (!ring.some(pos => pos.c === c && pos.r === r)) {
+              ring.push({ c, r });
+            }
+          }
+        }
+      }
+      if (ring.length > 0) spiralRings.push(ring);
+    }
+
+    // Create wave pairs - alternating clockwise/counter-clockwise
+    const waves = [];
+    for (let i = 0; i < spiralRings.length; i++) {
+      const ring = spiralRings[i];
+      // Split ring into two waves for spiral effect
+      const wave1 = ring.filter((_, idx) => idx % 2 === 0);
+      const wave2 = ring.filter((_, idx) => idx % 2 === 1);
+      if (wave1.length > 0) waves.push(wave1);
+      if (wave2.length > 0) waves.push(wave2);
+    }
+
+    // Beautiful color sequence for each wave
+    const waveColors = [0xffffff, 0xffffff, 0xffffff, 0xffffff, 0xffffff, 0xffffff];
+
+    const waveDelay = 400;
+    const telegraphDuration = 350;
+
+    // Spawn waves in beautiful sequence
+    waves.forEach((wave, waveIndex) => {
+      // Telegraph this wave with color
+      scene.time.delayedCall(waveIndex * waveDelay, () => {
+        wave.forEach(pos => {
+          this.grid.telegraph(pos.c, pos.r, telegraphDuration);
+          // Add colored glow effect
+          const glow = scene.add.sprite(
+            this.grid.getPixelPosition(pos.c, pos.r).x,
+            this.grid.getPixelPosition(pos.c, pos.r).y,
+            'ch3_fx_ring'
+          ).setDepth(60).setTint(waveColors[waveIndex % waveColors.length]).setAlpha(0.6);
+          scene.time.delayedCall(telegraphDuration, () => glow.destroy());
+        });
+      });
+
+      // Spawn this wave's monsters (gentle shake)
+      scene.time.delayedCall(waveIndex * waveDelay + telegraphDuration, () => {
+        scene.cameras.main.shake(80, 0.006);
+        wave.forEach((pos, idx) => {
+          scene.time.delayedCall(idx * 80, () => {
+            this._spawnAbyssalMonster(pos.c, pos.r, ts, waveColors[waveIndex % waveColors.length]);
+          });
+        });
+      });
+    });
+
+    // Grand finale - all remaining edge positions
+    const finaleDelay = waves.length * waveDelay + 1000;
+    const edgePositions = [];
+    for (let c = 0; c < cols; c++) {
+      edgePositions.push({ c, r: 0 }, { c, r: rows - 1 });
+    }
+    for (let r = 1; r < rows - 1; r++) {
+      edgePositions.push({ c: 0, r }, { c: cols - 1, r });
+    }
+
+    scene.time.delayedCall(finaleDelay, () => {
+      scene.cameras.main.shake(200, 0.012);
+      scene.cameras.main.flash(300, 255, 255, 255, true);
+      edgePositions.forEach(pos => this.grid.telegraph(pos.c, pos.r, 400));
+    });
+
+    scene.time.delayedCall(finaleDelay + 500, () => {
+      edgePositions.forEach(pos => {
+        this._spawnAbyssalMonster(pos.c, pos.r, ts, 0xffffff);
+      });
+    });
+
+    return finaleDelay + 2500;
+  }
+
+  // Helper for Abyssal Spiral - spawns colored abyssal monster
+  _spawnAbyssalMonster(c, r, ts, tintColor) {
+    const pos = this.grid.getPixelPosition(c, r);
+
+    this._spawnSmoke(pos.x, pos.y, () => {
+      if (this.hp <= 0 || this.scene.isGameOver) return;
+
+      // Create the monster (96x64 = 3:2 aspect ratio)
+      const monster = this.scene.add.sprite(pos.x, pos.y + ts * 0.3, 'ch3_monster6')
+        .setDepth(70)
+        .setOrigin(0.5, 1)
+        .setDisplaySize(ts * 2, ts * 1.3) // Wider monster
+        .setTint(tintColor)
+        .play('anim_ch3_monster6');
+
+      // Damage player if on same tile
+      if (this.scene.player.col === c && this.scene.player.row === r) {
+        this.scene.player.takeDamage();
+      }
+
+      // Despawn after animation
+      this.scene.time.delayedCall(2200, () => {
+        if (monster.active) {
+          this._spawnSmoke(monster.x, monster.y, null);
+          monster.destroy();
+        }
+      });
+    });
+  }
+
+  // ─── CHAPTER 3 ULTIMATE: Abyssal Trail ─────────────────────────────
+  ch3UltimateRotatingBarrage() {
+    const ts = this.grid.tileSize;
+    const scene = this.scene;
+    const cols = this.grid.cols;
+    const rows = this.grid.rows;
+    const duration = 15000; // 15 seconds
+
+    // ── BIG dramatic intro ──
+    scene.cameras.main.shake(800, 0.035);
+    scene.cameras.main.flash(1000, 0, 80, 200, true);
+
+    // Boss attack animation
+    scene.events.emit('boss:attack');
+
+    const active = { value: true };
+    const fireMap = new Map();
+    let fireCount = 0;
+
+    // Place a permanent fire on a grid cell with flashy FX
+    const placeFireAt = (col, row) => {
+      const key = `${col},${row}`;
+      if (fireMap.has(key)) return;
+      if (col < 0 || col >= cols || row < 0 || row >= rows) return;
+
+      const pos = this.grid.getPixelPosition(col, row);
+      fireCount++;
+
+      // Spawn smoke puff on ignition
+      const smoke = scene.add.sprite(pos.x, pos.y, 'ch3_smoke_spawn')
+        .setDepth(160).setDisplaySize(ts * 1.8, ts * 1.8).setAlpha(0.7).play('anim_ch3_smoke');
+      smoke.once('animationcomplete', () => smoke.destroy());
+
+      // Blue FX ring burst
+      const ring = scene.add.sprite(pos.x, pos.y, 'ch3_fx_ring')
+        .setDepth(155).setDisplaySize(ts * 0.5, ts * 0.5).setAlpha(0.9).play('anim_ch3_fx_ring');
+      scene.tweens.add({
+        targets: ring, displayWidth: ts * 2.5, displayHeight: ts * 2.5, alpha: 0,
+        duration: 350, onComplete: () => ring.destroy()
+      });
+
+      // The fire itself
+      const fire = scene.add.sprite(pos.x, pos.y, 'ch3_water_beam')
+        .setDepth(150)
+        .setDisplaySize(ts * 1.6, ts * 1.6)
+        .setAlpha(0)
+        .play('anim_ch3_water_beam');
+
+      // Fade in + subtle pulsing glow
+      scene.tweens.add({ targets: fire, alpha: 0.9, duration: 150 });
+      scene.tweens.add({
+        targets: fire, alpha: 0.6, duration: 600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut'
+      });
+
+      // Mini shake on each fire placement
+      scene.cameras.main.shake(60, 0.005);
+
+      fireMap.set(key, { sprite: fire, col, row });
+
+      // Every 5 fires, do a bigger screen shake + flash for intensity
+      if (fireCount % 5 === 0) {
+        scene.cameras.main.shake(150, 0.012);
+        scene.cameras.main.flash(150, 0, 120, 200, true);
+      }
+    };
+
+    // Clear all fires with explosion FX
+    const clearAllFires = () => {
+      fireMap.forEach(entry => {
+        if (entry.sprite.active) {
+          const pos = { x: entry.sprite.x, y: entry.sprite.y };
+          // Explosion on each fire tile as it clears
+          const exp = scene.add.sprite(pos.x, pos.y, 'ch3_fx_bubble')
+            .setDepth(170).setDisplaySize(ts * 1.5, ts * 1.5).play('anim_ch3_fx_bubble');
+          scene.time.delayedCall(400, () => exp.destroy());
+
+          scene.tweens.add({
+            targets: entry.sprite, alpha: 0, scaleX: 0.2, scaleY: 0.2,
+            duration: 300, onComplete: () => entry.sprite.destroy()
+          });
+        }
+      });
+      fireMap.clear();
+    };
+
+    // Track the player's last known position
+    let lastPlayerCol = scene.player.col;
+    let lastPlayerRow = scene.player.row;
+
+    // Idle timer — fire catches standing players
+    let idleTimer = 0;
+    const idleThreshold = 800;
+
+    // Movement tracker + idle punisher
+    const moveTracker = scene.time.addEvent({
+      delay: 50,
+      loop: true,
+      callback: () => {
+        if (!active.value || this.hp <= 0 || scene.isGameOver) { moveTracker.remove(); return; }
+
+        const pc = scene.player.col;
+        const pr = scene.player.row;
+
+        if (pc !== lastPlayerCol || pr !== lastPlayerRow) {
+          const prevC = lastPlayerCol;
+          const prevR = lastPlayerRow;
+          scene.time.delayedCall(70, () => {
+            if (!active.value) return;
+            placeFireAt(prevC, prevR);
+          });
+          lastPlayerCol = pc;
+          lastPlayerRow = pr;
+          idleTimer = 0;
+        } else {
+          idleTimer += 50;
+          if (idleTimer >= idleThreshold) {
+            placeFireAt(pc, pr);
+            idleTimer = 0;
+          }
+        }
+      }
+    });
+
+    // ── Periodic intensity pulses — lightning + shakes throughout ──
+    const pulseTimer = scene.time.addEvent({
+      delay: 2000,
+      loop: true,
+      callback: () => {
+        if (!active.value || this.hp <= 0 || scene.isGameOver) { pulseTimer.remove(); return; }
+
+        // Big shake + flash pulse
+        scene.cameras.main.shake(300, 0.02);
+        scene.cameras.main.flash(200, 0, 100, 220, true);
+
+        // Spawn random lightning bolts for visual flair
+        const randC = Phaser.Math.Between(0, cols - 1);
+        const randR = Phaser.Math.Between(0, rows - 1);
+        const lpos = this.grid.getPixelPosition(randC, randR);
+        const bolt = scene.add.sprite(lpos.x, lpos.y, 'ch3_fx_thunder')
+          .setDepth(180).setDisplaySize(ts * 2, ts * 3).setAlpha(0.8).play('anim_ch3_fx_thunder');
+        scene.tweens.add({
+          targets: bolt, alpha: 0, duration: 500, onComplete: () => bolt.destroy()
+        });
+
+        // Spawn a whirl FX at another random spot
+        const randC2 = Phaser.Math.Between(0, cols - 1);
+        const randR2 = Phaser.Math.Between(0, rows - 1);
+        const wpos = this.grid.getPixelPosition(randC2, randR2);
+        const whirl = scene.add.sprite(wpos.x, wpos.y, 'ch3_fx_whirl')
+          .setDepth(175).setDisplaySize(ts * 2, ts * 2).setAlpha(0.7).play('anim_ch3_fx_whirl');
+        scene.tweens.add({
+          targets: whirl, alpha: 0, rotation: Math.PI * 2, duration: 800,
+          onComplete: () => whirl.destroy()
+        });
+      }
+    });
+
+    // ── Distraction attack: Lightning strikes on random tiles ──
+    // Telegraphs with alert symbol, then lightning burst deals damage
+    const strikeTimer = scene.time.addEvent({
+      delay: 2500,
+      loop: true,
+      callback: () => {
+        if (!active.value || this.hp <= 0 || scene.isGameOver) { strikeTimer.remove(); return; }
+
+        // Pick 2-3 random non-burning tiles to strike
+        const strikeCount = Phaser.Math.Between(2, 3);
+        const targets = [];
+        let attempts = 0;
+        while (targets.length < strikeCount && attempts < 30) {
+          const c = Phaser.Math.Between(0, cols - 1);
+          const r = Phaser.Math.Between(0, rows - 1);
+          const key = `${c},${r}`;
+          if (!fireMap.has(key) && !targets.some(t => t.c === c && t.r === r)) {
+            targets.push({ c, r });
+          }
+          attempts++;
+        }
+
+        targets.forEach((t, idx) => {
+          const pos = this.grid.getPixelPosition(t.c, t.r);
+
+          // Telegraph with alert symbol
+          this.grid.telegraph(t.c, t.r, 800);
+          const alert = scene.add.sprite(pos.x, pos.y - ts * 0.4, 'symbol_alert')
+            .setDepth(200).setScale(0.8).play('anim_symbol_alert');
+          alert.once('animationcomplete', () => alert.destroy());
+
+          // After telegraph, lightning strikes
+          scene.time.delayedCall(800, () => {
+            if (!active.value || this.hp <= 0 || scene.isGameOver) return;
+
+            // Lightning burst FX
+            const burst = scene.add.sprite(pos.x, pos.y, 'lightning_burst')
+              .setDepth(190).setScale(1.8).play('anim_lightning_burst');
+            burst.once('animationcomplete', () => burst.destroy());
+
+            // Frozen splash FX for visual chaos
+            const ice = scene.add.sprite(pos.x, pos.y, 'frozen')
+              .setDepth(185).setScale(0.8).play('anim_frozen');
+            ice.once('animationcomplete', () => ice.destroy());
+
+            scene.cameras.main.shake(120, 0.01);
+
+            // Damage if player is on the struck tile
+            if (scene.player.col === t.c && scene.player.row === t.r) {
+              if (!scene.player.isInvulnerable) {
+                scene.player.takeDamage();
+              }
+            }
+          });
+        });
+      }
+    });
+
+    // ── Distraction attack: Sweeping row/column warnings ──
+    // Every few seconds, telegraph an entire row or column then blast it
+    const sweepTimer = scene.time.addEvent({
+      delay: 3500,
+      startAt: 1500,
+      loop: true,
+      callback: () => {
+        if (!active.value || this.hp <= 0 || scene.isGameOver) { sweepTimer.remove(); return; }
+
+        const isRow = Math.random() > 0.5;
+        if (isRow) {
+          const r = Phaser.Math.Between(0, rows - 1);
+          this.grid.telegraphRow(r, 700);
+
+          // Alert symbol at the edge
+          const edgePos = this.grid.getPixelPosition(0, r);
+          const alert2 = scene.add.sprite(edgePos.x - ts, edgePos.y, 'symbol_alert2')
+            .setDepth(200).setScale(0.8).play('anim_symbol_alert2');
+          alert2.once('animationcomplete', () => alert2.destroy());
+
+          scene.time.delayedCall(700, () => {
+            if (!active.value || this.hp <= 0 || scene.isGameOver) return;
+            scene.cameras.main.shake(150, 0.012);
+
+            // Lightning burst across the row
+            for (let c = 0; c < cols; c++) {
+              const p = this.grid.getPixelPosition(c, r);
+              const lb = scene.add.sprite(p.x, p.y, 'lightning_burst')
+                .setDepth(190).setScale(1.2).play('anim_lightning_burst');
+              lb.once('animationcomplete', () => lb.destroy());
+            }
+
+            // Damage if player is on this row
+            if (scene.player.row === r && !scene.player.isInvulnerable) {
+              scene.player.takeDamage();
+            }
+          });
+        } else {
+          const c = Phaser.Math.Between(0, cols - 1);
+          this.grid.telegraphCol(c, 700);
+
+          // Alert symbol at the top
+          const edgePos = this.grid.getPixelPosition(c, 0);
+          const alert2 = scene.add.sprite(edgePos.x, edgePos.y - ts, 'symbol_alert2')
+            .setDepth(200).setScale(0.8).play('anim_symbol_alert2');
+          alert2.once('animationcomplete', () => alert2.destroy());
+
+          scene.time.delayedCall(700, () => {
+            if (!active.value || this.hp <= 0 || scene.isGameOver) return;
+            scene.cameras.main.shake(150, 0.012);
+
+            // Lightning burst down the column
+            for (let r = 0; r < rows; r++) {
+              const p = this.grid.getPixelPosition(c, r);
+              const lb = scene.add.sprite(p.x, p.y, 'lightning_burst')
+                .setDepth(190).setScale(1.2).play('anim_lightning_burst');
+              lb.once('animationcomplete', () => lb.destroy());
+            }
+
+            // Damage if player is on this column
+            if (scene.player.col === c && !scene.player.isInvulnerable) {
+              scene.player.takeDamage();
+            }
+          });
+        }
+      }
+    });
+
+    // Damage checker (fire trail)
+    let lastDamageTime = 0;
+    const damageInterval = 600;
+
+    const damageTimer = scene.time.addEvent({
+      delay: 100,
+      loop: true,
+      callback: () => {
+        if (!active.value || this.hp <= 0 || scene.isGameOver) { damageTimer.remove(); return; }
+
+        const now = Date.now();
+        if (now - lastDamageTime < damageInterval) return;
+
+        const key = `${scene.player.col},${scene.player.row}`;
+        if (fireMap.has(key)) {
+          if (!scene.player.isInvulnerable) {
+            scene.player.takeDamage();
+            lastDamageTime = now;
+            scene.cameras.main.shake(100, 0.015);
+
+            const pPix = this.grid.getPixelPosition(scene.player.col, scene.player.row);
+            const fx = scene.add.sprite(pPix.x, pPix.y, 'eye_explosion')
+              .setDepth(200).setScale(1.5).play('anim_eye_explosion');
+            scene.time.delayedCall(600, () => fx.destroy());
+          }
+        }
+      }
+    });
+
+    // ── Grand finale cleanup ──
+    scene.time.delayedCall(duration, () => {
+      active.value = false;
+      if (moveTracker) moveTracker.remove();
+      if (damageTimer) damageTimer.remove();
+      if (pulseTimer) pulseTimer.remove();
+      if (strikeTimer) strikeTimer.remove();
+      if (sweepTimer) sweepTimer.remove();
+
+      // Big finale explosion
+      scene.cameras.main.shake(500, 0.03);
+      scene.cameras.main.flash(600, 255, 255, 255, true);
+      clearAllFires();
+    });
+
+    return duration;
   }
 }

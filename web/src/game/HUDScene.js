@@ -9,19 +9,32 @@ export class HUDScene extends Phaser.Scene {
   init(data) {
     this.chapterId = data.chapterId;
     this.character = data.character || 'male';
+    this.control = data.control || 'keyboard';
+    this.isPracticeTutorial = data.isPracticeTutorial || false;
     this.elapsed = 0;
   }
 
   create() {
     const { width, height } = this.scale;
+
+    // ========== PRACTICE TUTORIAL: Simplified layout ==========
+    if (this.isPracticeTutorial) {
+      this._createPracticeTutorialLayout(width, height);
+      return;
+    }
+
+    // ========== REGULAR GAME: Full layout with left panel ==========
     const leftWidth = Math.max(width < 768 ? 160 : 250, Math.min(450, width * 0.28));
 
     // ========== LEFT PANEL BACKGROUND ==========
-    this.panelBg = this.add.graphics();
-    this.panelBg.fillStyle(0x130f04, 1);
-    this.panelBg.fillRect(0, 0, leftWidth, height);
+    // Use image background instead of solid color
+    this.leftPanelBg = this.add.image(0, 0, 'left_panel_bg');
+    this.leftPanelBg.setOrigin(0, 0);
+    this.leftPanelBg.setDisplaySize(leftWidth, height);
+    this.leftPanelBg.setDepth(0);
 
-    // Panel divider line
+    // Panel divider line (keep for visual separation)
+    this.panelBg = this.add.graphics();
     this.panelBg.lineStyle(4, 0x201c11, 1);
     this.panelBg.beginPath();
     this.panelBg.moveTo(leftWidth, 0);
@@ -94,63 +107,81 @@ export class HUDScene extends Phaser.Scene {
     } else if (this.chapterId == 3) {
       bossName = "KATAW";
       bossTitle = "ABYSSAL SIREN";
+    } else if (this.chapterId == 4) {
+      bossName = "∞";
+      bossTitle = "WALANG KATAPUSAN";
     }
 
-    // Scale boss name/subtitle to fit bossBoxW (actual usable text width)
-    const bossNamePx    = bossBoxW < 160 ? 14 : bossBoxW < 200 ? 18 : bossBoxW < 250 ? 22 : 28;
-    const bossTitlePx   = bossBoxW < 160 ? 9  : bossBoxW < 200 ? 10 : bossBoxW < 250 ? 12 : 14;
+    // Scale boss name/subtitle to fit bossBoxW (actual usable text width) - BIGGER sizes
+    const bossNamePx    = bossBoxW < 160 ? 18 : bossBoxW < 200 ? 24 : bossBoxW < 250 ? 28 : 34;
+    const bossTitlePx   = bossBoxW < 160 ? 12 : bossBoxW < 200 ? 14 : bossBoxW < 250 ? 16 : 18;
     const bossNameSize  = `${bossNamePx}px`;
     const bossTitleSize = `${bossTitlePx}px`;
 
-    // Stack tightly from top bar: name → subtitle → hp bar → boss box
-    const textGap   = 5;
-    const bossNameY = topBarY + 28;                              // just below top bar
+    // Stack from top bar: name → subtitle → hp bar → boss box (with padding)
+    const textGap   = 8;
+    const bossNameY = topBarY + 35;                              // just below top bar
     const bossTitleY = bossNameY + bossNamePx + textGap;
-    const hpBarY     = bossTitleY + bossTitlePx + textGap;
-    const bossBoxY   = hpBarY + 18 + textGap;                   // 18 = hp bar visual height
+    const hpBarY     = bossTitleY + bossTitlePx + textGap + 8;  // +8 extra gap before HP bar
+    const bossBoxY   = hpBarY + 28 + 12;                       // 28 = hp bar height, 12 = gap before frame
 
     const remainingHeight = height - bossBoxY;
     // On small screens give the boss box less room so camera/dpad fits
     const bossBoxRatio = height < 500 ? 0.28 : height < 650 ? 0.32 : 0.38;
     const bossBoxH = Math.floor(remainingHeight * bossBoxRatio);
 
-    // Box background
-    this.panelBg.fillStyle(0x201c11, 1);
-    this.panelBg.fillRect(boxPadX, bossBoxY, bossBoxW, bossBoxH);
-    // Border
+    // Border only (background is now the left panel image)
     this.panelBg.lineStyle(3, 0x100c04, 1);
     this.panelBg.strokeRect(boxPadX, bossBoxY, bossBoxW, bossBoxH);
 
-    // Main Title (Giga Saturn)
-    this.add.text(boxPadX, bossNameY, bossName, {
-      fontFamily: 'GigaSaturn', fontSize: bossNameSize, color: '#ffd700', align: 'left',
+    // Main Title (Giga Saturn) - CENTERED
+    this.add.text(boxPadX + bossBoxW / 2, bossNameY, bossName, {
+      fontFamily: 'GigaSaturn', fontSize: bossNameSize, color: '#ffd700', align: 'center',
       wordWrap: { width: bossBoxW, useAdvancedWrap: true }
-    }).setOrigin(0, 0);
+    }).setOrigin(0.5, 0);
 
-    // Subtitle
-    this.add.text(boxPadX, bossTitleY, bossTitle, {
-      fontFamily: 'VCR', fontSize: bossTitleSize, color: '#f0e6d3', align: 'left',
+    // Subtitle - CENTERED
+    this.add.text(boxPadX + bossBoxW / 2, bossTitleY, bossTitle, {
+      fontFamily: 'VCR', fontSize: bossTitleSize, color: '#f0e6d3', align: 'center',
       wordWrap: { width: bossBoxW, useAdvancedWrap: true }
-    }).setOrigin(0, 0);
+    }).setOrigin(0.5, 0);
 
     // *** BOSS ANIMATED SPRITE — rendered HERE in HUDScene so it's visible ***
     // The boss_idle and boss_ult_attack spritesheets were loaded by GameScene.
     const bossCenterX = boxPadX + bossBoxW / 2;
     const bossCenterY = bossBoxY + bossBoxH / 2;
 
+    // Chapter checks
+    const isCh1 = this.chapterId === 1;
+    const isCh2 = this.chapterId === 2;
+    const isCh3 = this.chapterId === 3;
+    const isEndless = this.chapterId === 4;
+
+    // Endless mode: show infinity symbol, skip boss sprite and HP bar
+    if (isEndless) {
+      const infinityFontSize = Math.max(40, Math.min(80, bossBoxH * 0.6));
+      this.add.text(bossCenterX, bossCenterY - 10, '∞', {
+        fontFamily: 'GigaSaturn', fontSize: `${infinityFontSize}px`, color: '#ffd700',
+        shadow: { offsetX: 0, offsetY: 0, color: '#ff8c00', blur: 24, fill: true }
+      }).setOrigin(0.5);
+      this.add.text(bossCenterX, bossCenterY + infinityFontSize * 0.55, 'SURVIVE', {
+        fontFamily: 'VCR', fontSize: `${Math.round(bossTitlePx * 0.9)}px`, color: '#f0e6d3', align: 'center'
+      }).setOrigin(0.5);
+      // Skip boss sprite / HP bar creation below
+    }
+
     // Create boss animations first
     if (!this.anims.exists('anim_boss_idle')) {
-      const isCh1 = this.chapterId === 1;
-      const isCh2 = this.chapterId === 2;
       this.anims.create({
         key: 'anim_boss_idle',
-        frames: isCh1 ? this.anims.generateFrameNumbers('boss_idle', { start: 0, end: 54 })
+        frames: (isCh1 || isEndless) ? this.anims.generateFrameNumbers('boss_idle', { start: 0, end: 54 })
                       : isCh2 ? this.anims.generateFrameNumbers('boss_idle', { start: 0, end: 24 })
+                      : isCh3 ? this.anims.generateFrameNumbers('boss_idle', { start: 0, end: 33 })
                       : this.anims.generateFrameNumbers('boss_idle'),
         frameRate: 24,
         repeat: -1
       });
-      if (!isCh1 && !isCh2) {
+      if (!isCh1 && !isCh2 && !isCh3) {
         this.anims.create({
           key: 'anim_boss_attack',
           frames: this.anims.generateFrameNumbers('boss_cast'),
@@ -158,25 +189,55 @@ export class HUDScene extends Phaser.Scene {
           repeat: 0
         });
       }
-      if (isCh1) {
-        this.anims.create({
-          key: 'anim_boss_ult_attack',
-          frames: this.anims.generateFrameNumbers('boss_ult_attack', { start: 0, end: 56 }),
-          frameRate: 12,
-          repeat: 0
-        });
-      }
-      if (isCh2) {
-        this.anims.create({
-          key: 'anim_boss_ch2_ult_attack',
-          frames: this.anims.generateFrameNumbers('boss_ch2_ult_attack', { start: 0, end: 35 }),
-          frameRate: 12,
-          repeat: 0
-        });
-      }
+    }
+    // Create chapter-specific ult attack animations (check individually)
+    if ((isCh1 || isEndless) && !this.anims.exists('anim_boss_ult_attack')) {
+      this.anims.create({
+        key: 'anim_boss_ult_attack',
+        frames: this.anims.generateFrameNumbers('boss_ult_attack', { start: 0, end: 56 }),
+        frameRate: 12,
+        repeat: 0
+      });
+    }
+    if (isCh2 && !this.anims.exists('anim_boss_ch2_ult_attack')) {
+      this.anims.create({
+        key: 'anim_boss_ch2_ult_attack',
+        frames: this.anims.generateFrameNumbers('boss_ch2_ult_attack', { start: 0, end: 35 }),
+        frameRate: 12,
+        repeat: 0
+      });
+    }
+    if (isCh3 && !this.anims.exists('anim_boss_ch3_ult_attack')) {
+      this.anims.create({
+        key: 'anim_boss_ch3_ult_attack',
+        frames: this.anims.generateFrameNumbers('boss_ch3_ult_attack', { start: 0, end: 29 }),
+        frameRate: 12,
+        repeat: 0
+      });
     }
 
-    this.bossSprite = this.add.sprite(bossCenterX, bossCenterY, 'boss_idle');
+    // Create boss sprite with fallback if texture fails to load
+    let hasBossTexture = this.textures.exists('boss_idle');
+    if (hasBossTexture) {
+      this.bossSprite = this.add.sprite(bossCenterX, bossCenterY, 'boss_idle');
+    } else {
+      console.warn('[HUDScene] boss_idle texture not found, creating placeholder');
+      this.bossSprite = this.add.rectangle(bossCenterX, bossCenterY, bossBoxW - 20, bossBoxH - 20, 0x444444);
+
+      // Listen for texture load to replace placeholder
+      this.textures.on('add', (key) => {
+        if (key === 'boss_idle' && this.bossSprite && this.bossSprite.type === 'Rectangle') {
+          console.log('[HUDScene] boss_idle texture loaded, replacing placeholder');
+          this.bossSprite.destroy();
+          this.bossSprite = this.add.sprite(bossCenterX, bossCenterY, 'boss_idle');
+          this.bossSprite.setOrigin(0.5, 0.5);
+          updateBossScale();
+          if (this.anims.exists('anim_boss_idle')) {
+            this.bossSprite.play('anim_boss_idle');
+          }
+        }
+      });
+    }
     this.bossSprite.setOrigin(0.5, 0.5);
 
     const updateBossScale = () => {
@@ -190,26 +251,36 @@ export class HUDScene extends Phaser.Scene {
 
     // Revert to idle after attacking (ch2+)
     this.bossSprite.on('animationcomplete-anim_boss_attack', () => {
-      this.bossSprite.setTexture('boss_idle');
+      if (hasBossTexture && this.bossSprite.setTexture) this.bossSprite.setTexture('boss_idle');
       updateBossScale();
-      this.bossSprite.play('anim_boss_idle');
+      if (hasBossTexture && this.anims.exists('anim_boss_idle')) this.bossSprite.play('anim_boss_idle');
     });
 
     // Revert to idle after ult attack (ch1)
     this.bossSprite.on('animationcomplete-anim_boss_ult_attack', () => {
-      this.bossSprite.setTexture('boss_idle');
+      if (hasBossTexture && this.bossSprite.setTexture) this.bossSprite.setTexture('boss_idle');
       updateBossScale();
-      this.bossSprite.play('anim_boss_idle');
+      if (hasBossTexture && this.anims.exists('anim_boss_idle')) this.bossSprite.play('anim_boss_idle');
     });
 
     // Revert to idle after ult attack (ch2)
     this.bossSprite.on('animationcomplete-anim_boss_ch2_ult_attack', () => {
-      this.bossSprite.setTexture('boss_idle');
+      if (hasBossTexture && this.bossSprite.setTexture) this.bossSprite.setTexture('boss_idle');
       updateBossScale();
-      this.bossSprite.play('anim_boss_idle');
+      if (hasBossTexture && this.anims.exists('anim_boss_idle')) this.bossSprite.play('anim_boss_idle');
     });
 
-    this.bossSprite.play('anim_boss_idle');
+    // Revert to idle after ult attack (ch3)
+    this.bossSprite.on('animationcomplete-anim_boss_ch3_ult_attack', () => {
+      if (hasBossTexture && this.bossSprite.setTexture) this.bossSprite.setTexture('boss_idle');
+      updateBossScale();
+      if (hasBossTexture && this.anims.exists('anim_boss_idle')) this.bossSprite.play('anim_boss_idle');
+    });
+
+    // Play animation only if it exists
+    if (hasBossTexture && this.anims.exists('anim_boss_idle')) {
+      this.bossSprite.play('anim_boss_idle');
+    }
 
     // TEMPORARY DEBUG BUTTON FOR CHAPTER 2 SEQUENTIAL ATTACKS
     if (this.chapterId === 2) {
@@ -255,63 +326,132 @@ export class HUDScene extends Phaser.Scene {
       });
     }
     
-    // TEMPORARY DEBUG BUTTON FOR CHAPTER 3 SEQUENTIAL ATTACKS
+    // DEBUG BUTTONS FOR CHAPTER 3 INDIVIDUAL ATTACKS
     if (this.chapterId === 3) {
-      const debugBtn = this.add.text(this.scale.width / 2, 20, 'DEBUG: RUN ALL CH3 ATTACKS', {
-        backgroundColor: '#00ccff',
-        color: '#000',
+      const attackConfigs = [
+        { id: 0, name: '#0 Kataw', color: '#00ccff', bossFn: 'ch3KatawExplosionPattern1' },
+        { id: 1, name: '#1 Fish', color: '#00ccff', bossFn: 'ch3FishKingMultiSpell' },
+        { id: 2, name: '#2 Shark', color: '#00ccff', bossFn: 'ch3SharkLanes' },
+        { id: 3, name: '#3 Bat', color: '#00ccff', bossFn: 'ch3BatDiveBomb' },
+        { id: 4, name: '#4 Siren', color: '#00ccff', bossFn: 'ch3SirensLure' },
+        { id: 5, name: '#5 Storm', color: '#00ccff', bossFn: 'ch3DiamondStormPattern1' },
+        { id: 6, name: '#6 Monster', color: '#ffdd00', bossFn: 'ch3MonsterAmbush' },
+        { id: 7, name: '#7 Prismatic', color: '#ff66cc', bossFn: 'ch3PrismaticBeamStorm' },
+        { id: 8, name: '#8 Spiral', color: '#ff00ff', bossFn: 'ch3AbyssalSpiral' }
+      ];
+
+      const btnWidth = 85;
+      const spacing = 6;
+      const totalWidth = attackConfigs.length * btnWidth + (attackConfigs.length - 1) * spacing;
+      const startX = (this.scale.width - totalWidth) / 2 + btnWidth / 2;
+
+      attackConfigs.forEach((cfg, i) => {
+        const btn = this.add.text(startX + i * (btnWidth + spacing), 10, cfg.name, {
+          backgroundColor: cfg.color,
+          color: '#000',
+          fontFamily: 'VCR',
+          fontSize: '12px',
+          padding: { x: 6, y: 4 }
+        }).setOrigin(0.5, 0).setDepth(9999).setInteractive();
+
+        btn.on('pointerdown', () => {
+          const gameScene = this.scene.get('GameScene');
+          if (!gameScene || !gameScene.boss || gameScene.boss.hp <= 0) return;
+          const boss = gameScene.boss;
+
+          // Stop standard looping
+          if (boss.attackTimer) boss.attackTimer.remove();
+
+          // Run the specific attack
+          if (boss[cfg.bossFn]) {
+            boss[cfg.bossFn]();
+          }
+        });
+      });
+
+      // Control buttons row (below attack buttons)
+      const controlY = 45;
+      const smallBtnWidth = 80;
+
+      // ULTIMATE button (left - red)
+      const ultimateBtn = this.add.text(this.scale.width / 2 - smallBtnWidth * 1.8, controlY, 'ULTIMATE', {
+        backgroundColor: '#ff0000',
+        color: '#fff',
         fontFamily: 'VCR',
-        fontSize: '20px',
-        padding: { x: 10, y: 10 }
+        fontSize: '10px',
+        padding: { x: 6, y: 4 }
       }).setOrigin(0.5, 0).setDepth(9999).setInteractive();
 
-      debugBtn.on('pointerdown', () => {
+      ultimateBtn.on('pointerdown', () => {
         const gameScene = this.scene.get('GameScene');
         if (!gameScene || !gameScene.boss || gameScene.boss.hp <= 0) return;
         const boss = gameScene.boss;
-
-        // Stop standard looping
         if (boss.attackTimer) boss.attackTimer.remove();
+        boss.ch3UltimateRotatingBarrage();
+        ultimateBtn.setText('ULT ACTIVE');
+        setTimeout(() => ultimateBtn.setText('ULTIMATE'), 12000);
+      });
 
-        const attacks = [
-          () => boss.ch3KatawExplosionPattern1(),
-          () => boss.ch3KatawExplosionPattern2(),
-          () => boss.ch3KatawExplosionPattern3(),
-          () => boss.ch3AbyssalCrossPattern1(),
-          () => boss.ch3AbyssalCrossPattern2(),
-          () => boss.ch3AbyssalCrossPattern3(),
-          () => boss.ch3AbyssalCrossPattern4(),
-          () => boss.ch3DiamondStormPattern1(),
-          () => boss.ch3DiamondStormPattern2(),
-          () => boss.ch3DiamondStormPattern3(),
-          () => boss.ch3DiamondStormPattern4(),
-          () => boss.ch3FishKingSummonerWave(),
-          () => boss.ch3FishKingMultiSpell(),
-          () => boss.ch3SharkLanes(),
-          () => boss.ch3JellyfishCurtain(),
-          () => boss.ch3NemoSwarm(),
-          () => boss.ch3BatDiveBomb(),
-          () => boss.ch3BioluminescentBlackout(),
-          () => boss.ch3WhirlpoolMaze(),
-          () => boss.ch3SirensLure(),
-          () => boss.ch3MedusaGaze(),
-          () => boss.ch3CthulhuRifts(),
-          () => boss.ch3SirenSnakeChase()
-        ];
+      // STOP ATTACKS button
+      const stopBtn = this.add.text(this.scale.width / 2 - smallBtnWidth * 0.6, controlY, 'STOP ATTACKS', {
+        backgroundColor: '#ff4444',
+        color: '#fff',
+        fontFamily: 'VCR',
+        fontSize: '10px',
+        padding: { x: 6, y: 4 }
+      }).setOrigin(0.5, 0).setDepth(9999).setInteractive();
 
-        const runNext = (idx) => {
-          if (idx >= attacks.length) {
-             debugBtn.setText('DEBUG: TEST COMPLETED');
-             return;
-          }
-          if (boss.hp <= 0 || gameScene.isGameOver) return;
-          // Change text to show current attack
-          debugBtn.setText(`RUNNING CH3 ATTACK ${idx + 1}/${attacks.length}`);
-          const duration = attacks[idx]();
-          this.time.delayedCall(duration + 1500, () => runNext(idx + 1));
-        };
+      stopBtn.on('pointerdown', () => {
+        const gameScene = this.scene.get('GameScene');
+        if (!gameScene || !gameScene.boss) return;
+        const boss = gameScene.boss;
+        if (boss.attackTimer) boss.attackTimer.remove();
+        stopBtn.setText('ATTACKS STOPPED');
+        setTimeout(() => stopBtn.setText('STOP ATTACKS'), 1500);
+      });
 
-        runNext(0);
+      // START NORMAL button
+      const startBtn = this.add.text(this.scale.width / 2 + smallBtnWidth * 0.6, controlY, 'START NORMAL', {
+        backgroundColor: '#44ff44',
+        color: '#000',
+        fontFamily: 'VCR',
+        fontSize: '10px',
+        padding: { x: 6, y: 4 }
+      }).setOrigin(0.5, 0).setDepth(9999).setInteractive();
+
+      startBtn.on('pointerdown', () => {
+        const gameScene = this.scene.get('GameScene');
+        if (!gameScene || !gameScene.boss || gameScene.boss.hp <= 0) return;
+        const boss = gameScene.boss;
+        if (boss.attackTimer) boss.attackTimer.remove();
+        boss.lastAttackId = -1;
+        boss.executeAttack();
+        startBtn.setText('NORMAL ACTIVE');
+        setTimeout(() => startBtn.setText('START NORMAL'), 1500);
+      });
+
+      // LIVES UP button (right)
+      const livesBtn = this.add.text(this.scale.width / 2 + smallBtnWidth * 1.8, controlY, '+1 LIFE', {
+        backgroundColor: '#ff00ff',
+        color: '#fff',
+        fontFamily: 'VCR',
+        fontSize: '10px',
+        padding: { x: 6, y: 4 }
+      }).setOrigin(0.5, 0).setDepth(9999).setInteractive();
+
+      livesBtn.on('pointerdown', () => {
+        const gameScene = this.scene.get('GameScene');
+        if (!gameScene || !gameScene.player) return;
+        const player = gameScene.player;
+        if (player.lives < 5) {
+          player.lives++;
+          gameScene.events.emit('player:livesChanged', player.lives);
+          livesBtn.setText(`LIVES: ${player.lives}`);
+          setTimeout(() => livesBtn.setText('+1 LIFE'), 1000);
+        } else {
+          livesBtn.setText('MAX LIVES');
+          setTimeout(() => livesBtn.setText('+1 LIFE'), 1000);
+        }
       });
     }
 
@@ -319,25 +459,27 @@ export class HUDScene extends Phaser.Scene {
     this.bossFrameOverlay = this.add.image(boxPadX + bossBoxW / 2, bossBoxY + bossBoxH / 2, 'boss_frame');
     this.bossFrameOverlay.setOrigin(0.5, 0.5);
     this.bossFrameOverlay.setDisplaySize(bossBoxW, bossBoxH);
-    // You can also add blend modes or alpha if needed, but a standard overlay is a good start
     this.bossFrameOverlay.setDepth(15);
-    // Make HUD expose playBossAttack for the GameScene to call
     this.playBossAttack = () => {
-      if (this.chapterId === 1 || this.chapterId === 2) return;
-      this.bossSprite.setTexture('boss_cast');
-      updateBossScale();
-      this.bossSprite.play('anim_boss_attack');
+      if (this.chapterId === 1 || this.chapterId === 2 || this.chapterId === 3 || this.chapterId === 4) return;
+      if (hasBossTexture && this.textures.exists('boss_cast')) this.bossSprite.setTexture('boss_cast');
+      if (updateBossScale) updateBossScale();
+      if (this.anims.exists('anim_boss_attack')) this.bossSprite.play('anim_boss_attack');
     };
 
     this.playBossUltAttack = () => {
-      if (this.chapterId === 1) {
-        this.bossSprite.setTexture('boss_ult_attack');
+      if (this.chapterId === 1 || this.chapterId === 4) {
+        if (hasBossTexture && this.textures.exists('boss_ult_attack')) this.bossSprite.setTexture('boss_ult_attack');
         updateBossScale();
-        this.bossSprite.play('anim_boss_ult_attack');
+        if (this.anims.exists('anim_boss_ult_attack')) this.bossSprite.play('anim_boss_ult_attack');
       } else if (this.chapterId === 2) {
-        this.bossSprite.setTexture('boss_ch2_ult_attack');
+        if (hasBossTexture && this.textures.exists('boss_ch2_ult_attack')) this.bossSprite.setTexture('boss_ch2_ult_attack');
         updateBossScale();
-        this.bossSprite.play('anim_boss_ch2_ult_attack');
+        if (this.anims.exists('anim_boss_ch2_ult_attack')) this.bossSprite.play('anim_boss_ch2_ult_attack');
+      } else if (this.chapterId === 3) {
+        if (hasBossTexture && this.textures.exists('boss_ch3_ult_attack')) this.bossSprite.setTexture('boss_ch3_ult_attack');
+        updateBossScale();
+        if (this.anims.exists('anim_boss_ch3_ult_attack')) this.bossSprite.play('anim_boss_ch3_ult_attack');
       }
     };
 
@@ -363,30 +505,31 @@ export class HUDScene extends Phaser.Scene {
     this._hpBarCurrent = 1;
     this._hpBarState = 0;
 
-    // Add HP text to the right side of the panel
-    this.hpText = this.add.text(boxPadX + bossBoxW, hpBarY + 8, '1000/1000', {
-      fontFamily: 'VCR', fontSize: '13px', color: '#ff4444'
-    }).setOrigin(1, 0.5);
+    // Boss HP Text - positioned inside left panel on right side of HP bar
+    const hpTextSize = bossBoxW < 200 ? '11px' : '13px';
+    this.bossHpText = this.add.text(leftWidth - 16, hpBarY + 8, '1000/1000', {
+      fontFamily: 'VCR', fontSize: hpTextSize, color: '#f0e6d3', align: 'right'
+    }).setOrigin(1, 0.5).setDepth(11);
 
-    // ========== CAMERA BOX or D-PAD — based on character ==========
+    // ========== CAMERA BOX or D-PAD — based on control method ==========
     const camStartY = bossBoxY + bossBoxH + 8;
     const availCamH = height - camStartY - 8;
     const targetCamH = Math.floor(bossBoxW * 0.75);
     const camBoxH = Math.min(targetCamH, availCamH);
     const camBoxY = camStartY + Math.floor((availCamH - camBoxH) / 2);
 
-    if (this.character === 'female') {
+    if (this.control === 'keyboard') {
       // ── D-PAD (on-screen arrow buttons) ──────────────────────────────────
       const dpadW = bossBoxW - 8;
       const dpadH = Math.min(Math.floor(dpadW * 2 / 3), availCamH);
-      const dpadX = boxPadX + Math.floor((bossBoxW - dpadW) / 2);
+      const dpadX = boxPadX + 4;
       const dpadY = camStartY + Math.floor((availCamH - dpadH) / 2);
       this._buildDpad(dpadX, dpadY, dpadW, dpadH);
     } else {
-      // ── CAMERA PiP (male / gesture mode) ────────────────────────────────
-      this.panelBg.fillStyle(0x100c04, 1);
-      this.panelBg.fillRect(boxPadX, camBoxY, bossBoxW, camBoxH);
+      // ── CAMERA PiP (gesture mode) ────────────────────────────────
+      // Background is now the left panel image
 
+      // Position the live camera PiP to fill the reserved camera box area
       const pip = document.getElementById('game-camera-pip');
       if (pip) {
         pip.style.left = `${boxPadX + 2}px`;
@@ -433,11 +576,11 @@ export class HUDScene extends Phaser.Scene {
       gameScene.events.on('boss:timestop', (isStopped) => {
         if (!this.bossSprite) return;
         if (isStopped) {
-          this.bossSprite.setTint(0x00aaff); // Freeze frosty blue
-          this.bossSprite.anims.pause();
+          if (this.bossSprite.setTint) this.bossSprite.setTint(0x00aaff); // Freeze frosty blue
+          if (this.bossSprite.anims) this.bossSprite.anims.pause();
         } else {
-          this.bossSprite.clearTint();
-          this.bossSprite.anims.resume();
+          if (this.bossSprite.clearTint) this.bossSprite.clearTint();
+          if (this.bossSprite.anims) this.bossSprite.anims.resume();
         }
       });
       gameScene.events.on('player:health_changed', (hp) => this.updateLives(hp));
@@ -477,7 +620,25 @@ export class HUDScene extends Phaser.Scene {
       const camBoxH    = Math.min(targetCamH, availCamH);
       const camBoxY    = camStartY + Math.floor((availCamH - camBoxH) / 2);
 
-      if (this.character === 'female') {
+      // Resize left panel background
+      if (this.leftPanelBg) {
+        this.leftPanelBg.setDisplaySize(lw, h);
+      }
+
+      // Resize blood overlay
+      if (this.bloodOverlay) {
+        this.bloodOverlay.setPosition(lw, 0);
+        this.bloodOverlay.setDisplaySize(w - lw, h);
+      }
+
+      // Reposition boss HP text (inside left panel, right side)
+      if (this.bossHpText) {
+        const hpTextSize = bbW < 200 ? '11px' : '13px';
+        this.bossHpText.setPosition(lw - 16, hpBarY + 8);
+        this.bossHpText.setFontSize(hpTextSize);
+      }
+
+      if (this.control === 'keyboard') {
         const dpad = document.getElementById('game-dpad');
         if (dpad) {
           const dpadW = bbW - 8;
@@ -565,7 +726,7 @@ export class HUDScene extends Phaser.Scene {
 
   playBossAttack() {
     if (!this.bossSprite) return;
-    if (this.chapterId === 1 || this.chapterId === 2) return;
+    if (this.chapterId === 1 || this.chapterId === 2 || this.chapterId === 3) return;
     this.bossSprite.play('anim_boss_attack');
     this.bossSprite.once('animationcomplete', () => {
       this.bossSprite.play('anim_boss_idle');
@@ -604,19 +765,19 @@ export class HUDScene extends Phaser.Scene {
       this._tintTimer = null;
     }
 
-    // Immediately flash the villain portrait white
-    this.bossSprite.setTint(0xffffff);
+    // Immediately flash the villain portrait white (if sprite supports tint)
+    if (this.bossSprite.setTint) this.bossSprite.setTint(0xffffff);
 
     // Clear after a short 150ms — quick, snappy, never lingers
     this._tintTimer = this.time.delayedCall(150, () => {
-      if (this.bossSprite) this.bossSprite.clearTint();
+      if (this.bossSprite && this.bossSprite.clearTint) this.bossSprite.clearTint();
       this._tintTimer = null;
     });
   }
 
   onBossDied() {
     if (!this.bossSprite) return;
-    this.bossSprite.setTint(0xff0000);
+    if (this.bossSprite.setTint) this.bossSprite.setTint(0xff0000);
     this.tweens.add({
       targets: this.bossSprite,
       scaleX: 0, scaleY: 0, alpha: 0,
@@ -666,6 +827,7 @@ export class HUDScene extends Phaser.Scene {
 
   updateBossHp(current, max) {
     if (!this.hpBarSprite) return;
+    if (this.chapterId === 4) return;
 
     const tookDamage = current < this._hpBarCurrent;
     this._hpBarMaxHp = max;
@@ -719,9 +881,11 @@ export class HUDScene extends Phaser.Scene {
       this._hpBarState = mappedState;
     }
 
-    if (this.hpText) {
-      const displayHp = Math.ceil(ratio * 1000);
-      this.hpText.setText(`${displayHp}/1000`);
+    if (this.bossHpText) {
+      // Show actual boss HP values (current/max)
+      const currentHp = Math.ceil(current);
+      const maxHp = Math.ceil(max);
+      this.bossHpText.setText(`${currentHp}/${maxHp}`);
     }
   }
 
@@ -734,6 +898,60 @@ export class HUDScene extends Phaser.Scene {
       this.timerText.setText(`${minutes.toString().padStart(2, '0')}:${displaySecs.toString().padStart(2, '0')}`);
     }
 
+  }
+
+  /**
+   * Creates a simplified layout for practice tutorial
+   * - Full screen background (chapter select bg)
+   * - No left panel (no boss display, no camera/dpad)
+   * - Grid centered
+   * - Minimal UI
+   */
+  _createPracticeTutorialLayout(width, height) {
+    // ========== FULL SCREEN BACKGROUND ==========
+    // Use chapter select background (neutral, no spoilers)
+    const bg = this.add.image(width / 2, height / 2, 'left_panel_bg');
+    bg.setDisplaySize(width, height);
+    bg.setDepth(0);
+
+    // Dark overlay for better contrast with grid
+    const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x0a0a1a, 0.4);
+    overlay.setDepth(1);
+
+    // ========== TOP BAR (centered, minimal) ==========
+    // Simple pause button at top-right
+    const pauseBtn = this.add.text(width - 20, 15, '❚❚', {
+      fontFamily: 'DungeonFont', fontSize: '18px', color: '#f0e6d3'
+    }).setInteractive({ useHandCursor: true }).setDepth(20).setOrigin(1, 0);
+
+    pauseBtn.on('pointerdown', () => {
+      state.emit('game:pause');
+    });
+
+    // Practice mode label at top center
+    this.add.text(width / 2, 15, 'PRACTICE MODE', {
+      fontFamily: 'VCR', fontSize: '12px', color: '#a89b8c', letterSpacing: 2
+    }).setOrigin(0.5, 0).setDepth(20);
+
+    // Hide DOM elements
+    const domTimer = document.getElementById('game-timer-dom');
+    if (domTimer) domTimer.style.display = 'none';
+
+    // Hide camera PiP (not needed for practice, gesture indicators are in dialogue)
+    const pip = document.getElementById('game-camera-pip');
+    if (pip) {
+      pip.style.display = 'none';
+    }
+
+    // Listen for boss events from GameScene
+    const gameScene = this.scene.get('GameScene');
+    if (gameScene) {
+      gameScene.events.on('boss:damaged', (current, max) => {
+        if (gameScene.isTutorial || gameScene.isPracticeTutorial) {
+          state.emit('tutorial:bossDamaged');
+        }
+      });
+    }
   }
 
   shutdown() {

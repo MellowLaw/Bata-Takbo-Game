@@ -7,28 +7,31 @@ export const ChapterSelect = {
   render() {
     const progress = state.get('chapterProgress') || {};
     const unlocked = progress.chaptersUnlocked || [1];
+    const completed = progress.chaptersCompleted || [];
+
+    const allThreeComplete = [1, 2, 3].every(id => completed.includes(id));
 
     const chapters = [
-      { id: 1, img: '/assets/ui/chapter-selection/chapter1.png', idle: '/assets/ui/chapter-selection/chapter-select-idle/chapter1_idle.png', name: 'Duende' },
-      { id: 2, img: '/assets/ui/chapter-selection/chapter2.png', idle: '/assets/ui/chapter-selection/chapter-select-idle/chapter2_idle.png', name: 'Bungisngis' },
-      { id: 3, img: '/assets/ui/chapter-selection/chapter3.png', idle: '/assets/ui/chapter-selection/chapter-select-idle/chapter3_idle.png', name: 'Kataw' },
+      { id: 1, img: '/assets/ui/chapter-selection/chapter1.png', idle: '/assets/ui/chapter-selection/chapter-select-idle/chapter1_idle.png', cover: '/assets/ui/chapter-selection/chapter1a.png', name: 'Duende' },
+      { id: 2, img: '/assets/ui/chapter-selection/chapter2.png', idle: '/assets/ui/chapter-selection/chapter-select-idle/chapter2_idle.png', cover: '/assets/ui/chapter-selection/chapter2a.png', name: 'Bungisngis' },
+      { id: 3, img: '/assets/ui/chapter-selection/chapter3.png', idle: '/assets/ui/chapter-selection/chapter-select-idle/chapter3_idle.png', cover: '/assets/ui/chapter-selection/chapter3a.png', name: 'Kataw' },
     ];
 
     const cardsHtml = chapters.map((ch, i) => {
       const isUnlocked = unlocked.includes(ch.id);
+      const isCompleted = completed.includes(ch.id);
       const frontImg = isUnlocked ? ch.img : '/assets/ui/chapter-selection/chapter-front.png';
       const idleImg = isUnlocked ? ch.idle : null;
+      const backImg = isCompleted ? ch.cover : '/assets/ui/chapter-selection/chapter-back.png';
 
       return `
-        <div class="ch-flip-wrapper ${isUnlocked ? 'unlocked' : 'locked'}"
+        <div class="ch-flip-wrapper ${isUnlocked ? 'unlocked' : 'locked'} ${isCompleted ? 'completed' : ''}"
              data-chapter="${ch.id}"
              style="animation-delay: ${i * 0.12}s">
           <div class="ch-flip-inner">
-            <!-- BACK face (tarot card back - default visible) -->
             <div class="ch-face ch-face--back">
-              <img src="/assets/ui/chapter-selection/chapter-back.png" alt="Chapter Back" />
+              <img src="${backImg}" alt="Chapter ${ch.id}" />
             </div>
-            <!-- FRONT face (chapter image + idle spritesheet) -->
             <div class="ch-face ch-face--front">
               <img class="ch-front-static" src="${frontImg}" alt="${ch.name}" />
               ${isUnlocked ? `<canvas class="ch-front-idle-canvas" data-idle="${idleImg}"></canvas>` : ''}
@@ -38,6 +41,33 @@ export const ChapterSelect = {
       `;
     }).join('');
 
+    const endlessCard = `
+      <div class="ch-flip-wrapper ch-endless-wrapper ${allThreeComplete ? 'unlocked' : 'locked'}"
+           data-chapter="4"
+           style="animation-delay: 0.36s">
+        <div class="ch-flip-inner">
+          <div class="ch-face ch-face--back">
+            <img src="/assets/ui/chapter-selection/chapter-back.png" alt="Endless" />
+          </div>
+          <div class="ch-face ch-face--front ch-endless-front">
+            ${allThreeComplete ? `
+              <div class="ch-endless-content">
+                <div class="ch-endless-icon">∞</div>
+                <div class="ch-endless-title">WALANG KATAPUSAN</div>
+                <div class="ch-endless-subtitle">ENDLESS BATTLE</div>
+                <div class="ch-endless-desc">All 3 bosses · 3 lives · Speedrun</div>
+              </div>
+            ` : `
+              <div class="ch-endless-content ch-endless-locked-content">
+                <div class="ch-endless-lock">🔒</div>
+                <div class="ch-endless-locked-text">Complete all 3 chapters to unlock</div>
+              </div>
+            `}
+          </div>
+        </div>
+      </div>
+    `;
+
     return `
       <div class="chapter-select screen">
         <div class="ambient-stars"></div>
@@ -45,13 +75,14 @@ export const ChapterSelect = {
         <button class="back-btn" id="btn-ch-back">Back</button>
 
         <h1 class="screen-title" style="animation: fadeInUp 0.5s ease forwards;">
-          SELECT CHAPTER
+          BARAHA NG KATOTOHANAN
         </h1>
 
-        <p class="ch-hint" id="ch-tap-hint">Tap a card to reveal &nbsp;·&nbsp; Tap again to play</p>
+        <p class="ch-hint" id="ch-tap-hint">Ipakita ang hinaharap &nbsp;·&nbsp; at huwag kang kukurap.</p>
 
         <div class="chapter-select__cards">
           ${cardsHtml}
+          ${endlessCard}
         </div>
       </div>
     `;
@@ -169,6 +200,5 @@ export const ChapterSelect = {
     });
 
     // Locked cards - no click handler (can't be clicked)
-
   },
 };

@@ -13,6 +13,7 @@ class StateManager {
       isAuthenticated: false,
       tutorialComplete: this._loadTutorialState(),
       gestureSetupComplete: this._loadGestureSetupState(),
+      practiceTutorialComplete: this._loadPracticeTutorialState(),
       bestiary: this._loadBestiary(),
       chapterProgress: this._loadChapterProgress(),
     };
@@ -155,6 +156,24 @@ class StateManager {
     return false;
   }
 
+  _loadPracticeTutorialState() {
+    try {
+      const saved = localStorage.getItem('bata_takbo_practice_tutorial');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return parsed === true;
+      }
+    } catch (e) { /* ignore */ }
+    return false;
+  }
+
+  async savePracticeTutorialState(sync = true) {
+    try {
+      localStorage.setItem('bata_takbo_practice_tutorial', JSON.stringify(this._state.practiceTutorialComplete));
+      if (sync) await this._syncToServer();
+    } catch (e) { /* ignore */ }
+  }
+
   async saveGestureSetupState(sync = true) {
     try {
       localStorage.setItem('bata_takbo_gesture_setup', JSON.stringify(this._state.gestureSetupComplete));
@@ -245,12 +264,14 @@ class StateManager {
 
     try {
       localStorage.removeItem('bata_takbo_gesture_setup');
+      localStorage.removeItem('bata_takbo_practice_tutorial');
     } catch(e) {}
 
     // Reset in-memory state so it doesn't bleed to the next user
     this._state.settings = this._loadSettings();
     this._state.tutorialComplete = false;
     this._state.gestureSetupComplete = false;
+    this._state.practiceTutorialComplete = false;
     this._state.bestiary = {};
     this._state.chapterProgress = { chaptersUnlocked: [1], chaptersCompleted: [], bestScores: {} };
 
@@ -302,6 +323,7 @@ class StateManager {
       settings: this._state.settings,
       tutorialComplete: this._state.tutorialComplete,
       gestureSetupComplete: this._state.gestureSetupComplete,
+      practiceTutorialComplete: this._state.practiceTutorialComplete,
       chapterProgress: this._state.chapterProgress,
       bestiary: this._state.bestiary,
       gestureModel
@@ -337,6 +359,7 @@ class StateManager {
   _resetAccountState() {
     this._state.tutorialComplete = false;
     this._state.gestureSetupComplete = false;
+    this._state.practiceTutorialComplete = false;
     this._state.chapterProgress = { chaptersUnlocked: [1], chaptersCompleted: [], bestScores: {} };
     this._state.bestiary = {};
     // settings deliberately not reset — user UI prefs persist across accounts on same device.
@@ -369,6 +392,7 @@ class StateManager {
 
       // Strict boolean coercion
       const tutorialComplete = gameData.tutorialComplete === true || gameData.tutorialComplete === 'true';
+      const practiceTutorialComplete = gameData.practiceTutorialComplete === true || gameData.practiceTutorialComplete === 'true';
       const hasGestureModel = !!gameData.gestureModel;
       const gestureSetupComplete =
         gameData.gestureSetupComplete === true ||
@@ -376,6 +400,7 @@ class StateManager {
         hasGestureModel; // legacy: if a model exists, gestures are set up
 
       this.set('tutorialComplete', tutorialComplete);
+      this.set('practiceTutorialComplete', practiceTutorialComplete);
       this.set('gestureSetupComplete', gestureSetupComplete);
 
       if (gameData.chapterProgress) this.set('chapterProgress', gameData.chapterProgress);
@@ -396,13 +421,14 @@ class StateManager {
       // Mirror to localStorage WITHOUT triggering another server round-trip.
       try {
         localStorage.setItem('bata_takbo_tutorial', JSON.stringify(this._state.tutorialComplete));
+        localStorage.setItem('bata_takbo_practice_tutorial', JSON.stringify(this._state.practiceTutorialComplete));
         localStorage.setItem('bata_takbo_gesture_setup', JSON.stringify(this._state.gestureSetupComplete));
         localStorage.setItem('bata_takbo_progress', JSON.stringify(this._state.chapterProgress));
         localStorage.setItem('bata_takbo_bestiary', JSON.stringify(this._state.bestiary));
         localStorage.setItem('bata_takbo_settings', JSON.stringify(this._state.settings));
       } catch (e) { /* ignore */ }
 
-      console.log(`[LOAD] applied — tutorialComplete=${this._state.tutorialComplete} gestureSetupComplete=${this._state.gestureSetupComplete}`);
+      console.log(`[LOAD] applied — tutorialComplete=${this._state.tutorialComplete} practiceTutorialComplete=${this._state.practiceTutorialComplete} gestureSetupComplete=${this._state.gestureSetupComplete}`);
       return true;
     } catch (e) {
       console.warn('[LOAD] network error —', e.message);

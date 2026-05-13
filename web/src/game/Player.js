@@ -1,5 +1,6 @@
 import * as Phaser from 'phaser';
 import { state } from '../utils/StateManager.js';
+import { audioManager } from './AudioManager.js';
 
 export class Player {
   /**
@@ -100,6 +101,15 @@ export class Player {
     this.col = targetCol;
     this.row = targetRow;
 
+    // Play directional movement SFX
+    if (actDir === 'left') {
+      audioManager.play('sfx_move_l');
+    } else if (actDir === 'right') {
+      audioManager.play('sfx_move_r');
+    } else {
+      audioManager.play('sfx_move_ud');
+    }
+
     const targetPos = this.grid.getPixelPosition(this.col, this.row);
 
     // Play directional dash animation
@@ -176,6 +186,9 @@ export class Player {
     
     this.hp--;
     this.scene.events.emit('player:health_changed', this.hp);
+
+    // Play damage SFX
+    audioManager.play('sfx_damage');
 
     const fx = this.scene.add.sprite(this.sprite.x, this.sprite.y, 'lives_decreased');
     fx.setDepth(300).setScale(6.0).play('anim_lives_decreased');

@@ -12,21 +12,21 @@ export const LoginScreen = {
   renderWelcomeCard() {
     return `
       <div class="login-reference-layout" id="welcome-card" style="width: 100%; height: 100%; position: relative;">
-        <img src="/assets/ui/main-title.png" alt="Bata, Takbo!" style="position: absolute; left: 3%; top: 5%; width: clamp(80px, 10vw, 150px); height: auto; pointer-events: none; z-index: 1;" />
+        <img src="/assets/ui/main-title.png" alt="Bata, Takbo!" style="position: absolute; left: 3%; top: 5%; width: clamp(60px, 12vw, 150px); height: auto; pointer-events: none; z-index: 1;" />
 
-        <div style="position: absolute; right: 10%; bottom: 10%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; width: 40%; min-width: 300px; max-width: 600px;">
+        <div style="position: absolute; right: 8%; bottom: 10%; display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-end; width: 45%; min-width: 280px; max-width: 500px;">
           
-          <h1 style="font-family: 'GigaSaturn', sans-serif; font-size: clamp(3rem, 6vw, 6rem); color: white; text-align: center; margin-bottom: 2rem; line-height: 1; letter-spacing: 2px;">
+          <h1 style="font-family: 'GigaSaturn', sans-serif; font-size: clamp(1.8rem, 5vw, 4rem); color: white; text-align: right; margin-bottom: clamp(1rem, 3vh, 1.5rem); line-height: 1; letter-spacing: 2px;">
             HANDA KA NA BA?
           </h1>
           
-          <div style="display: flex; flex-direction: column; gap: 1.5rem; align-items: center; width: 100%;">
-            <button id="btn-goto-login" style="font-family: 'GigaSaturn', sans-serif; font-size: clamp(1.5rem, 2.5vw, 3rem); color: white; background: transparent; border: none; cursor: pointer; transition: transform 0.2s; letter-spacing: 2px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">LOGIN</button>
-            <button id="btn-goto-register" style="font-family: 'GigaSaturn', sans-serif; font-size: clamp(1.5rem, 2.5vw, 3rem); color: white; background: transparent; border: none; cursor: pointer; transition: transform 0.2s; letter-spacing: 2px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">REGISTER</button>
-            <button id="btn-guest" style="font-family: 'GigaSaturn', sans-serif; font-size: clamp(1.5rem, 2.5vw, 3rem); color: var(--text-dim); background: transparent; border: none; cursor: pointer; transition: transform 0.2s; letter-spacing: 2px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">PLAY AS GUEST</button>
+          <div style="display: flex; flex-direction: column; gap: clamp(0.8rem, 2.5vh, 1.2rem); align-items: flex-end; width: 100%;">
+            <button id="btn-goto-login" style="font-family: 'GigaSaturn', sans-serif; font-size: clamp(1.2rem, 4vw, 2rem); color: white; background: transparent; border: none; cursor: pointer; transition: transform 0.2s; letter-spacing: 2px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">LOGIN</button>
+            <button id="btn-goto-register" style="font-family: 'GigaSaturn', sans-serif; font-size: clamp(1.2rem, 4vw, 2rem); color: white; background: transparent; border: none; cursor: pointer; transition: transform 0.2s; letter-spacing: 2px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">REGISTER</button>
+            <button id="btn-guest" style="font-family: 'GigaSaturn', sans-serif; font-size: clamp(1.2rem, 4vw, 2rem); color: var(--text-dim); background: transparent; border: none; cursor: pointer; transition: transform 0.2s; letter-spacing: 2px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">PLAY AS GUEST</button>
           </div>
 
-          <p style="font-family: 'GigaSaturn', sans-serif; font-size: clamp(0.5rem, 1vw, 0.8rem); color: white; margin-top: 1rem; text-align: center; letter-spacing: 1px; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">
+          <p style="font-family: 'VCR', sans-serif; font-size: clamp(0.4rem, 1vw, 0.55rem); color: white; margin-top: clamp(0.4rem, 1.5vh, 0.6rem); text-align: right; letter-spacing: 0.5px; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); max-width: 100%;">
             BY JOINING, YOU AGREE TO OUR <a href="#" id="link-terms-welcome" style="color: var(--accent-orange); text-decoration: underline;">PRIVACY POLICY AND TERMS OF SERVICE</a>
           </p>
         </div>
@@ -37,44 +37,46 @@ export const LoginScreen = {
   renderLoginCard() {
     return `
       <div class="login-reference-layout" id="login-card" style="width: 100%; height: 100%; position: relative;">
-        <img src="/assets/ui/main-title.png" alt="Bata, Takbo!" style="position: absolute; left: 3%; top: 5%; width: clamp(80px, 10vw, 150px); height: auto; pointer-events: none; z-index: 1;" />
+        <img src="/assets/ui/main-title.png" alt="Bata, Takbo!" style="position: absolute; left: 3%; top: 5%; width: clamp(60px, 10vw, 150px); height: auto; pointer-events: none; z-index: 1;" />
 
-        <div style="position: absolute; right: 10%; bottom: 10%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; width: 40%; min-width: 300px; max-width: 600px;">
+        <div class="login-ref-panel">
+          <h1 class="login-ref-panel__title">LOGIN</h1>
 
-          <h1 style="font-family: 'GigaSaturn', sans-serif; font-size: clamp(2rem, 4vw, 4rem); color: white; text-align: center; margin-bottom: 2rem; line-height: 1; letter-spacing: 2px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">
-            LOGIN
-          </h1>
-          
-          <input 
-            type="text" 
-            id="login-username"
-            placeholder="USERNAME OR EMAIL"
-            autocomplete="username"
-            maxlength="255"
-            style="width: 90%; max-width: 500px; height: 45px; margin-bottom: 1rem; background: rgba(0,0,0,0.3); border: 2px solid white; color: white; font-family: 'GigaSaturn', sans-serif; font-size: 1.2rem; text-align: center; outline: none; box-shadow: 0 4px 6px rgba(0,0,0,0.5);"
-          />
-          <div style="position: relative; width: 90%; max-width: 500px;">
-            <input 
-              type="password" 
-              id="login-password"
-              placeholder="PASSWORD"
-              autocomplete="current-password"
-              maxlength="50"
-              style="width: 100%; height: 45px; background: rgba(0,0,0,0.3); border: 2px solid white; color: white; font-family: 'GigaSaturn', sans-serif; font-size: 1.2rem; text-align: center; outline: none; box-shadow: 0 4px 6px rgba(0,0,0,0.5);"
+          <div style="display: flex; flex-direction: column; gap: 0.6rem; width: 100%;">
+            <input
+              class="login-ref-input"
+              type="text"
+              id="login-username"
+              placeholder="USERNAME OR EMAIL"
+              autocomplete="username"
+              maxlength="255"
             />
-            <button type="button" id="login-toggle-pw" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); background: transparent; border: none; cursor: pointer; padding: 0; display: flex; align-items: center;">
-              <img src="/assets/ui/eye_closed.png" style="width: 24px; height: 24px; opacity: 0.8;" alt="Toggle" />
-            </button>
+            <div class="login-ref-input-wrap">
+              <input
+                class="login-ref-input"
+                type="password"
+                id="login-password"
+                placeholder="PASSWORD"
+                autocomplete="current-password"
+                maxlength="50"
+              />
+              <button type="button" id="login-toggle-pw" class="login-ref-toggle-btn">
+                <img src="/assets/ui/eye_closed.png" style="width: 22px; height: 22px; opacity: 0.8;" alt="Toggle" />
+              </button>
+            </div>
           </div>
-          <p class="login-card__privacy text-red hidden" id="login-error-msg" style="margin-top: var(--space-sm); font-family: 'GigaSaturn', sans-serif; font-size: 1rem; font-weight: bold; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); text-align: center;"></p>
-          
-          <button type="button" id="btn-forgot-pw" style="background: transparent; border: none; color: white; font-family: 'GigaSaturn', sans-serif; font-size: 0.8rem; margin-top: 1rem; cursor: pointer; text-decoration: underline; letter-spacing: 1px;">FORGOT PASSWORD?</button>
-          <button type="button" id="btn-forgot-username" style="background: transparent; border: none; color: white; font-family: 'GigaSaturn', sans-serif; font-size: 0.75rem; margin-top: 0.3rem; cursor: pointer; text-decoration: underline; letter-spacing: 1px; opacity: 0.7;">FORGOT USERNAME?</button>
-          <button type="button" id="btn-goto-register-from-login" style="background: transparent; border: none; color: var(--accent-orange); font-family: 'GigaSaturn', sans-serif; font-size: 0.75rem; margin-top: 0.4rem; cursor: pointer; letter-spacing: 1px; text-decoration: underline;">DON'T HAVE AN ACCOUNT? REGISTER</button>
 
-          <div style="display: flex; gap: 1rem; margin-top: 2rem; width: 90%; max-width: 500px; justify-content: center;">
-            <button id="btn-back-login" style="font-family: 'GigaSaturn', sans-serif; font-size: clamp(1.2rem, 2vw, 2.5rem); color: white; background: transparent; border: none; cursor: pointer; transition: transform 0.2s; letter-spacing: 2px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">BACK</button>
-            <button id="btn-submit-login" style="font-family: 'GigaSaturn', sans-serif; font-size: clamp(1.2rem, 2vw, 2.5rem); color: white; background: transparent; border: none; cursor: pointer; transition: transform 0.2s; letter-spacing: 2px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">LOGIN</button>
+          <p class="login-card__privacy text-red hidden" id="login-error-msg" style="margin-top: 0.4rem; font-family: 'GigaSaturn', sans-serif; font-size: 0.85rem; font-weight: bold; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); text-align: center; width: 100%;"></p>
+
+          <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center; width: 100%; margin-top: 0.4rem; gap: 0; white-space: nowrap; overflow: hidden;">
+            <button type="button" id="btn-forgot-pw" style="background: transparent; border: none; color: white; font-family: 'VCR', sans-serif; font-size: clamp(0.38rem, 0.9vw, 0.62rem); cursor: pointer; text-decoration: underline; text-transform: uppercase; letter-spacing: 0.5px; padding: 0; flex-shrink: 0;">FORGOT PASSWORD?</button>
+            <button type="button" id="btn-forgot-username" style="background: transparent; border: none; color: white; font-family: 'VCR', sans-serif; font-size: clamp(0.38rem, 0.9vw, 0.62rem); cursor: pointer; text-decoration: underline; text-transform: uppercase; letter-spacing: 0.5px; padding: 0; flex-shrink: 0;">FORGOT USERNAME?</button>
+            <button type="button" id="btn-goto-register-from-login" style="background: transparent; border: none; color: var(--accent-orange); font-family: 'VCR', sans-serif; font-size: clamp(0.38rem, 0.9vw, 0.62rem); cursor: pointer; text-decoration: underline; text-transform: uppercase; letter-spacing: 0.5px; padding: 0; flex-shrink: 0;">DON'T HAVE AN ACCOUNT? REGISTER</button>
+          </div>
+
+          <div class="login-ref-actions">
+            <button id="btn-back-login" class="login-ref-action-btn">BACK</button>
+            <button id="btn-submit-login" class="login-ref-action-btn">LOGIN</button>
           </div>
         </div>
       </div>
@@ -84,79 +86,79 @@ export const LoginScreen = {
   renderRegisterCard() {
     return `
       <div class="login-reference-layout" id="register-card" style="width: 100%; height: 100%; position: relative;">
-        <img src="/assets/ui/main-title.png" alt="Bata, Takbo!" style="position: absolute; left: 3%; top: 5%; width: clamp(80px, 10vw, 150px); height: auto; pointer-events: none; z-index: 1;" />
+        <img src="/assets/ui/main-title.png" alt="Bata, Takbo!" style="position: absolute; left: 3%; top: 5%; width: clamp(60px, 10vw, 150px); height: auto; pointer-events: none; z-index: 1;" />
 
-        <div style="position: absolute; right: 10%; bottom: 10%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; width: 40%; min-width: 300px; max-width: 600px;">
+        <div class="login-ref-panel">
+          <h1 class="login-ref-panel__title">CREATE ACCOUNT</h1>
 
-          <h1 style="font-family: 'GigaSaturn', sans-serif; font-size: clamp(2rem, 4vw, 4rem); color: white; text-align: center; margin-bottom: 1.5rem; line-height: 1; letter-spacing: 2px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">
-            CREATE ACCOUNT
-          </h1>
-          
-          <div style="display: flex; flex-direction: column; gap: 0.5rem; width: 90%; max-width: 500px; align-items: center;">
-            <input 
-              type="text" 
+          <div style="display: flex; flex-direction: column; gap: 0.5rem; width: 100%;">
+            <input
+              class="login-ref-input"
+              type="text"
               placeholder="USERNAME"
               autocomplete="off"
               maxlength="20"
               id="reg-username"
-              style="width: 100%; height: 45px; background: rgba(0,0,0,0.3); border: 2px solid white; color: white; font-family: 'GigaSaturn', sans-serif; font-size: 1.2rem; text-align: center; outline: none; box-shadow: 0 4px 6px rgba(0,0,0,0.5);"
             />
-            <div id="username-status" style="width: 100%; text-align: right; font-family: 'GigaSaturn', sans-serif; font-size: 0.65rem; margin-top: -0.4rem; height: 10px; transition: opacity 0.2s;"></div>
-            <input 
-              type="email" 
+            <div id="username-status" style="width: 100%; text-align: right; font-family: 'GigaSaturn', sans-serif; font-size: 0.6rem; margin-top: -0.3rem; min-height: 0; line-height: 1; transition: opacity 0.2s;"></div>
+
+            <input
+              class="login-ref-input"
+              type="email"
               placeholder="EMAIL"
               autocomplete="off"
               maxlength="255"
               id="reg-email"
-              style="width: 100%; height: 45px; background: rgba(0,0,0,0.3); border: 2px solid white; color: white; font-family: 'GigaSaturn', sans-serif; font-size: 1.2rem; text-align: center; outline: none; box-shadow: 0 4px 6px rgba(0,0,0,0.5);"
             />
-            <div style="width: 100%; text-align: left; font-family: 'GigaSaturn', sans-serif; font-size: 0.6rem; color: #a89b8c; margin-top: -0.3rem; padding-left: 2px;">Use an email you can access — needed to recover your account if you forget your password.</div>
-            <div style="position: relative; width: 100%;">
-              <input 
-                type="password" 
+            <div style="width: 100%; text-align: left; font-family: 'VCR', sans-serif; font-size: clamp(0.6rem, 1.1vw, 0.75rem); color: #a89b8c; margin-top: -0.2rem; padding-left: 2px; line-height: 1.4;">Use an email you can access — needed to recover your account if you forget your password.</div>
+
+            <div class="login-ref-input-wrap">
+              <input
+                class="login-ref-input"
+                type="password"
                 placeholder="PASSWORD"
                 maxlength="50"
                 autocomplete="new-password"
                 id="reg-password"
-                style="width: 100%; height: 45px; background: rgba(0,0,0,0.3); border: 2px solid white; color: white; font-family: 'GigaSaturn', sans-serif; font-size: 1.2rem; text-align: center; outline: none; box-shadow: 0 4px 6px rgba(0,0,0,0.5);"
               />
-              <button type="button" id="reg-toggle-pw" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); background: transparent; border: none; cursor: pointer; padding: 0; display: flex; align-items: center;">
-                <img src="/assets/ui/eye_closed.png" style="width: 24px; height: 24px; opacity: 0.8;" alt="Toggle" />
+              <button type="button" id="reg-toggle-pw" class="login-ref-toggle-btn">
+                <img src="/assets/ui/eye_closed.png" style="width: 22px; height: 22px; opacity: 0.8;" alt="Toggle" />
               </button>
             </div>
-            <div id="pw-requirements" style="width: 100%; text-align: left; font-family: 'GigaSaturn', sans-serif; font-size: 0.65rem; color: #a89b8c; margin-top: 0.2rem; margin-bottom: 0.2rem; display: flex; flex-direction: column; gap: 2px;">
+            <div id="pw-requirements" style="width: 100%; text-align: left; font-family: 'VCR', sans-serif; font-size: clamp(0.6rem, 1.1vw, 0.8rem); color: #a89b8c; margin-top: 0.1rem; margin-bottom: 0.1rem; display: flex; flex-direction: column; gap: 2px;">
               <span id="req-length">✗ 8 CHARACTERS MINIMUM</span>
               <span id="req-number">✗ 1 NUMBER</span>
               <span id="req-special">✗ 1 SPECIAL CHARACTER</span>
             </div>
-            <div style="width: 100%; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; margin-bottom: 0.4rem; overflow: hidden;">
+            <div style="width: 100%; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; margin-bottom: 0.3rem; overflow: hidden;">
               <div id="pw-strength-bar" style="height: 100%; width: 0%; border-radius: 2px; transition: width 0.3s ease, background 0.3s ease;"></div>
             </div>
-            <div style="position: relative; width: 100%;">
-              <input 
-                type="password" 
+
+            <div class="login-ref-input-wrap">
+              <input
+                class="login-ref-input"
+                type="password"
                 placeholder="CONFIRM PASSWORD"
                 maxlength="50"
                 autocomplete="new-password"
                 id="reg-confirm"
-                style="width: 100%; height: 45px; background: rgba(0,0,0,0.3); border: 2px solid white; color: white; font-family: 'GigaSaturn', sans-serif; font-size: 1.2rem; text-align: center; outline: none; box-shadow: 0 4px 6px rgba(0,0,0,0.5);"
               />
-              <button type="button" id="reg-toggle-confirm" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); background: transparent; border: none; cursor: pointer; padding: 0; display: flex; align-items: center;">
-                <img src="/assets/ui/eye_closed.png" style="width: 24px; height: 24px; opacity: 0.8;" alt="Toggle" />
+              <button type="button" id="reg-toggle-confirm" class="login-ref-toggle-btn">
+                <img src="/assets/ui/eye_closed.png" style="width: 22px; height: 22px; opacity: 0.8;" alt="Toggle" />
               </button>
             </div>
-            <div id="reg-confirm-match" style="width: 100%; text-align: right; font-family: 'GigaSaturn', sans-serif; font-size: 0.65rem; margin-top: -0.4rem; height: 10px; transition: opacity 0.2s;"></div>
-            <label style="display: flex; gap: var(--space-sm); align-items: start; font-size: 0.65rem; color: white; text-align: left; cursor: pointer; margin-top: var(--space-xs); font-family: 'GigaSaturn', sans-serif;">
-              <input type="checkbox" id="reg-privacy" style="accent-color: var(--accent-orange); margin-top: 2px;" />
-              <span>I HAVE READ AND AGREE TO THE <a href="#" id="link-terms-register" style="color: var(--accent-orange); text-decoration: underline;">PRIVACY POLICY AND TERMS OF SERVICE</a>.</span>
+            <div id="reg-confirm-match" style="width: 100%; text-align: right; font-family: 'GigaSaturn', sans-serif; font-size: 0.6rem; margin-top: -0.3rem; min-height: 0; line-height: 1; transition: opacity 0.2s;"></div>
+
+            <label style="display: flex; gap: var(--space-sm); align-items: flex-start; font-size: clamp(0.48rem, 0.9vw, 0.65rem); color: white; text-align: left; cursor: pointer; margin-top: 0.2rem; font-family: 'VCR', sans-serif; letter-spacing: 0.5px; line-height: 1.4;">
+              <input type="checkbox" id="reg-privacy" style="accent-color: var(--accent-orange); margin-top: 2px; flex-shrink: 0;" />
+              <span>I HAVE READ AND AGREE TO THE <a href="#" id="link-terms-register" style="color: var(--accent-orange); text-decoration: underline;">PRIVACY POLICY AND TERMS OF SERVICE</a>. <button type="button" id="btn-goto-login-from-reg" style="background: transparent; border: none; color: var(--accent-orange); font-family: 'VCR', sans-serif; font-size: inherit; cursor: pointer; text-decoration: underline; text-transform: uppercase; letter-spacing: 1px; padding: 0;">ALREADY HAVE AN ACCOUNT? LOGIN</button></span>
             </label>
-            <p class="login-card__privacy text-red hidden" id="reg-error-msg" style="margin-top: var(--space-xs); font-family: 'GigaSaturn', sans-serif; font-size: 1rem; font-weight: bold; text-align: center; margin-bottom: 0; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);"></p>
+            <p class="login-card__privacy text-red hidden" id="reg-error-msg" style="margin-top: 0.2rem; font-family: 'GigaSaturn', sans-serif; font-size: 0.85rem; font-weight: bold; text-align: center; margin-bottom: 0; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);"></p>
           </div>
-          
-          <button type="button" id="btn-goto-login-from-reg" style="background: transparent; border: none; color: var(--accent-orange); font-family: 'GigaSaturn', sans-serif; font-size: 0.75rem; margin-top: 0.6rem; cursor: pointer; letter-spacing: 1px; text-decoration: underline;">ALREADY HAVE AN ACCOUNT? LOGIN</button>
-          <div style="display: flex; gap: 1rem; margin-top: 1rem; width: 90%; max-width: 500px; justify-content: center;">
-            <button id="btn-cancel-reg" style="font-family: 'GigaSaturn', sans-serif; font-size: clamp(1rem, 1.5vw, 2rem); color: white; background: transparent; border: none; cursor: pointer; transition: transform 0.2s; letter-spacing: 2px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">CANCEL</button>
-            <button id="btn-create-account" style="font-family: 'GigaSaturn', sans-serif; font-size: clamp(1rem, 1.5vw, 2rem); color: white; background: transparent; border: none; cursor: pointer; transition: transform 0.2s; letter-spacing: 2px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">CREATE ACCOUNT</button>
+
+          <div class="login-ref-actions">
+            <button id="btn-cancel-reg" class="login-ref-action-btn">CANCEL</button>
+            <button id="btn-create-account" class="login-ref-action-btn">CREATE ACCOUNT</button>
           </div>
         </div>
       </div>
@@ -166,58 +168,60 @@ export const LoginScreen = {
   renderForgotPasswordCard() {
     return `
       <div class="login-reference-layout" id="forgot-pw-card" style="width: 100%; height: 100%; position: relative;">
-        <img src="/assets/ui/main-title.png" alt="Bata, Takbo!" style="position: absolute; left: 3%; top: 5%; width: clamp(80px, 10vw, 150px); height: auto; pointer-events: none; z-index: 1;" />
-        <div style="position: absolute; right: 10%; bottom: 10%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; width: 40%; min-width: 300px; max-width: 600px;">
+        <img src="/assets/ui/main-title.png" alt="Bata, Takbo!" style="position: absolute; left: 3%; top: 5%; width: clamp(60px, 10vw, 150px); height: auto; pointer-events: none; z-index: 1;" />
+        <div class="login-ref-panel">
 
           <!-- STEP 1: EMAIL -->
-          <div id="frp-step-email">
-            <h1 style="font-family: 'GigaSaturn', sans-serif; font-size: clamp(1.5rem, 3.5vw, 4rem); color: white; text-align: center; margin-bottom: 0.75rem; line-height: 1; letter-spacing: 2px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">FORGOT PASSWORD</h1>
-            <p style="font-family: 'GigaSaturn', sans-serif; font-size: 0.68rem; color: #a89b8c; text-align: center; margin-bottom: 1.25rem; line-height: 1.6;">Enter the email you used when you created your account.<br>We will send a 6-digit code to that address.</p>
-            <input type="email" id="frp-email" placeholder="ENTER YOUR EMAIL" autocomplete="off" maxlength="255" style="width: 100%; height: 45px; margin-bottom: 0.4rem; background: rgba(0,0,0,0.3); border: 2px solid white; color: white; font-family: 'GigaSaturn', sans-serif; font-size: 1.2rem; text-align: center; outline: none; box-shadow: 0 4px 6px rgba(0,0,0,0.5); box-sizing: border-box;" />
-            <p id="frp-email-msg" style="font-family: 'GigaSaturn', sans-serif; font-size: 0.8rem; font-weight: bold; min-height: 1.2em; text-align: center; margin: 0.4rem 0;"></p>
-            <div style="display: flex; gap: 1rem; margin-top: 1.5rem; justify-content: center;">
-              <button id="frp-back" style="font-family: 'GigaSaturn', sans-serif; font-size: clamp(1.2rem, 2vw, 2.5rem); color: white; background: transparent; border: none; cursor: pointer; letter-spacing: 2px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">BACK</button>
-              <button id="frp-send" style="font-family: 'GigaSaturn', sans-serif; font-size: clamp(1.2rem, 2vw, 2.5rem); color: white; background: transparent; border: none; cursor: pointer; letter-spacing: 2px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">SEND CODE</button>
+          <div id="frp-step-email" style="width: 100%;">
+            <h1 class="login-ref-panel__title">FORGOT PASSWORD</h1>
+            <p style="font-family: 'VCR', sans-serif; font-size: clamp(0.6rem, 1.2vw, 0.85rem); color: #a89b8c; text-align: center; margin-bottom: 1rem; line-height: 1.6; letter-spacing: 1px;">Enter the email you used when you created your account.<br>We will send a 6-digit code to that address.</p>
+            <input class="login-ref-input" type="email" id="frp-email" placeholder="ENTER YOUR EMAIL" autocomplete="off" maxlength="255" style="margin-bottom: 0.4rem;" />
+            <p id="frp-email-msg" style="font-family: 'GigaSaturn', sans-serif; font-size: 0.75rem; font-weight: bold; min-height: 1.2em; text-align: center; margin: 0.3rem 0;"></p>
+            <div class="login-ref-actions">
+              <button id="frp-back" class="login-ref-action-btn">BACK</button>
+              <button id="frp-send" class="login-ref-action-btn">SEND CODE</button>
             </div>
           </div>
 
           <!-- STEP 2: CODE -->
           <div id="frp-step-code" style="display:none; width:100%; text-align:center;">
-            <h1 style="font-family: 'GigaSaturn', sans-serif; font-size: clamp(1.5rem, 3.5vw, 4rem); color: white; text-align: center; margin-bottom: 0.75rem; line-height: 1; letter-spacing: 2px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">CHECK YOUR EMAIL</h1>
-            <p id="frp-code-hint" style="font-family: 'GigaSaturn', sans-serif; font-size: 0.68rem; color: #a89b8c; text-align: center; margin-bottom: 1.25rem; line-height: 1.6;"></p>
-            <input type="text" id="frp-code" placeholder="6-DIGIT CODE" maxlength="6" autocomplete="off" inputmode="numeric" style="width: 100%; height: 55px; margin-bottom: 0.4rem; background: rgba(0,0,0,0.3); border: 2px solid white; color: white; font-family: 'GigaSaturn', sans-serif; font-size: 2rem; text-align: center; letter-spacing: 8px; outline: none; box-shadow: 0 4px 6px rgba(0,0,0,0.5); box-sizing: border-box;" />
-            <p id="frp-countdown" style="font-family: 'GigaSaturn', sans-serif; font-size: 0.65rem; color: #5a5068; text-align: center; margin: 0.3rem 0;"></p>
-            <p id="frp-code-msg" style="font-family: 'GigaSaturn', sans-serif; font-size: 0.8rem; font-weight: bold; min-height: 1.2em; text-align: center; margin: 0.3rem 0;"></p>
+            <h1 class="login-ref-panel__title">CHECK YOUR EMAIL</h1>
+            <p id="frp-code-hint" style="font-family: 'GigaSaturn', sans-serif; font-size: clamp(0.55rem, 1.1vw, 0.7rem); color: #a89b8c; text-align: center; margin-bottom: 1rem; line-height: 1.6;"></p>
+            <input type="text" id="frp-code" placeholder="6-DIGIT CODE" maxlength="6" autocomplete="off" inputmode="numeric" style="width: 100%; height: clamp(46px, 7vh, 58px); margin-bottom: 0.4rem; background: rgba(0,0,0,0.3); border: 2px solid white; color: white; font-family: 'GigaSaturn', sans-serif; font-size: clamp(1.4rem, 3vw, 2rem); text-align: center; letter-spacing: 8px; outline: none; box-shadow: 0 4px 6px rgba(0,0,0,0.5); box-sizing: border-box;" />
+            <p id="frp-countdown" style="font-family: 'GigaSaturn', sans-serif; font-size: 0.62rem; color: #5a5068; text-align: center; margin: 0.3rem 0;"></p>
+            <p id="frp-code-msg" style="font-family: 'GigaSaturn', sans-serif; font-size: 0.75rem; font-weight: bold; min-height: 1.2em; text-align: center; margin: 0.3rem 0;"></p>
             <button id="frp-resend" style="display:none; background: transparent; border: none; color: #a89b8c; font-family: 'GigaSaturn', sans-serif; font-size: 0.7rem; cursor: pointer; text-decoration: underline; letter-spacing: 1px; margin-bottom: 0.5rem;">RESEND CODE</button>
-            <div style="display: flex; gap: 1rem; margin-top: 1.5rem; justify-content: center;">
-              <button id="frp-code-back" style="font-family: 'GigaSaturn', sans-serif; font-size: clamp(1.2rem, 2vw, 2.5rem); color: white; background: transparent; border: none; cursor: pointer; letter-spacing: 2px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">BACK</button>
-              <button id="frp-verify" style="font-family: 'GigaSaturn', sans-serif; font-size: clamp(1.2rem, 2vw, 2.5rem); color: white; background: transparent; border: none; cursor: pointer; letter-spacing: 2px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">VERIFY</button>
+            <div class="login-ref-actions">
+              <button id="frp-code-back" class="login-ref-action-btn">BACK</button>
+              <button id="frp-verify" class="login-ref-action-btn">VERIFY</button>
             </div>
           </div>
 
           <!-- STEP 3: NEW PASSWORD -->
           <div id="frp-step-reset" style="display:none; width:100%;">
-            <h1 style="font-family: 'GigaSaturn', sans-serif; font-size: clamp(1.5rem, 3vw, 4rem); color: white; text-align: center; margin-bottom: 2rem; line-height: 1; letter-spacing: 2px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">NEW PASSWORD</h1>
-            <div style="position: relative; width: 100%; margin-bottom: 0.5rem;">
-              <input type="password" id="frp-pw" placeholder="NEW PASSWORD" maxlength="50" autocomplete="new-password" style="width: 100%; height: 45px; background: rgba(0,0,0,0.3); border: 2px solid white; color: white; font-family: 'GigaSaturn', sans-serif; font-size: 1.2rem; text-align: center; outline: none; box-shadow: 0 4px 6px rgba(0,0,0,0.5); box-sizing: border-box;" />
-              <button type="button" id="frp-toggle-pw" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); background: transparent; border: none; cursor: pointer; padding: 0;"><img src="/assets/ui/eye_closed.png" style="width: 24px; height: 24px; opacity: 0.8;" /></button>
+            <h1 class="login-ref-panel__title">NEW PASSWORD</h1>
+            <div style="display: flex; flex-direction: column; gap: 0.5rem; width: 100%;">
+              <div class="login-ref-input-wrap">
+                <input class="login-ref-input" type="password" id="frp-pw" placeholder="NEW PASSWORD" maxlength="50" autocomplete="new-password" />
+                <button type="button" id="frp-toggle-pw" class="login-ref-toggle-btn"><img src="/assets/ui/eye_closed.png" style="width: 22px; height: 22px; opacity: 0.8;" /></button>
+              </div>
+              <div style="width: 100%; text-align: left; font-family: 'VCR', sans-serif; font-size: clamp(0.6rem, 1.1vw, 0.8rem); color: #a89b8c; margin-bottom: 0.1rem; display: flex; flex-direction: column; gap: 2px;">
+                <span id="frp-req-length">✗ 8 CHARACTERS MINIMUM</span>
+                <span id="frp-req-number">✗ 1 NUMBER</span>
+                <span id="frp-req-special">✗ 1 SPECIAL CHARACTER</span>
+              </div>
+              <div style="width: 100%; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden;">
+                <div id="frp-strength-bar" style="height: 100%; width: 0%; border-radius: 2px; transition: width 0.3s ease, background 0.3s ease;"></div>
+              </div>
+              <div class="login-ref-input-wrap">
+                <input class="login-ref-input" type="password" id="frp-confirm" placeholder="CONFIRM NEW PASSWORD" maxlength="50" autocomplete="new-password" />
+                <button type="button" id="frp-toggle-confirm" class="login-ref-toggle-btn"><img src="/assets/ui/eye_closed.png" style="width: 22px; height: 22px; opacity: 0.8;" /></button>
+              </div>
             </div>
-            <div style="width: 100%; text-align: left; font-family: 'GigaSaturn', sans-serif; font-size: 0.65rem; color: #a89b8c; margin-bottom: 0.3rem; display: flex; flex-direction: column; gap: 2px;">
-              <span id="frp-req-length">✗ 8 CHARACTERS MINIMUM</span>
-              <span id="frp-req-number">✗ 1 NUMBER</span>
-              <span id="frp-req-special">✗ 1 SPECIAL CHARACTER</span>
-            </div>
-            <div style="width: 100%; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; margin-bottom: 0.5rem; overflow: hidden;">
-              <div id="frp-strength-bar" style="height: 100%; width: 0%; border-radius: 2px; transition: width 0.3s ease, background 0.3s ease;"></div>
-            </div>
-            <div style="position: relative; width: 100%;">
-              <input type="password" id="frp-confirm" placeholder="CONFIRM NEW PASSWORD" maxlength="50" autocomplete="new-password" style="width: 100%; height: 45px; background: rgba(0,0,0,0.3); border: 2px solid white; color: white; font-family: 'GigaSaturn', sans-serif; font-size: 1.2rem; text-align: center; outline: none; box-shadow: 0 4px 6px rgba(0,0,0,0.5); box-sizing: border-box;" />
-              <button type="button" id="frp-toggle-confirm" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); background: transparent; border: none; cursor: pointer; padding: 0;"><img src="/assets/ui/eye_closed.png" style="width: 24px; height: 24px; opacity: 0.8;" /></button>
-            </div>
-            <p id="frp-reset-msg" style="font-family: 'GigaSaturn', sans-serif; font-size: 0.85rem; font-weight: bold; min-height: 1.2em; text-align: center; margin: 0.5rem 0;"></p>
-            <div style="display: flex; gap: 1rem; margin-top: 1.5rem; justify-content: center;">
-              <button id="frp-reset-back" style="font-family: 'GigaSaturn', sans-serif; font-size: clamp(1.2rem, 2vw, 2.5rem); color: white; background: transparent; border: none; cursor: pointer; letter-spacing: 2px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">CANCEL</button>
-              <button id="frp-submit" style="font-family: 'GigaSaturn', sans-serif; font-size: clamp(1.2rem, 2vw, 2.5rem); color: white; background: transparent; border: none; cursor: pointer; letter-spacing: 2px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">RESET</button>
+            <p id="frp-reset-msg" style="font-family: 'GigaSaturn', sans-serif; font-size: 0.8rem; font-weight: bold; min-height: 1.2em; text-align: center; margin: 0.4rem 0;"></p>
+            <div class="login-ref-actions">
+              <button id="frp-reset-back" class="login-ref-action-btn">CANCEL</button>
+              <button id="frp-submit" class="login-ref-action-btn">RESET</button>
             </div>
           </div>
 
@@ -229,32 +233,32 @@ export const LoginScreen = {
   renderResetPasswordCard() {
     return `
       <div class="login-reference-layout" id="reset-pw-card" style="width: 100%; height: 100%; position: relative;">
-        <img src="/assets/ui/main-title.png" alt="Bata, Takbo!" style="position: absolute; left: 3%; top: 5%; width: clamp(80px, 10vw, 150px); height: auto; pointer-events: none; z-index: 1;" />
-        <div style="position: absolute; right: 10%; bottom: 10%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; width: 40%; min-width: 300px; max-width: 600px;">
-          <h1 style="font-family: 'GigaSaturn', sans-serif; font-size: clamp(1.5rem, 3vw, 4rem); color: white; text-align: center; margin-bottom: 2rem; line-height: 1; letter-spacing: 2px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">
-            RESET PASSWORD
-          </h1>
-          <div style="position: relative; width: 90%; max-width: 500px; margin-bottom: 0.5rem;">
-            <input type="password" id="reset-pw" placeholder="NEW PASSWORD" maxlength="50" autocomplete="new-password" style="width: 100%; height: 45px; background: rgba(0,0,0,0.3); border: 2px solid white; color: white; font-family: 'GigaSaturn', sans-serif; font-size: 1.2rem; text-align: center; outline: none; box-shadow: 0 4px 6px rgba(0,0,0,0.5);" />
-            <button type="button" id="reset-toggle-pw" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); background: transparent; border: none; cursor: pointer; padding: 0; display: flex; align-items: center;">
-              <img src="/assets/ui/eye_closed.png" style="width: 24px; height: 24px; opacity: 0.8;" alt="Toggle" />
-            </button>
+        <img src="/assets/ui/main-title.png" alt="Bata, Takbo!" style="position: absolute; left: 3%; top: 5%; width: clamp(60px, 10vw, 150px); height: auto; pointer-events: none; z-index: 1;" />
+        <div class="login-ref-panel">
+          <h1 class="login-ref-panel__title">RESET PASSWORD</h1>
+          <div style="display: flex; flex-direction: column; gap: 0.5rem; width: 100%;">
+            <div class="login-ref-input-wrap">
+              <input class="login-ref-input" type="password" id="reset-pw" placeholder="NEW PASSWORD" maxlength="50" autocomplete="new-password" />
+              <button type="button" id="reset-toggle-pw" class="login-ref-toggle-btn">
+                <img src="/assets/ui/eye_closed.png" style="width: 22px; height: 22px; opacity: 0.8;" alt="Toggle" />
+              </button>
+            </div>
+            <div id="reset-pw-requirements" style="width: 100%; text-align: left; font-family: 'VCR', sans-serif; font-size: clamp(0.6rem, 1.1vw, 0.8rem); color: #a89b8c; margin-bottom: 0.2rem; display: flex; flex-direction: column; gap: 2px;">
+              <span id="reset-req-length">✗ 8 CHARACTERS MINIMUM</span>
+              <span id="reset-req-number">✗ 1 NUMBER</span>
+              <span id="reset-req-special">✗ 1 SPECIAL CHARACTER</span>
+            </div>
+            <div class="login-ref-input-wrap">
+              <input class="login-ref-input" type="password" id="reset-confirm" placeholder="CONFIRM NEW PASSWORD" maxlength="50" autocomplete="new-password" />
+              <button type="button" id="reset-toggle-confirm" class="login-ref-toggle-btn">
+                <img src="/assets/ui/eye_closed.png" style="width: 22px; height: 22px; opacity: 0.8;" alt="Toggle" />
+              </button>
+            </div>
           </div>
-          <div id="reset-pw-requirements" style="width: 90%; max-width: 500px; text-align: left; font-family: 'GigaSaturn', sans-serif; font-size: 0.65rem; color: #a89b8c; margin-top: 0.2rem; margin-bottom: 0.5rem; display: flex; flex-direction: column; gap: 2px;">
-            <span id="reset-req-length">✗ 8 CHARACTERS MINIMUM</span>
-            <span id="reset-req-number">✗ 1 NUMBER</span>
-            <span id="reset-req-special">✗ 1 SPECIAL CHARACTER</span>
-          </div>
-          <div style="position: relative; width: 90%; max-width: 500px;">
-            <input type="password" id="reset-confirm" placeholder="CONFIRM NEW PASSWORD" maxlength="50" autocomplete="new-password" style="width: 100%; height: 45px; background: rgba(0,0,0,0.3); border: 2px solid white; color: white; font-family: 'GigaSaturn', sans-serif; font-size: 1.2rem; text-align: center; outline: none; box-shadow: 0 4px 6px rgba(0,0,0,0.5);" />
-            <button type="button" id="reset-toggle-confirm" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); background: transparent; border: none; cursor: pointer; padding: 0; display: flex; align-items: center;">
-              <img src="/assets/ui/eye_closed.png" style="width: 24px; height: 24px; opacity: 0.8;" alt="Toggle" />
-            </button>
-          </div>
-          <p class="login-card__privacy text-red hidden" id="reset-error-msg" style="margin-top: 0.5rem; font-family: 'GigaSaturn', sans-serif; font-size: 1rem; font-weight: bold; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); text-align: center;"></p>
-          <div style="display: flex; gap: 1rem; margin-top: 2rem; width: 90%; max-width: 500px; justify-content: center;">
-            <button id="btn-back-reset" style="font-family: 'GigaSaturn', sans-serif; font-size: clamp(1.2rem, 2vw, 2.5rem); color: white; background: transparent; border: none; cursor: pointer; transition: transform 0.2s; letter-spacing: 2px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">CANCEL</button>
-            <button id="btn-submit-reset" style="font-family: 'GigaSaturn', sans-serif; font-size: clamp(1.2rem, 2vw, 2.5rem); color: white; background: transparent; border: none; cursor: pointer; transition: transform 0.2s; letter-spacing: 2px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">RESET</button>
+          <p class="login-card__privacy text-red hidden" id="reset-error-msg" style="margin-top: 0.4rem; font-family: 'GigaSaturn', sans-serif; font-size: 0.85rem; font-weight: bold; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); text-align: center;"></p>
+          <div class="login-ref-actions">
+            <button id="btn-back-reset" class="login-ref-action-btn">CANCEL</button>
+            <button id="btn-submit-reset" class="login-ref-action-btn">RESET</button>
           </div>
         </div>
       </div>
@@ -367,8 +371,8 @@ export const LoginScreen = {
         overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);display:flex;align-items:center;justify-content:center;z-index:9999;';
         overlay.innerHTML = `
           <div style="background:#1a1408;border:2px solid rgba(255,255,255,0.2);border-radius:8px;padding:2rem;min-width:280px;max-width:380px;width:90%;text-align:center;">
-            <h3 style="color:white;font-family:'GigaSaturn',sans-serif;font-size:1.2rem;letter-spacing:2px;margin-bottom:1rem;">FORGOT USERNAME?</h3>
-            <p style="color:#a89b8c;font-family:'GigaSaturn',sans-serif;font-size:0.7rem;margin-bottom:1rem;line-height:1.5;">Enter your email and we'll send you your username.</p>
+            <h3 style="color:white;font-family:'VCR',sans-serif;font-size:1.3rem;letter-spacing:2px;margin-bottom:1rem;text-transform:uppercase;">Forgot Username?</h3>
+            <p style="color:#a89b8c;font-family:'VCR',sans-serif;font-size:0.85rem;margin-bottom:1rem;line-height:1.5;letter-spacing:1px;">Enter your email and we'll send you your username.</p>
             <input id="fu-email" type="email" placeholder="YOUR EMAIL" maxlength="255" style="width:100%;height:42px;background:rgba(0,0,0,0.4);border:2px solid white;color:white;font-family:'GigaSaturn',sans-serif;font-size:1rem;text-align:center;outline:none;box-sizing:border-box;margin-bottom:0.5rem;" />
             <p id="fu-msg" style="font-family:'GigaSaturn',sans-serif;font-size:0.75rem;font-weight:bold;min-height:1.2em;margin-bottom:1rem;"></p>
             <div style="display:flex;gap:0.5rem;">
