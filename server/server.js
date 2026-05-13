@@ -17,24 +17,30 @@ const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_jwt_key_at_least_256_
 const AES_SECRET_KEY = process.env.AES_SECRET_KEY || 'stable_secure_backend_aes_256_ky';
 
 // Nodemailer Transporter Configuration (Check 2)
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.SMTP_PORT) || 587,
-  secure: process.env.SMTP_SECURE === 'true' || false, // true for 465, false for other ports
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  }
-});
+const hasEmailCreds = process.env.EMAIL_USER && process.env.EMAIL_PASS;
+let transporter = null;
 
-transporter.verify((error) => {
-  if (error) {
-    console.error('[EMAIL] Transporter verification FAILED:', error.message);
-    console.error('[EMAIL] Check EMAIL_USER and EMAIL_PASS in your .env file.');
-  } else {
-    console.log('[EMAIL] Transporter ready. Emails can be sent.');
-  }
-});
+if (hasEmailCreds) {
+  transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST || 'smtp.gmail.com',
+    port: parseInt(process.env.SMTP_PORT) || 587,
+    secure: process.env.SMTP_SECURE === 'true' || false,
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS
+    }
+  });
+
+  transporter.verify((error) => {
+    if (error) {
+      console.error('[EMAIL] Transporter verification FAILED:', error.message);
+    } else {
+      console.log('[EMAIL] Transporter ready. Emails can be sent.');
+    }
+  });
+} else {
+  console.log('[EMAIL] No credentials in .env - email features disabled (OK for dev)');
+}
 
 // CORS policy: strictly allow only the Vite development server origin
 app.use(cors({
@@ -619,7 +625,11 @@ app.post('/auth/forgot-username', forgotPasswordLimiter, async (req, res) => {
           </div>
         `
       };
-      try { await transporter.sendMail(mailOptions); } catch (mailErr) { console.error('Forgot username mail error:', mailErr); }
+      if (transporter) {
+        try { await transporter.sendMail(mailOptions); } catch (mailErr) { console.error('Forgot username mail error:', mailErr); }
+      } else {
+        console.log('[EMAIL] Would send forgot username email to:', sanitizedEmail);
+      }
     }
 
     return res.status(200).json({ success: true, message: 'If that email is registered, your username has been sent.' });
@@ -658,12 +668,16 @@ app.post('/auth/forgot-password', forgotPasswordLimiter, async (req, res) => {
         `
       };
 
-      try {
-        console.log(`[INFO] Sending reset code to: ${sanitizedEmail}`);
-        await transporter.sendMail(mailOptions);
-        console.log(`[INFO] Reset code sent to: ${sanitizedEmail}`);
-      } catch (emailErr) {
-        console.error(`[ERROR] Failed to send reset code to ${sanitizedEmail}:`, emailErr);
+      if (transporter) {
+        try {
+          console.log(`[INFO] Sending reset code to: ${sanitizedEmail}`);
+          await transporter.sendMail(mailOptions);
+          console.log(`[INFO] Reset code sent to: ${sanitizedEmail}`);
+        } catch (emailErr) {
+          console.error(`[ERROR] Failed to send reset code to ${sanitizedEmail}:`, emailErr);
+        }
+      } else {
+        console.log(`[EMAIL] Would send reset code to: ${sanitizedEmail} (dev mode)`);
       }
     }
 
