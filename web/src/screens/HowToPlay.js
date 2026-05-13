@@ -53,15 +53,27 @@ export const HowToPlay = {
         <div class="htp-dots">
           ${dotsHtml}
         </div>
+
+        <button class="menu-btn" id="btn-htp-play" style="
+          display: none;
+          margin: 0 auto;
+          margin-top: 1rem;
+          font-size: clamp(0.9rem, 2vw, 1.1rem);
+          letter-spacing: 2px;
+          padding: 0.5rem 2rem;
+        ">Let's Play! &#9654;</button>
       </div>
     `;
   },
 
-  onEnter(el) {
+  onEnter(el, params = {}) {
+    this._fromPlay = params.fromPlay || false;
+
     const slides = el.querySelectorAll('.htp-slide');
     const dots = el.querySelectorAll('.htp-dot');
     const prevBtn = el.querySelector('#htp-prev');
     const nextBtn = el.querySelector('#htp-next');
+    const playBtn = el.querySelector('#btn-htp-play');
     let currentSlide = 0;
     const totalSlides = slides.length;
 
@@ -73,6 +85,9 @@ export const HowToPlay = {
         dot.classList.toggle('active', i === index);
       });
       currentSlide = index;
+      if (this._fromPlay && playBtn) {
+        playBtn.style.display = index === totalSlides - 1 ? 'block' : 'none';
+      }
     };
 
     const nextSlide = () => {
@@ -97,6 +112,17 @@ export const HowToPlay = {
     };
     document.addEventListener('keydown', handleKeydown);
     this._handleKeydown = handleKeydown;
+
+    // "Let's Play!" button — only shown on last slide when fromPlay
+    if (playBtn) {
+      playBtn.addEventListener('click', async () => {
+        state.set('tutorialComplete', true);
+        state.set('practiceTutorialComplete', true);
+        await state.saveTutorialState();
+        if (state.savePracticeTutorialState) await state.savePracticeTutorialState();
+        window.__screenManager.navigate('chapter-select', {}, false);
+      });
+    }
 
     // Back button
     el.querySelector('#btn-htp-back').addEventListener('click', () => {

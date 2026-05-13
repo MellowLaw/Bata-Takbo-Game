@@ -29,6 +29,9 @@ export class Boss {
     this.lastAttackId = -1;
     this.secondLastAttackId = -1; // Track two back to prevent problematic pairs
     this.waveCount = 0;
+    this.isInfMode = scene.isInfMode || false;
+    this.infSpeedMultiplier = 1.0;
+    this.infPerfectWave = true;
 
     // Boss sprite is rendered by HUDScene (since HUD covers the left panel).
     // Projectiles originate from the top-center of the grid area.
@@ -64,8 +67,13 @@ export class Boss {
     this.attackCycleCount = 0;
     this.lastAttackId = -1;
 
-    // Explicit 3-second startup breather before the very first shot
-    this.attackTimer = this.scene.time.delayedCall(3000, this.executeAttack, [], this);
+    // Wait for admin token verification before the first attack fires
+    // so _adminTestAttackId is guaranteed to be set beforehand
+    const delay = 3000;
+    Promise.resolve(this.scene._adminCheckReady).then(() => {
+      if (!this.scene || this.scene.isGameOver) return;
+      this.attackTimer = this.scene.time.delayedCall(delay, this.executeAttack, [], this);
+    });
 
     // Phase 4: Time Stop buff listener
     this.scene.events.on('boss:timestop', (isStopped) => {
@@ -124,6 +132,11 @@ export class Boss {
 
   executeAttack() {
     this.waveCount++;
+    if (this.isInfMode) {
+      this.infSpeedMultiplier = Math.min(1.0 + (this.waveCount * 0.015), 2.5);
+      this.infPerfectWave = true;
+      this.scene.events.emit('inf:wave', this.waveCount, this.infSpeedMultiplier);
+    }
 
     // --- CHEAT MODE: boss sleeps, double loot rains ---
     if (this.cheatMode) {
@@ -194,19 +207,22 @@ export class Boss {
         // Beeswarm (0) and Hibiscus (1) must NEVER be consecutive in either order
         const BEESWARM = 0, HIBISCUS = 1;
         let pattern;
-        let safetyCounter = 0;
-        do {
-          pattern = Phaser.Math.Between(0, 7);
-          safetyCounter++;
-          // Block: same as last, OR beeswarm↔hibiscus adjacent pair
-          const isBadPair = (pattern === BEESWARM && this.lastAttackId === HIBISCUS) ||
-                            (pattern === HIBISCUS && this.lastAttackId === BEESWARM);
-        } while (safetyCounter < 20 && (pattern === this.lastAttackId || 
-          ((pattern === BEESWARM && this.lastAttackId === HIBISCUS) ||
-           (pattern === HIBISCUS && this.lastAttackId === BEESWARM))));
-        
-        this.secondLastAttackId = this.lastAttackId;
-        this.lastAttackId = pattern;
+
+        // Admin test mode: lock to specific attack ID
+        if (this.scene._adminTestAttackId !== undefined) {
+          pattern = this.scene._adminTestAttackId;
+        } else {
+          let safetyCounter = 0;
+          do {
+            pattern = Phaser.Math.Between(0, 7);
+            safetyCounter++;
+            // Block: same as last, OR beeswarm↔hibiscus adjacent pair
+          } while (safetyCounter < 20 && (pattern === this.lastAttackId ||
+            ((pattern === BEESWARM && this.lastAttackId === HIBISCUS) ||
+             (pattern === HIBISCUS && this.lastAttackId === BEESWARM))));
+          this.secondLastAttackId = this.lastAttackId;
+          this.lastAttackId = pattern;
+        }
 
         if (pattern === 0) currentAttackDuration = this.ch2AttackBeeswarm();
         else if (pattern === 1) currentAttackDuration = this.ch2AttackHibiscus();
@@ -391,20 +407,19 @@ export class Boss {
     const r = this.scene.player.row;
     this.grid.telegraph(c, r, 1500);
 
-    // Spawn eye off-screen
+    // Spawn eye off-screen (top-left or top-right)
     const fromLeft = Math.random() > 0.5;
     const startX = fromLeft ? -50 : this.scene.scale.width + 50;
     const startY = -100;
 
-    // Eye is 2500x2500 native. Dialed up to 0.06
-    const eye = this.scene.add.sprite(startX, startY, 'ch1_eye').setScale(1.5).setDepth(40);
-    eye.play('anim_ch1_eye');
-    // The asset natively faces right, so flip it if it comes from the right
-    if (fromLeft) {
-      eye.setFlipX(true);
-    }
-
     const dest = this.grid.getPixelPosition(c, r);
+
+    // Rotate to face travel direction — sprite natively faces UP so offset by +90°
+    const angle = Math.atan2(dest.y - startY, dest.x - startX) + Math.PI / 2;
+
+    const eye = this.scene.add.sprite(startX, startY, 'ch1_eye')
+      .setScale(1.5).setDepth(40).setRotation(angle);
+    eye.play('anim_ch1_eye');
 
     // Animate to target over 1.5s warning period (giving the dripping trail time to render continuously)
     this.scene.tweens.add({
@@ -828,21 +843,24 @@ export class Boss {
 
 
 
-      // QTE: Show 3 random arrow prompts
+      // QTE: Show 5 random arrow prompts
       const directions = ['up', 'down', 'left', 'right'];
       const arrows = { up: '⬆', down: '⬇', left: '⬅', right: '➡' };
+      const QTE_COUNT = 5;
       const sequence = [];
-      for (let i = 0; i < 3; i++) sequence.push(Phaser.Math.RND.pick(directions));
+      for (let i = 0; i < QTE_COUNT; i++) sequence.push(Phaser.Math.RND.pick(directions));
 
       let qteIndex = 0;
       const qteTexts = [];
 
-      // Render all 3 arrows above the player
-      for (let i = 0; i < 3; i++) {
+      // Render all 5 arrows above the player
+      const arrowSpacing = 36;
+      const arrowStartX = playerPos.x - ((QTE_COUNT - 1) / 2) * arrowSpacing;
+      for (let i = 0; i < QTE_COUNT; i++) {
         const txt = this.scene.add.text(
-          playerPos.x - 40 + i * 40, playerPos.y - 70,
+          arrowStartX + i * arrowSpacing, playerPos.y - 70,
           arrows[sequence[i]],
-          { fontFamily: 'VCR', fontSize: '28px', color: i === 0 ? '#ffff00' : '#888888', stroke: '#000', strokeThickness: 4 }
+          { fontFamily: 'VCR', fontSize: '26px', color: i === 0 ? '#ffff00' : '#888888', stroke: '#000', strokeThickness: 4 }
         ).setOrigin(0.5).setDepth(600);
         qteTexts.push(txt);
       }
@@ -851,25 +869,36 @@ export class Boss {
         fontFamily: 'GigaSaturn', fontSize: '16px', color: '#ff4444', stroke: '#000', strokeThickness: 4
       }).setOrigin(0.5).setDepth(600);
 
-      // Listen for correct gestures
+      // Listen for correct gestures/keys
       const onGesture = (direction) => {
-        if (this.scene.isGameOver || qteIndex >= 3) return;
+        if (this.scene.isGameOver || qteIndex >= QTE_COUNT) return;
         if (direction.toLowerCase() === sequence[qteIndex]) {
           // Correct! Highlight completed arrow green
           qteTexts[qteIndex].setColor('#00ff00');
           qteIndex++;
-          if (qteIndex < 3) {
+          if (qteIndex < QTE_COUNT) {
             qteTexts[qteIndex].setColor('#ffff00'); // Highlight next
           }
-          if (qteIndex >= 3) {
+          if (qteIndex >= QTE_COUNT) {
             // QTE complete! Free the player
             cleanupQte(true);
           }
         }
       };
 
+      // Keyboard handler so arrow keys / D-pad also work
+      const keyMap = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' };
+      const onKeyDown = (e) => {
+        if (keyMap[e.key]) {
+          e.preventDefault();
+          onGesture(keyMap[e.key]);
+        }
+      };
+      window.addEventListener('keydown', onKeyDown);
+
       const cleanupQte = (escaped) => {
-        // Unsub gesture
+        // Unsub gesture + keyboard
+        window.removeEventListener('keydown', onKeyDown);
         if (this.scene._vineQteUnsub) {
           this.scene._vineQteUnsub();
           this.scene._vineQteUnsub = null;
@@ -901,7 +930,7 @@ export class Boss {
 
       // 10 second window to escape — deal damage only if they completely failed
       this.scene.time.delayedCall(10000, () => {
-        if (qteIndex < 3 && this.scene.player.isFrozen) {
+        if (qteIndex < QTE_COUNT && this.scene.player.isFrozen) {
           // Failed to escape in time — deal real damage
           this.scene.player.takeDamage();
           cleanupQte(false);
@@ -1246,11 +1275,8 @@ export class Boss {
       this.scene.tweens.add({ targets: plant, alpha: 1, duration: 400, ease: 'Back.easeOut' });
 
       for (let shot = 0; shot < SHOTS_PER_PLANT; shot++) {
-        this.scene.time.delayedCall(800 + shot * SHOT_DELAY, () => {
+        this.scene.time.delayedCall(400 + shot * SHOT_DELAY, () => {
           if (this.hp <= 0 || this.scene.isGameOver) return;
-
-          // Play correct facing animation
-          plant.play(isRight ? 'anim_ch2_plant_ranged_left' : 'anim_ch2_plant_ranged_right');
 
           // Pick 3 random UNIQUE columns on THIS plant's own row
           // Always leave at least 1 escape column free for player to dodge
@@ -1266,14 +1292,13 @@ export class Boss {
             }
           }
 
-          // Telegraph stays visible until acid actually fires (after charge animation)
-          // Charge animation: 10 frames @ 12fps = ~833ms
+          // Telegraph + charge animation: ~833ms for 10 frames @12fps
           const CHARGE_MS = Math.floor(10 / 12 * 1000);
-          const TELEGRAPH_TIME = 1000 + CHARGE_MS; // Keep warning visible through charge + buffer
-          targetTiles.forEach(({ c, r }) => this.grid.telegraph(c, r, TELEGRAPH_TIME));
+          targetTiles.forEach(({ c, r }) => this.grid.telegraph(c, r, CHARGE_MS + 600));
 
-          // Start charging immediately while telegraph is still visible
-          this.scene.time.delayedCall(1000, () => {
+          // Play attack animation — fire acid exactly when it completes
+          plant.play(isRight ? 'anim_ch2_plant_ranged_left' : 'anim_ch2_plant_ranged_right');
+          plant.once('animationcomplete', () => {
             if (this.hp <= 0 || this.scene.isGameOver) return;
 
             targetTiles.forEach(({ c, r }) => {
@@ -1683,12 +1708,13 @@ export class Boss {
     }
 
     if (this.hp <= 0) {
+      if (this.isInfMode) {
+        // INF mode: reset HP, speed up, emit reset event for HUD
+        this.hp = this.maxHp;
+        this.scene.events.emit('boss:damaged', this.hp, this.maxHp);
+        return;
+      }
       this.die();
-    } else if (!this.isTutorial && this.scene.chapterId === 1) {
-      // Chapter 1 Ultimate: Blood Vortex - pulls player to center but deals NO damage
-      if (this.attackTimer) this.attackTimer.remove();
-      const ultimateDuration = this.ch1AttackBloodVortexPull();
-      this.attackTimer = this.scene.time.delayedCall(ultimateDuration + 2000, this.executeAttack, [], this);
     } else if (!this.isTutorial && this.scene.chapterId === 2) {
       if (this.attackTimer) this.attackTimer.remove();
       this._ch2UltimateCount = (this._ch2UltimateCount || 0) + 1;
@@ -1717,10 +1743,25 @@ export class Boss {
   }
   // ======== CHAPTER 3: KATAW — 14 ATTACKS ========
 
-  // Helper: play smoke at pixel pos, callback when done
-  _spawnSmoke(x, y, onDone) {
+  // Helper: reduce sprite multipliers on mobile (< 500px wide) to 70%
+  _mobileScale(multiplier) {
+    return this.scene.scale.width < 500 ? multiplier * 0.7 : multiplier;
+  }
+
+  // Helper: true when running on a narrow/mobile screen
+  _isMobile() {
+    return this.scene.scale.width < 500;
+  }
+
+  // Helper: play smoke at pixel pos, callback when done.
+  // Pass skipOnMobile=true to skip the visual entirely on mobile (just fires callback).
+  _spawnSmoke(x, y, onDone, skipOnMobile = false) {
+    if (skipOnMobile && this._isMobile()) {
+      if (onDone) onDone();
+      return;
+    }
     const smoke = this.scene.add.sprite(x, y, 'ch3_smoke_spawn')
-      .setDepth(120).setScale(2).play('anim_ch3_smoke');
+      .setDepth(120).setScale(this._mobileScale(2)).play('anim_ch3_smoke');
     smoke.once('animationcomplete', () => { smoke.destroy(); if (onDone) onDone(); });
   }
 
@@ -1808,9 +1849,9 @@ R8: P P P P P P P P P
 
   _executeSpecificExplosionSequence(steps, scaleOverrides) {
     const ts = this.grid.tileSize;
-    const maxSpritesPerBurst = 50; // Cover full grid patterns (7x7 = 49 tiles max)
-    const visualBatchSize = 6;
-    const visualBatchDelay = 45;
+    const maxSpritesPerBurst = this._isMobile() ? 20 : 50;
+    const visualBatchSize = this._isMobile() ? 4 : 6;
+    const visualBatchDelay = this._isMobile() ? 60 : 45;
     let currentSpawnTime = 1100;
     let maxAttackDuration = currentSpawnTime;
 
@@ -1849,7 +1890,7 @@ R8: P P P P P P P P P
             if (this.hp <= 0 || this.scene.isGameOver) return;
             const pix = this.grid.getPixelPosition(t.c, t.r);
             const exp = this.scene.add.sprite(pix.x, pix.y, animKey.replace('anim_', ''))
-              .setDepth(60).setDisplaySize(ts * scaleMultiplier, ts * scaleMultiplier).play(animKey);
+              .setDepth(60).setDisplaySize(ts * this._mobileScale(scaleMultiplier), ts * this._mobileScale(scaleMultiplier)).play(animKey);
             exp.once('animationcomplete', () => exp.destroy());
           });
         });
@@ -2068,7 +2109,7 @@ R8: . . . . Y . . . .
     const midY  = this.grid.getPixelPosition(0, Math.floor(this.grid.rows / 2)).y;
 
     // Make Fish King exactly 5x5 tiles in display size
-    const fkSize = ts * 5;
+    const fkSize = ts * this._mobileScale(5);
 
     this._spawnSmoke(edgeX, midY, () => {
       if (this.hp <= 0 || this.scene.isGameOver) return;
@@ -2107,7 +2148,7 @@ R8: . . . . Y . . . .
               this.scene.time.delayedCall(600, () => {
                 if (this.hp <= 0 || this.scene.isGameOver) return;
                 const shark = this.scene.add.sprite(startPix.x, startPix.y, 'ch3_shark_walk')
-                  .setDepth(35).setFlipX(true).setDisplaySize(ts * 2, ts * 2).play('anim_ch3_shark_walk');
+                  .setDepth(35).setFlipX(true).setDisplaySize(ts * this._mobileScale(2), ts * this._mobileScale(2)).play('anim_ch3_shark_walk');
                 
                 this.scene.tweens.add({
                   targets: shark, x: endPix.x, duration: 2500,
@@ -2138,7 +2179,7 @@ R8: . . . . Y . . . .
               this.scene.time.delayedCall(600, () => {
                 if (this.hp <= 0 || this.scene.isGameOver) return;
                 const jelly = this.scene.add.sprite(startPix.x, startPix.y, 'ch3_jelly_walk')
-                  .setDepth(35).setDisplaySize(ts * 1.5, ts * 1.5).play('anim_ch3_jelly_walk'); // bigger jellyfish
+                  .setDepth(35).setDisplaySize(ts * this._mobileScale(1.5), ts * this._mobileScale(1.5)).play('anim_ch3_jelly_walk'); // bigger jellyfish
                 this.scene.tweens.add({
                   targets: jelly, y: endPix.y, duration: 1400,
                   onUpdate: () => {
@@ -2181,7 +2222,7 @@ R8: . . . . Y . . . .
     const ts     = this.grid.tileSize;
     const edgeX  = this.grid.getPixelPosition(this.grid.cols - 1, 0).x + ts * 3;
     const midY   = this.grid.getPixelPosition(0, Math.floor(this.grid.rows / 2)).y;
-    const fkSize = ts * 5;
+    const fkSize = ts * this._mobileScale(5);
 
     this._spawnSmoke(edgeX, midY, () => {
       if (this.hp <= 0 || this.scene.isGameOver) return;
@@ -2257,7 +2298,7 @@ R8: . . . . Y . . . .
                   if (this.hp <= 0 || this.scene.isGameOver || !this.scene.player) return;
                   const p = this.grid.getPixelPosition(cc, cr);
                   const spr = this.scene.add.sprite(p.x, p.y, 'ch3_firebomb')
-                    .setDepth(55).setDisplaySize(ts * 3, ts * 3).play('anim_ch3_firebomb');
+                    .setDepth(55).setDisplaySize(ts * this._mobileScale(3), ts * this._mobileScale(3)).play('anim_ch3_firebomb');
                   this.scene.cameras.main.shake(150, 0.018);
                   
                   // Damage player if in 3x3
@@ -2317,7 +2358,7 @@ R8: . . . . Y . . . .
                 this.scene.time.delayedCall(600, () => {
                   if (this.hp <= 0 || this.scene.isGameOver || !this.scene.player) return;
                   const ball = this.scene.add.sprite(startX, y, 'ch3_spark')
-                    .setDepth(55).setDisplaySize(ts * 3, ts * 3).play('anim_ch3_spark');
+                    .setDepth(55).setDisplaySize(ts * this._mobileScale(3), ts * this._mobileScale(3)).play('anim_ch3_spark');
                   
                   this.scene.tweens.add({
                     targets: ball, x: endX, duration: 1500,
@@ -2383,7 +2424,7 @@ R8: . . . . Y . . . .
           const shark = this.scene.add.sprite(idleX, idleY, 'ch3_shark_walk')
             .setDepth(40)
             .setFlipX(true)
-            .setDisplaySize(ts * 2.5, ts * 2.5)
+            .setDisplaySize(ts * this._mobileScale(2.5), ts * this._mobileScale(2.5))
             .play('anim_ch3_shark_walk');
 
           const destX = this.grid.getPixelPosition(-2, row).x;
@@ -2548,7 +2589,7 @@ R8: . . . . Y . . . .
   // ─── ATTACK 6: Bat Swarm Assault ──────────────────────────────────────
   ch3BatDiveBomb() {
     const ts = this.grid.tileSize;
-    const batSize = ts * 2.5;
+    const batSize = ts * this._mobileScale(2.5);
     
     // Entrance flash only - reduced shake
     this.scene.cameras.main.flash(400, 80, 0, 120);
@@ -2596,7 +2637,7 @@ R8: . . . . Y . . . .
             
             // Lightning burst FX at dive start (no smoke)
             const lightning = this.scene.add.sprite(pix.x, pix.y - 300, 'lightning_burst')
-              .setDepth(68).setScale(2).play('anim_lightning_burst');
+              .setDepth(68).setScale(this._mobileScale(2)).play('anim_lightning_burst');
             this.scene.time.delayedCall(400, () => lightning.destroy());
 
             const bat = this.scene.add.sprite(pix.x, pix.y - 500, 'ch3_bat_fly')
@@ -2614,7 +2655,7 @@ R8: . . . . Y . . . .
                 
                 // Impact FX - lightning only (no smoke)
                 const impactLightning = this.scene.add.sprite(pix.x, pix.y, 'lightning_burst')
-                  .setDepth(72).setScale(1.5).play('anim_lightning_burst');
+                  .setDepth(72).setScale(this._mobileScale(1.5)).play('anim_lightning_burst');
                 this.scene.time.delayedCall(400, () => impactLightning.destroy());
 
                 // Damage only on exact tile (not 3x3 area)
@@ -2674,10 +2715,11 @@ R8: . . . . Y . . . .
       // Wave flash
       this.scene.cameras.main.flash(150, 80, 0, 120, 0.3);
       
-      // Pick 6 random tiles to shoot beams from
+      // Pick fewer beam origins on mobile
+      const maxBeams = this._isMobile() ? 3 : 6;
       const beamOrigins = [];
       let attempts = 0;
-      while(beamOrigins.length < 6 && attempts < 100) {
+      while(beamOrigins.length < maxBeams && attempts < 100) {
         attempts++;
         const c = Phaser.Math.Between(0, this.grid.cols - 1);
         const r = Phaser.Math.Between(0, this.grid.rows - 1);
@@ -2747,11 +2789,11 @@ R8: . . . . Y . . . .
             }
             
             beam = this.scene.add.sprite(startX, startY, 'ch3_beam_multidir')
-              .setDepth(15).setDisplaySize(ts * 2, ts * 2).setAngle(angle).play('anim_ch3_beam_multidir');
+              .setDepth(15).setDisplaySize(ts * this._mobileScale(2), ts * this._mobileScale(2)).setAngle(angle).play('anim_ch3_beam_multidir');
             
             // Light showers explosion at origin
             const explosion = this.scene.add.sprite(pix.x, pix.y, 'ch3_light_showers')
-              .setDepth(16).setScale(1.5).play('anim_ch3_light_showers');
+              .setDepth(16).setScale(this._mobileScale(1.5)).play('anim_ch3_light_showers');
             this.scene.time.delayedCall(800, () => explosion.destroy());
             
             // Camera shake on explosion
@@ -2984,8 +3026,9 @@ R8: . . . . Y . . . .
       const sirenContainer = this.scene.add.container(leftPos.x, sirenY).setDepth(100);
       
       // Main siren sprite - using Walk animation (13x1 frames), visible scale
+      const sirenSize = this.grid.tileSize * this._mobileScale(2.0);
       const siren = this.scene.add.sprite(0, 0, 'ch3_siren1_walk')
-        .setDepth(100).setScale(2.0).play('anim_ch3_siren1_walk');
+        .setDepth(100).setDisplaySize(sirenSize, sirenSize).play('anim_ch3_siren1_walk');
       sirenContainer.add(siren);
       
       // HORIZONTAL WALKING - Siren paces back and forth like a boss
@@ -3217,7 +3260,7 @@ R8: . . . . Y . . . .
                   // Use different asset for each beam in cross pattern (no tint)
                   const assetIdx = idx % 3;
                   const beam = this.scene.add.sprite(beamX, beamStartY, beamAssets[assetIdx])
-                    .setDepth(15).setDisplaySize(ts * 3, ts * 3).play(beamAnims[assetIdx]);
+                    .setDepth(15).setDisplaySize(ts * this._mobileScale(3), ts * this._mobileScale(3)).play(beamAnims[assetIdx]);
                   
                   // Spark particle trail
                   const trailTimer = this.scene.time.addEvent({
@@ -3276,7 +3319,7 @@ R8: . . . . Y . . . .
                const beamAnim = useTideLightning ? 'anim_ch3_tide_lightning' : 'anim_ch3_spark';
 
                const beam = this.scene.add.sprite(beamX, beamStartY, beamAsset)
-                 .setDepth(15).setDisplaySize(ts * 2.5, ts * 2.5).play(beamAnim);
+                 .setDepth(15).setDisplaySize(ts * this._mobileScale(2.5), ts * this._mobileScale(2.5)).play(beamAnim);
 
                // Add spark effects around the beam
                const sparkTimer = this.scene.time.addEvent({
@@ -3342,7 +3385,7 @@ R8: . . . . Y . . . .
                     const beamEndY   = this.grid.getPixelPosition(c, this.grid.rows + 3).y;
 
                     const beam = this.scene.add.sprite(beamX, beamStartY, style.asset)
-                      .setDepth(15).setDisplaySize(ts * style.scaleX, ts * style.scaleY).play(style.anim);
+                      .setDepth(15).setDisplaySize(ts * this._mobileScale(style.scaleX), ts * this._mobileScale(style.scaleY)).play(style.anim);
 
                     // Add occasional spark
                     if (Math.random() > 0.5) {
@@ -3796,7 +3839,7 @@ R8: . . . . Y . . . .
       // Despawn after animation
       this.scene.time.delayedCall(2000, () => {
         if (monster.active) {
-          this._spawnSmoke(monster.x, monster.y, null);
+          if (!this._isMobile()) this._spawnSmoke(monster.x, monster.y, null);
           monster.destroy();
         }
       });
@@ -3865,13 +3908,15 @@ R8: . . . . Y . . . .
       scene.time.delayedCall(waveIndex * waveDelay, () => {
         wave.forEach(pos => {
           this.grid.telegraph(pos.c, pos.r, telegraphDuration);
-          // Add colored glow effect
-          const glow = scene.add.sprite(
-            this.grid.getPixelPosition(pos.c, pos.r).x,
-            this.grid.getPixelPosition(pos.c, pos.r).y,
-            'ch3_fx_ring'
-          ).setDepth(60).setTint(waveColors[waveIndex % waveColors.length]).setAlpha(0.6);
-          scene.time.delayedCall(telegraphDuration, () => glow.destroy());
+          // Skip glow sprites on mobile — too many simultaneous sprites
+          if (!this._isMobile()) {
+            const glow = scene.add.sprite(
+              this.grid.getPixelPosition(pos.c, pos.r).x,
+              this.grid.getPixelPosition(pos.c, pos.r).y,
+              'ch3_fx_ring'
+            ).setDepth(60).setTint(waveColors[waveIndex % waveColors.length]).setAlpha(0.6);
+            scene.time.delayedCall(telegraphDuration, () => glow.destroy());
+          }
         });
       });
 
@@ -3886,14 +3931,18 @@ R8: . . . . Y . . . .
       });
     });
 
-    // Grand finale - all remaining edge positions
+    // Grand finale - all remaining edge positions (cap on mobile)
     const finaleDelay = waves.length * waveDelay + 1000;
-    const edgePositions = [];
+    let edgePositions = [];
     for (let c = 0; c < cols; c++) {
       edgePositions.push({ c, r: 0 }, { c, r: rows - 1 });
     }
     for (let r = 1; r < rows - 1; r++) {
       edgePositions.push({ c: 0, r }, { c: cols - 1, r });
+    }
+    if (this._isMobile()) {
+      Phaser.Utils.Array.Shuffle(edgePositions);
+      edgePositions = edgePositions.slice(0, 12);
     }
 
     scene.time.delayedCall(finaleDelay, () => {
@@ -3934,7 +3983,7 @@ R8: . . . . Y . . . .
       // Despawn after animation
       this.scene.time.delayedCall(2200, () => {
         if (monster.active) {
-          this._spawnSmoke(monster.x, monster.y, null);
+          if (!this._isMobile()) this._spawnSmoke(monster.x, monster.y, null);
           monster.destroy();
         }
       });
@@ -3969,18 +4018,22 @@ R8: . . . . Y . . . .
       const pos = this.grid.getPixelPosition(col, row);
       fireCount++;
 
-      // Spawn smoke puff on ignition
-      const smoke = scene.add.sprite(pos.x, pos.y, 'ch3_smoke_spawn')
-        .setDepth(160).setDisplaySize(ts * 1.8, ts * 1.8).setAlpha(0.7).play('anim_ch3_smoke');
-      smoke.once('animationcomplete', () => smoke.destroy());
+      // Spawn smoke puff on ignition (skip on mobile)
+      if (!this._isMobile()) {
+        const smoke = scene.add.sprite(pos.x, pos.y, 'ch3_smoke_spawn')
+          .setDepth(160).setDisplaySize(ts * this._mobileScale(1.8), ts * this._mobileScale(1.8)).setAlpha(0.7).play('anim_ch3_smoke');
+        smoke.once('animationcomplete', () => smoke.destroy());
+      }
 
-      // Blue FX ring burst
-      const ring = scene.add.sprite(pos.x, pos.y, 'ch3_fx_ring')
-        .setDepth(155).setDisplaySize(ts * 0.5, ts * 0.5).setAlpha(0.9).play('anim_ch3_fx_ring');
-      scene.tweens.add({
-        targets: ring, displayWidth: ts * 2.5, displayHeight: ts * 2.5, alpha: 0,
-        duration: 350, onComplete: () => ring.destroy()
-      });
+      // Blue FX ring burst (skip on mobile)
+      if (!this._isMobile()) {
+        const ring = scene.add.sprite(pos.x, pos.y, 'ch3_fx_ring')
+          .setDepth(155).setDisplaySize(ts * 0.5, ts * 0.5).setAlpha(0.9).play('anim_ch3_fx_ring');
+        scene.tweens.add({
+          targets: ring, displayWidth: ts * 2.5, displayHeight: ts * 2.5, alpha: 0,
+          duration: 350, onComplete: () => ring.destroy()
+        });
+      }
 
       // The fire itself
       const fire = scene.add.sprite(pos.x, pos.y, 'ch3_water_beam')
@@ -3995,13 +4048,14 @@ R8: . . . . Y . . . .
         targets: fire, alpha: 0.6, duration: 600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut'
       });
 
-      // Mini shake on each fire placement
-      scene.cameras.main.shake(60, 0.005);
+      // Mini shake on each fire placement (skip on mobile to reduce overhead)
+      if (!this._isMobile()) scene.cameras.main.shake(60, 0.005);
 
       fireMap.set(key, { sprite: fire, col, row });
 
-      // Every 5 fires, do a bigger screen shake + flash for intensity
-      if (fireCount % 5 === 0) {
+      // Every 5 fires, do a bigger screen shake + flash (every 10 on mobile)
+      const shakeInterval = this._isMobile() ? 10 : 5;
+      if (fireCount % shakeInterval === 0) {
         scene.cameras.main.shake(150, 0.012);
         scene.cameras.main.flash(150, 0, 120, 200, true);
       }
@@ -4075,26 +4129,27 @@ R8: . . . . Y . . . .
         scene.cameras.main.shake(300, 0.02);
         scene.cameras.main.flash(200, 0, 100, 220, true);
 
-        // Spawn random lightning bolts for visual flair
-        const randC = Phaser.Math.Between(0, cols - 1);
-        const randR = Phaser.Math.Between(0, rows - 1);
-        const lpos = this.grid.getPixelPosition(randC, randR);
-        const bolt = scene.add.sprite(lpos.x, lpos.y, 'ch3_fx_thunder')
-          .setDepth(180).setDisplaySize(ts * 2, ts * 3).setAlpha(0.8).play('anim_ch3_fx_thunder');
-        scene.tweens.add({
-          targets: bolt, alpha: 0, duration: 500, onComplete: () => bolt.destroy()
-        });
+        // Skip decorative bolt/whirl sprites on mobile
+        if (!this._isMobile()) {
+          const randC = Phaser.Math.Between(0, cols - 1);
+          const randR = Phaser.Math.Between(0, rows - 1);
+          const lpos = this.grid.getPixelPosition(randC, randR);
+          const bolt = scene.add.sprite(lpos.x, lpos.y, 'ch3_fx_thunder')
+            .setDepth(180).setDisplaySize(ts * 2, ts * 3).setAlpha(0.8).play('anim_ch3_fx_thunder');
+          scene.tweens.add({
+            targets: bolt, alpha: 0, duration: 500, onComplete: () => bolt.destroy()
+          });
 
-        // Spawn a whirl FX at another random spot
-        const randC2 = Phaser.Math.Between(0, cols - 1);
-        const randR2 = Phaser.Math.Between(0, rows - 1);
-        const wpos = this.grid.getPixelPosition(randC2, randR2);
-        const whirl = scene.add.sprite(wpos.x, wpos.y, 'ch3_fx_whirl')
-          .setDepth(175).setDisplaySize(ts * 2, ts * 2).setAlpha(0.7).play('anim_ch3_fx_whirl');
-        scene.tweens.add({
-          targets: whirl, alpha: 0, rotation: Math.PI * 2, duration: 800,
-          onComplete: () => whirl.destroy()
-        });
+          const randC2 = Phaser.Math.Between(0, cols - 1);
+          const randR2 = Phaser.Math.Between(0, rows - 1);
+          const wpos = this.grid.getPixelPosition(randC2, randR2);
+          const whirl = scene.add.sprite(wpos.x, wpos.y, 'ch3_fx_whirl')
+            .setDepth(175).setDisplaySize(ts * 2, ts * 2).setAlpha(0.7).play('anim_ch3_fx_whirl');
+          scene.tweens.add({
+            targets: whirl, alpha: 0, rotation: Math.PI * 2, duration: 800,
+            onComplete: () => whirl.destroy()
+          });
+        }
       }
     });
 
@@ -4135,7 +4190,7 @@ R8: . . . . Y . . . .
 
             // Lightning burst FX
             const burst = scene.add.sprite(pos.x, pos.y, 'lightning_burst')
-              .setDepth(190).setScale(1.8).play('anim_lightning_burst');
+              .setDepth(190).setScale(this._mobileScale(1.8)).play('anim_lightning_burst');
             burst.once('animationcomplete', () => burst.destroy());
 
             // Frozen splash FX for visual chaos
@@ -4184,7 +4239,7 @@ R8: . . . . Y . . . .
             for (let c = 0; c < cols; c++) {
               const p = this.grid.getPixelPosition(c, r);
               const lb = scene.add.sprite(p.x, p.y, 'lightning_burst')
-                .setDepth(190).setScale(1.2).play('anim_lightning_burst');
+                .setDepth(190).setScale(this._mobileScale(1.2)).play('anim_lightning_burst');
               lb.once('animationcomplete', () => lb.destroy());
             }
 
@@ -4211,7 +4266,7 @@ R8: . . . . Y . . . .
             for (let r = 0; r < rows; r++) {
               const p = this.grid.getPixelPosition(c, r);
               const lb = scene.add.sprite(p.x, p.y, 'lightning_burst')
-                .setDepth(190).setScale(1.2).play('anim_lightning_burst');
+                .setDepth(190).setScale(this._mobileScale(1.2)).play('anim_lightning_burst');
               lb.once('animationcomplete', () => lb.destroy());
             }
 

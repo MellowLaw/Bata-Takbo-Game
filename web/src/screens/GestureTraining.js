@@ -16,6 +16,15 @@ export const GestureTraining = {
           Gesture Setup
         </h1>
 
+        <button id="btn-gesture-help" title="How to set up gestures" style="
+          position: absolute; top: 16px; right: 16px;
+          background: transparent; border: 2px solid rgba(255,255,255,0.4);
+          color: #f0e6d3; font-family: 'VCR', monospace; font-size: 18px;
+          width: 38px; height: 38px; border-radius: 50%; cursor: pointer;
+          display: flex; align-items: center; justify-content: center;
+          z-index: 10; transition: border-color 0.2s, color 0.2s;
+        ">?</button>
+
         <!-- 50/50 split wrapper: camera left, controls right on mobile landscape -->
         <div class="gesture-screen__layout">
 
@@ -35,7 +44,10 @@ export const GestureTraining = {
           <div class="gesture-screen__right">
             <p class="text-center gesture-screen__hint" style="font-size: var(--text-sm); color: white; margin-bottom: var(--space-md); max-width: 400px; animation: fadeInUp 0.4s ease 0.1s forwards;">
               Train the game to recognize YOUR hand gestures!
-              Select a direction, make a gesture, and hold Record.
+              Select a direction, make a gesture, and hold Record.<br>
+              <span style="color: var(--accent-gold); font-size: var(--text-xs);">Minimum: 200 &bull; Recommended: 500 &bull; Good: 1000+ &bull; The more, the better!</span><br>
+              <span style="color: #a89b8c; font-size: var(--text-xs);">Tip: Record with both hands if you want to switch hands while playing.</span><br>
+              <span style="color: #a89b8c; font-size: var(--text-xs);">Try different lighting conditions and slightly move/rotate your hand while recording for better real-world accuracy.</span>
             </p>
 
             <div class="gesture-directions" style="animation: fadeInUp 0.4s ease 0.15s forwards;">
@@ -60,7 +72,7 @@ export const GestureTraining = {
                 <span class="gesture-dir-btn__count">0</span>
               </button>
               <button class="gesture-dir-btn" data-dir="idle" id="dir-idle">
-                <span class="gesture-dir-btn__arrow"><img src="/assets/ui/gesture-setup/bone-hand.png" alt="Rest" class="gesture-dir-btn__icon" /></span>
+                <span class="gesture-dir-btn__arrow"><img src="/assets/ui/hand.png" alt="Rest" class="gesture-dir-btn__icon" /></span>
                 <span class="gesture-dir-btn__label">REST</span>
                 <span class="gesture-dir-btn__count">0</span>
               </button>
@@ -104,11 +116,13 @@ export const GestureTraining = {
     this.canvasEl = el.querySelector('#webcam-canvas');
     this.loadingUi = el.querySelector('#camera-loading');
     this.activeDir = 'up'; // default
-    // If true: user was sent here from the Play button (gesture setup is required)
-    // If false: user navigated here directly via the Gesture Setup button
+    // If true: user was sent here from Play (old flow, now unused but kept for safety)
     this.fromPlay = params.fromPlay || false;
-    // If true: after gesture setup, go to practice tutorial instead of the old tutorial-screen
-    this.toPracticeAfter = params.toPracticeAfter || false;
+    // If true: came from CharacterSelect — go back there after setup
+    this.fromCharSelect = params.fromCharSelect || false;
+    this.returnChapterId = params.chapterId || 1;
+    this.returnGender = params.gender || null;
+    this.returnIsInfMode = params.isInfMode || false;
 
     // Force canvas size to match video aspect locally
     this.canvasEl.width = 640;
@@ -138,11 +152,11 @@ export const GestureTraining = {
       this.loadingUi.style.display = 'none';
       this._updateUIFromCounts();
       
-      // Only start tutorial if camera is actually running
+      // Only start tutorial if camera is actually running and no gestures trained yet
       const counts = gestureController.getSampleCounts();
       const hasTrainedGestures = Object.values(counts).some(c => c >= 10);
       if (!hasTrainedGestures && !gestureController.isTesting) {
-        this._startTutorial(el, this.fromPlay);
+        this._startTutorial(el);
       }
       
     } catch (e) {
@@ -218,17 +232,26 @@ export const GestureTraining = {
 
       // Reset styles
       dirBtns.forEach(b => b.classList.remove('active', 'trained'));
-      
-      if (detectedDir !== 'idle') {
-        const targetBtn = el.querySelector(`#dir-${detectedDir}`);
-        if(targetBtn) {
-          targetBtn.classList.add('active', 'trained'); 
-          // add a pulse animation
-          targetBtn.style.animation = 'glowPulse 0.5s ease';
-          setTimeout(()=> { targetBtn.style.animation = ''; }, 500);
-        }
+
+      const targetBtn = el.querySelector(`#dir-${detectedDir}`);
+      if (targetBtn) {
+        targetBtn.classList.add('active', 'trained');
+        targetBtn.style.animation = 'glowPulse 0.5s ease';
+        setTimeout(() => { targetBtn.style.animation = ''; }, 500);
       }
     });
+
+    // ? Help button — replay tutorial at any time
+    const helpBtn = el.querySelector('#btn-gesture-help');
+    if (helpBtn) {
+      helpBtn.addEventListener('click', () => {
+        if (this.tutorialManager) {
+          this.tutorialManager.skip();
+          this.tutorialManager = null;
+        }
+        this._startTutorial(el);
+      });
+    }
 
     // Test gestures Mode Toggle
     const testBtn = el.querySelector('#btn-test-gestures');
@@ -301,7 +324,7 @@ export const GestureTraining = {
       const btn = document.querySelector(`#dir-${dir}`);
       if (btn) {
         btn.querySelector('.gesture-dir-btn__count').textContent = count;
-        if (count >= 10) {
+        if (count >= 200) {
           btn.classList.add('trained');
         } else {
           btn.classList.remove('trained');
@@ -319,11 +342,16 @@ export const GestureTraining = {
     const progressLabel = el.querySelector('#progress-label');
 
     if (progressFill && progressLabel) {
-      const target = 20; // Recommended target
+      const target = 1000;
       const pct = Math.min((count / target) * 100, 100);
       progressFill.style.width = `${pct}%`;
-      progressFill.style.background = count >= 10 ? 'var(--accent-green)' : 'linear-gradient(90deg, var(--accent-orange), var(--accent-gold))';
-      progressLabel.textContent = `${count} / ${target}`;
+      let color, quality;
+      if (count >= 1000)      { color = 'var(--accent-green)';  quality = 'Good'; }
+      else if (count >= 500)  { color = 'var(--accent-gold)';   quality = 'Recommended'; }
+      else if (count >= 200)  { color = 'linear-gradient(90deg, var(--accent-orange), var(--accent-gold))'; quality = 'Minimum'; }
+      else                    { color = 'var(--accent-red, #ef4444)'; quality = 'Need more'; }
+      progressFill.style.background = color;
+      progressLabel.textContent = `${count} / ${target} — ${quality}`;
     }
   },
 
@@ -354,7 +382,7 @@ export const GestureTraining = {
     }
   },
 
-  _startTutorial(el, fromPlay = false) {
+  _startTutorial(el) {
     this.tutorialManager = new TutorialManager('screen-container');
     const portrait = '/assets/entity/character-icon/character.png';
     
@@ -388,11 +416,11 @@ export const GestureTraining = {
         hideDialogue: true,
         onEnter: () => {
           el.querySelector('#dir-up').click();
-          this._showRecordingHint(el, '▲ UP', 'Hold the Record button with your UP gesture');
+          this._showRecordingHint(el, '▲ UP', 'Hold the Record button with your UP gesture. Try using both hands for better accuracy!');
         },
         autoAdvance: {
           type: 'sampleAdded',
-          check: (counts) => { if (counts.up >= 10) { this._hideRecordingHint(); return true; } return false; }
+          check: (counts) => { if (counts.up >= 200) { this._hideRecordingHint(); return true; } return false; }
         }
       },
       {
@@ -405,11 +433,11 @@ export const GestureTraining = {
         hideDialogue: true,
         onEnter: () => {
           el.querySelector('#dir-down').click();
-          this._showRecordingHint(el, '▼ DOWN', 'Hold the Record button with your DOWN gesture');
+          this._showRecordingHint(el, '▼ DOWN', 'Hold the Record button with your DOWN gesture. Try using both hands for better accuracy!');
         },
         autoAdvance: {
           type: 'sampleAdded',
-          check: (counts) => { if (counts.down >= 10) { this._hideRecordingHint(); return true; } return false; }
+          check: (counts) => { if (counts.down >= 200) { this._hideRecordingHint(); return true; } return false; }
         }
       },
       {
@@ -422,11 +450,11 @@ export const GestureTraining = {
         hideDialogue: true,
         onEnter: () => {
           el.querySelector('#dir-left').click();
-          this._showRecordingHint(el, '◀ LEFT', 'Hold the Record button with your LEFT gesture');
+          this._showRecordingHint(el, '◀ LEFT', 'Hold the Record button with your LEFT gesture. Try using both hands for better accuracy!');
         },
         autoAdvance: {
           type: 'sampleAdded',
-          check: (counts) => { if (counts.left >= 10) { this._hideRecordingHint(); return true; } return false; }
+          check: (counts) => { if (counts.left >= 200) { this._hideRecordingHint(); return true; } return false; }
         }
       },
       {
@@ -439,11 +467,11 @@ export const GestureTraining = {
         hideDialogue: true,
         onEnter: () => {
           el.querySelector('#dir-right').click();
-          this._showRecordingHint(el, '▶ RIGHT', 'Hold the Record button with your RIGHT gesture');
+          this._showRecordingHint(el, '▶ RIGHT', 'Hold the Record button with your RIGHT gesture. Try using both hands for better accuracy!');
         },
         autoAdvance: {
           type: 'sampleAdded',
-          check: (counts) => { if (counts.right >= 10) { this._hideRecordingHint(); return true; } return false; }
+          check: (counts) => { if (counts.right >= 200) { this._hideRecordingHint(); return true; } return false; }
         }
       },
       {
@@ -456,11 +484,11 @@ export const GestureTraining = {
         hideDialogue: true,
         onEnter: () => {
           el.querySelector('#dir-idle').click();
-          this._showRecordingHint(el, '✋ REST', 'Hold the Record button with your REST / idle pose');
+          this._showRecordingHint(el, '✋ REST', 'Hold the Record button with your REST / idle pose. Try using both hands for better accuracy!');
         },
         autoAdvance: {
           type: 'sampleAdded',
-          check: (counts) => { if (counts.idle >= 10) { this._hideRecordingHint(); return true; } return false; }
+          check: (counts) => { if (counts.idle >= 200) { this._hideRecordingHint(); return true; } return false; }
         }
       },
       {
@@ -471,18 +499,18 @@ export const GestureTraining = {
         buttons: [{ label: 'Done Testing', action: 'next' }]
       },
       {
-        text: fromPlay
-          ? "Your gesture model has been saved! Now let's test your gestures and learn how to play."
-          : "You're all set! Your gesture model has been saved. You can come back anytime to retrain.",
+        text: this.fromCharSelect
+          ? "Your gesture model has been saved! Head back and pick your character to start playing."
+          : "You're all set! Your gesture model has been saved. You can come back anytime to retrain. Tap the ? button to replay this tutorial.",
         portrait: portrait,
         position: 'center',
-        buttons: [{ label: fromPlay ? (this.toPracticeAfter ? 'Continue to Practice' : 'Start Tutorial') : 'Done', action: 'next' }]
+        buttons: [{ label: this.fromCharSelect ? 'Back to Character Select' : 'Done', action: 'next' }]
       }
     ];
 
     this.tutorialManager.start(steps, {
-      onComplete: () => this._completeTutorial(fromPlay),
-      onSkip: () => this._skipTutorial(fromPlay)
+      onComplete: () => this._completeTutorial(),
+      onSkip: () => this._skipTutorial()
     });
   },
 
@@ -514,56 +542,39 @@ export const GestureTraining = {
     if (existing) existing.remove();
   },
 
-  async _skipTutorial(fromPlay) {
-    if (fromPlay) {
-      // Came via Play button — skip gesture training but still do practice tutorial
-      console.log('[TUTORIAL-DEBUG] GestureTraining._skipTutorial(): setting gestureSetupComplete = true');
-      gestureController.stopCamera();
-      window.__screenManager.history = ['main-menu'];
-      state.set('gestureSetupComplete', true);
-      state.set('selectedControl', 'gesture');
-      await state.saveGestureSetupState();
-      // Navigate to practice tutorial even if gesture training was skipped
-      window.__screenManager.navigate('practice-tutorial', { control: 'gesture' }, false);
-    } else {
-      // Opened Gesture Setup directly — stay on screen, show a brief toast
-      const toast = document.createElement('div');
-      toast.textContent = 'Tutorial skipped. Train your gestures manually below.';
-      toast.style.cssText = `
-        position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
-        background: rgba(0,0,0,0.85); color: white; padding: 10px 20px;
-        border-radius: 8px; font-family: 'GigaSaturn', sans-serif;
-        font-size: clamp(0.6rem,2vw,0.8rem); z-index: 99999;
-        pointer-events: none; letter-spacing: 1px;
-        animation: fsFadeIn 0.3s ease forwards;
-      `;
-      document.body.appendChild(toast);
-      setTimeout(() => {
-        toast.style.animation = 'fsFadeOut 0.4s ease forwards';
-        setTimeout(() => toast.remove(), 400);
-      }, 2500);
-    }
+  async _skipTutorial() {
+    // Stay on screen — show brief toast
+    const toast = document.createElement('div');
+    toast.textContent = 'Tutorial skipped. Train your gestures manually below.';
+    toast.style.cssText = `
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.85); color: white; padding: 10px 20px;
+      border-radius: 8px; font-family: 'GigaSaturn', sans-serif;
+      font-size: clamp(0.6rem,2vw,0.8rem); z-index: 99999;
+      pointer-events: none; letter-spacing: 1px;
+      animation: fsFadeIn 0.3s ease forwards;
+    `;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+      toast.style.animation = 'fsFadeOut 0.4s ease forwards';
+      setTimeout(() => toast.remove(), 400);
+    }, 2500);
   },
-  
-  async _completeTutorial(fromPlay = false) {
-    await gestureController.saveModel();
 
-    // Mark gesture setup as complete so the welcome prompt skips this step
-    console.log('[TUTORIAL-DEBUG] GestureTraining._finish(): setting gestureSetupComplete = true');
+  async _completeTutorial() {
+    await gestureController.saveModel();
     state.set('gestureSetupComplete', true);
     state.set('selectedControl', 'gesture');
-    console.log('[TUTORIAL-DEBUG] GestureTraining._finish(): state after setting:', state.get('gestureSetupComplete'));
     await state.saveGestureSetupState();
-    console.log('[TUTORIAL-DEBUG] GestureTraining._finish(): saved gesture setup state');
 
-    if (fromPlay) {
-      // Came from Play — proceed to practice tutorial
+    if (this.fromCharSelect) {
+      // Came from CharacterSelect — stop camera and go back with context restored
       gestureController.stopCamera();
-      window.__screenManager.history = ['main-menu'];
-      // Navigate to practice tutorial with gesture control
-      window.__screenManager.navigate('practice-tutorial', { control: 'gesture' }, false);
+      window.__screenManager.navigate('character-select', {
+        chapterId: this.returnChapterId,
+        isInfMode: this.returnIsInfMode
+      }, false);
     }
-    // else: user opened Gesture Setup directly — just stay on the screen.
-    // The dialogue has already closed, model is saved, they can keep training.
+    // else: opened Gesture Setup directly — stay on screen, model is saved
   }
 };

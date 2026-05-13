@@ -16,7 +16,8 @@ export default defineConfig({
     open: true,
     proxy: {
       '/auth': 'http://localhost:3001',
-      '/admin': 'http://localhost:3001'
+      '/admin': 'http://localhost:3001',
+      '/leaderboard': 'http://localhost:3001'
     }
   },
 });

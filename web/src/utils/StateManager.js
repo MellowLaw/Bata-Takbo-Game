@@ -102,7 +102,7 @@ class StateManager {
       },
       gesture: {
         sensitivity: 0.60,
-        debounce: 100,
+        debounce: 60,
         preferredHand: 'any',
       },
       display: {
@@ -132,27 +132,20 @@ class StateManager {
         const parsed = JSON.parse(saved);
         const val = typeof parsed === 'boolean' ? parsed
           : (typeof parsed === 'object' && parsed !== null ? parsed.gameplayComplete || false : false);
-        console.log('[TUTORIAL-DEBUG] _loadTutorialState from localStorage:', val);
         return val;
       }
     } catch (e) { /* ignore */ }
-    console.log('[TUTORIAL-DEBUG] _loadTutorialState: no localStorage value, defaulting false');
     return false;
   }
 
   _loadGestureSetupState() {
     try {
       const saved = localStorage.getItem('bata_takbo_gesture_setup');
-      console.log(`[STATE] Loading gesture setup from localStorage:`, saved);
       if (saved) {
         const parsed = JSON.parse(saved);
-        console.log(`[STATE] Parsed gesture setup state:`, parsed, `=== true:`, parsed === true);
         return parsed === true;
       }
-    } catch (e) { 
-      console.log(`[STATE] Error loading gesture setup state:`, e);
-    }
-    console.log(`[STATE] No gesture setup state found, returning false`);
+    } catch (e) { /* ignore */ }
     return false;
   }
 
@@ -254,6 +247,8 @@ class StateManager {
     }
 
     // ── Step 3: Clear local state ──────────────────────────────────────────
+    sessionStorage.removeItem('admin_test_token');
+    sessionStorage.removeItem('admin_test_mode');
     localStorage.removeItem('guest_session');
     try {
       localStorage.removeItem('bata_takbo_settings');

@@ -36,47 +36,52 @@ export class ScreenManager {
     this.transitioning = true;
     const screen = this.screens.get(name);
 
-    // Leave current screen
-    if (this.activeScreen) {
-      const currentEl = this.container.querySelector('.screen.active');
-      if (currentEl) {
-        if (this.activeScreen.onLeave) {
-          await this.activeScreen.onLeave();
+    try {
+      // Leave current screen
+      if (this.activeScreen) {
+        const currentEl = this.container.querySelector('.screen.active');
+        if (currentEl) {
+          if (this.activeScreen.onLeave) {
+            await this.activeScreen.onLeave();
+          }
+          currentEl.classList.add('leaving');
+          currentEl.classList.remove('active');
+          await this._waitForTransition(currentEl);
+          currentEl.remove();
         }
-        currentEl.classList.add('leaving');
-        currentEl.classList.remove('active');
-        await this._waitForTransition(currentEl);
-        currentEl.remove();
+
+        if (addToHistory) {
+          this.history.push(this.activeScreenName);
+        }
       }
 
-      if (addToHistory) {
-        this.history.push(this.activeScreenName);
+      // Render new screen
+      const html = screen.render(params);
+      const wrapper = document.createElement('div');
+      wrapper.innerHTML = html;
+      const screenEl = wrapper.firstElementChild;
+      screenEl.classList.add('screen', 'entering');
+      this.container.appendChild(screenEl);
+
+      // Force reflow for animation
+      screenEl.offsetHeight;
+
+      // Activate
+      screenEl.classList.remove('entering');
+      screenEl.classList.add('active');
+
+      // Bind events
+      if (screen.onEnter) {
+        await screen.onEnter(screenEl, params);
       }
+
+      this.activeScreen = screen;
+      this.activeScreenName = name;
+    } catch (err) {
+      console.error(`[ScreenManager] Navigation to "${name}" failed:`, err);
+    } finally {
+      this.transitioning = false;
     }
-
-    // Render new screen
-    const html = screen.render(params);
-    const wrapper = document.createElement('div');
-    wrapper.innerHTML = html;
-    const screenEl = wrapper.firstElementChild;
-    screenEl.classList.add('screen', 'entering');
-    this.container.appendChild(screenEl);
-
-    // Force reflow for animation
-    screenEl.offsetHeight;
-
-    // Activate
-    screenEl.classList.remove('entering');
-    screenEl.classList.add('active');
-
-    // Bind events
-    if (screen.onEnter) {
-      await screen.onEnter(screenEl, params);
-    }
-
-    this.activeScreen = screen;
-    this.activeScreenName = name;
-    this.transitioning = false;
   }
 
   /**

@@ -9,8 +9,6 @@ export const ChapterSelect = {
     const unlocked = progress.chaptersUnlocked || [1];
     const completed = progress.chaptersCompleted || [];
 
-    const allThreeComplete = [1, 2, 3].every(id => completed.includes(id));
-
     const chapters = [
       { id: 1, img: '/assets/ui/chapter-selection/chapter1.png', idle: '/assets/ui/chapter-selection/chapter-select-idle/chapter1_idle.png', cover: '/assets/ui/chapter-selection/chapter1a.png', name: 'Duende' },
       { id: 2, img: '/assets/ui/chapter-selection/chapter2.png', idle: '/assets/ui/chapter-selection/chapter-select-idle/chapter2_idle.png', cover: '/assets/ui/chapter-selection/chapter2a.png', name: 'Bungisngis' },
@@ -41,33 +39,6 @@ export const ChapterSelect = {
       `;
     }).join('');
 
-    const endlessCard = `
-      <div class="ch-flip-wrapper ch-endless-wrapper ${allThreeComplete ? 'unlocked' : 'locked'}"
-           data-chapter="4"
-           style="animation-delay: 0.36s">
-        <div class="ch-flip-inner">
-          <div class="ch-face ch-face--back">
-            <img src="/assets/ui/chapter-selection/chapter-back.png" alt="Endless" />
-          </div>
-          <div class="ch-face ch-face--front ch-endless-front">
-            ${allThreeComplete ? `
-              <div class="ch-endless-content">
-                <div class="ch-endless-icon">∞</div>
-                <div class="ch-endless-title">WALANG KATAPUSAN</div>
-                <div class="ch-endless-subtitle">ENDLESS BATTLE</div>
-                <div class="ch-endless-desc">All 3 bosses · 3 lives · Speedrun</div>
-              </div>
-            ` : `
-              <div class="ch-endless-content ch-endless-locked-content">
-                <div class="ch-endless-lock">🔒</div>
-                <div class="ch-endless-locked-text">Complete all 3 chapters to unlock</div>
-              </div>
-            `}
-          </div>
-        </div>
-      </div>
-    `;
-
     return `
       <div class="chapter-select screen">
         <div class="ambient-stars"></div>
@@ -82,13 +53,14 @@ export const ChapterSelect = {
 
         <div class="chapter-select__cards">
           ${cardsHtml}
-          ${endlessCard}
         </div>
       </div>
     `;
   },
 
   onEnter(el) {
+    this._rafIds = [];
+
     // Back button
     el.querySelector('#btn-ch-back').addEventListener('click', () => {
       window.__screenManager.back();
@@ -154,8 +126,10 @@ export const ChapterSelect = {
           if (img.complete) {
             // Wait for flip to complete (600ms), then start animating
             setTimeout(() => {
+              if (!this._rafIds) return;
               lastFrameTime = 0;
               animationId = requestAnimationFrame(animate);
+              this._rafIds.push(animationId);
             }, 600);
           }
         });
@@ -163,6 +137,7 @@ export const ChapterSelect = {
         card.addEventListener('mouseleave', () => {
           if (animationId) {
             cancelAnimationFrame(animationId);
+            this._rafIds = this._rafIds ? this._rafIds.filter(id => id !== animationId) : [];
             animationId = null;
           }
           frameIndex = 0;
@@ -185,20 +160,29 @@ export const ChapterSelect = {
             // Start idle animation after flip completes
             if (canvas && img && img.complete && animate) {
               setTimeout(() => {
+                if (!this._rafIds) return;
                 lastFrameTime = 0;
                 animationId = requestAnimationFrame(animate);
+                this._rafIds.push(animationId);
               }, 650);
             }
           } else {
-            window.__screenManager.navigate('character-select', { chapterId });
+            window.__screenManager.navigate('mode-select', { chapterId });
           }
         } else {
           // Desktop: hover flips, click navigates immediately
-          window.__screenManager.navigate('character-select', { chapterId });
+          window.__screenManager.navigate('mode-select', { chapterId });
         }
       });
     });
 
     // Locked cards - no click handler (can't be clicked)
+  },
+
+  onLeave() {
+    if (this._rafIds) {
+      this._rafIds.forEach(id => cancelAnimationFrame(id));
+      this._rafIds = null;
+    }
   },
 };

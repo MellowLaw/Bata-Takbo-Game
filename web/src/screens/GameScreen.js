@@ -49,7 +49,24 @@ export const GameScreen = {
           pointer-events: none;
         ">00:00</div>
 
-        <!-- Pause / Exit Button overlay is removed from DOM (now in HUDScene) -->
+        <!-- DOM Pause button — sits above Phaser canvas, works reliably on mobile -->
+        <button id="btn-pause-dom" style="
+          position: absolute;
+          top: 10px;
+          left: 10px;
+          z-index: 60;
+          background: transparent;
+          border: none;
+          color: #f0e6d3;
+          font-family: 'DungeonFont', sans-serif;
+          font-size: 22px;
+          padding: 12px 16px;
+          cursor: pointer;
+          min-width: 48px;
+          min-height: 48px;
+          line-height: 1;
+          touch-action: manipulation;
+        ">&#9612;&#9612;</button>
 
         <!-- ⚠️ DEBUG ONLY — Admin-only force-end buttons -->
         <div id="debug-toolbar" style="
@@ -167,6 +184,7 @@ export const GameScreen = {
     const chapterId = params.chapterId || 1;
     const isTutorial = params.isTutorial || false;
     const isPracticeTutorial = params.isPracticeTutorial || false;
+    const isInfMode = params.isInfMode || false;
     const character = params.character || state.get('selectedCharacter') || 'male';
     const control = params.control || state.get('selectedControl') || 'keyboard';
     state.set('selectedCharacter', character);
@@ -247,7 +265,7 @@ export const GameScreen = {
 
     // Add scenes manually ONCE with the correct data, preventing double-start
     this.game.events.on('ready', () => {
-      this.game.scene.add('GameScene', GameScene, true, { chapterId, isTutorial, isPracticeTutorial, character, control });
+      this.game.scene.add('GameScene', GameScene, true, { chapterId, isTutorial, isPracticeTutorial, isInfMode, character, control });
       this.game.scene.add('HUDScene', HUDScene, false);
       // GameScene.create() will call scene.launch('HUDScene') when ready
     });
@@ -255,12 +273,23 @@ export const GameScreen = {
     state.set('currentScreen', 'game');
 
     // 4. Bind UI Controls
-    this.unsubGamePause = state.on('game:pause', () => this.togglePause(true));
-    el.querySelector('#btn-resume').addEventListener('click', () => this.togglePause(false));
+    const domPauseBtn = el.querySelector('#btn-pause-dom');
+    if (domPauseBtn) {
+      domPauseBtn.addEventListener('click', () => state.emit('game:pause'));
+    }
+
+    this.unsubGamePause = state.on('game:pause', () => {
+      if (domPauseBtn) domPauseBtn.style.display = 'none';
+      this.togglePause(true);
+    });
+    el.querySelector('#btn-resume').addEventListener('click', () => {
+      if (domPauseBtn) domPauseBtn.style.display = '';
+      this.togglePause(false);
+    });
 
     // ⚠️ DEBUG — Force lose/win (admin only)
     const debugToolbar = el.querySelector('#debug-toolbar');
-    if (debugToolbar) {
+    if (debugToolbar && state.get('isAuthenticated')) {
       fetch('/admin/check', { credentials: 'include' })
         .then(r => r.ok ? r.json() : { isAdmin: false })
         .then(data => {
@@ -369,14 +398,11 @@ export const GameScreen = {
     const btnQuit = el.querySelector('#btn-quit');
     if (btnRestart) {
       btnRestart.addEventListener('click', () => {
-        this.game.destroy(true);
-        window.__screenManager.navigate('game-screen', { chapterId, character, control }, false);
+        window.__screenManager.navigate('game-screen', { chapterId, character, control, isInfMode }, false);
       });
     }
     if (btnQuit) {
       btnQuit.addEventListener('click', () => {
-        this.game.destroy(true);
-        if (control === 'gesture') gestureController.stopCamera();
         window.__screenManager.navigate('main-menu', {}, false);
       });
     }

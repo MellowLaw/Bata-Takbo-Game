@@ -928,6 +928,31 @@ app.post('/admin/reset-cheat', authMiddleware, adminMiddleware, async (req, res)
   }
 });
 
+// Issue a signed short-lived test-mode token (admin only)
+app.post('/admin/test-token', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const { mode, chapterId, invincible, oneHitKill, attackId } = req.body;
+    const payload = { mode, chapterId, invincible, oneHitKill, attackId };
+    // 30-second TTL — just long enough to navigate from dashboard to game scene
+    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '30s' });
+    return res.status(200).json({ token });
+  } catch (err) {
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Verify a test-mode token and return its settings (admin only)
+app.post('/admin/verify-test-token', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const { token } = req.body;
+    if (!token) return res.status(400).json({ valid: false, error: 'No token provided' });
+    const settings = jwt.verify(token, JWT_SECRET);
+    return res.status(200).json({ valid: true, settings });
+  } catch (err) {
+    return res.status(400).json({ valid: false, error: 'Invalid or expired token' });
+  }
+});
+
 // ========== ENDLESS LEADERBOARD ==========
 
 // Submit endless score (registered users only)
@@ -975,6 +1000,56 @@ app.get('/leaderboard/endless', async (req, res) => {
     return res.status(200).json({ entries: rows });
   } catch (err) {
     console.error('Endless leaderboard fetch error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ========== INF LEADERBOARD ==========
+
+// Submit INF score (registered users only)
+app.post('/leaderboard/inf', authMiddleware, async (req, res) => {
+  try {
+    const { chapterId, score, wavesSurvived, survivalSeconds, controlType } = req.body;
+    if (!chapterId || score == null || !controlType) return res.status(400).json({ error: 'Missing required fields' });
+    if (![1, 2, 3].includes(Number(chapterId))) return res.status(400).json({ error: 'Invalid chapterId' });
+    if (!['gesture', 'keyboard'].includes(controlType)) return res.status(400).json({ error: 'Invalid controlType' });
+    if (typeof score !== 'number' || score < 0 || score > 9999999) return res.status(400).json({ error: 'Invalid score' });
+
+    const user = await db.get('SELECT username, banned FROM users WHERE id = ?', [req.user.id]);
+    if (!user || user.banned) return res.status(403).json({ error: 'Forbidden' });
+
+    await db.run(
+      'INSERT INTO inf_scores (user_id, username, chapter_id, score, waves_survived, survival_seconds, control_type, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [req.user.id, user.username, Number(chapterId), Math.floor(score), Math.floor(wavesSurvived) || 0, Math.floor(survivalSeconds) || 0, controlType, Date.now()]
+    );
+    return res.status(200).json({ success: true });
+  } catch (err) {
+    console.error('INF score submit error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get INF leaderboard (top 20 per chapter + control type, best score per user)
+app.get('/leaderboard/inf', async (req, res) => {
+  try {
+    const { chapterId, controlType } = req.query;
+    if (!chapterId || ![1, 2, 3].includes(Number(chapterId))) return res.status(400).json({ error: 'Invalid or missing chapterId' });
+    if (!controlType || !['gesture', 'keyboard'].includes(controlType)) return res.status(400).json({ error: 'Invalid or missing controlType' });
+
+    const rows = await db.all(`
+      SELECT i.username, MAX(i.score) AS best_score,
+             i.waves_survived, i.survival_seconds
+      FROM inf_scores i
+      INNER JOIN users u ON i.user_id = u.id
+      WHERE i.chapter_id = ? AND i.control_type = ? AND u.banned = 0
+      GROUP BY i.user_id
+      ORDER BY best_score DESC
+      LIMIT 20
+    `, [Number(chapterId), controlType]);
+
+    return res.status(200).json({ entries: rows });
+  } catch (err) {
+    console.error('INF leaderboard fetch error:', err);
     return res.status(500).json({ error: 'Internal server error' });
   }
 });

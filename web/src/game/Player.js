@@ -86,9 +86,6 @@ export class Player {
     if (targetRow < 0) targetRow = 0;
     if (targetRow >= this.grid.rows) targetRow = this.grid.rows - 1;
 
-    if (targetCol < 0 || targetCol >= this.grid.cols) return;
-    if (targetRow < 0 || targetRow >= this.grid.rows) return;
-
     // Check Chapter 2 Obstacles
     if (this.grid.cells[targetRow][targetCol].status === 'locked') return;
 

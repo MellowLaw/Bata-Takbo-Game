@@ -102,20 +102,28 @@ export const CharacterSelect = {
         const control = item.dataset.control;
         this._control = control;
 
+        const gender = this._gender;
+        if (!gender) return;
+
         if (control === 'gesture') {
           const isTrained = state.get('gestureModelTrained') || state.get('gestureSetupComplete');
           if (!isTrained) {
-            alert("WARNING: You haven't trained your hand gestures yet!\nPlease complete Gesture Setup first.");
+            // Not set up yet — send to gesture training, return here after
+            window.__screenManager.navigate('gesture-training', {
+              fromCharSelect: true,
+              chapterId: this._params.chapterId || 1,
+              isInfMode: this._params.isInfMode || false,
+              gender
+            });
             return;
           }
         }
 
-        // Use the gender selected in step 1 and control selected in step 2
-        const gender = this._gender;
         state.set('selectedCharacter', gender);
         state.set('selectedControl', control);
         const chapterId = this._params.chapterId || 1;
-        window.__screenManager.navigate('game-screen', { chapterId, character: gender, control });
+        const isInfMode = this._params.isInfMode || false;
+        window.__screenManager.navigate('game-screen', { chapterId, character: gender, control, isInfMode });
       });
     });
   },

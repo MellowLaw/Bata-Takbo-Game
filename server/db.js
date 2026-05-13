@@ -49,6 +49,21 @@ export async function initDb() {
     )
   `);
 
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS inf_scores (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      username TEXT NOT NULL,
+      chapter_id INTEGER NOT NULL CHECK(chapter_id IN (1, 2, 3)),
+      score INTEGER NOT NULL,
+      waves_survived INTEGER NOT NULL DEFAULT 0,
+      survival_seconds INTEGER NOT NULL DEFAULT 0,
+      control_type TEXT NOT NULL CHECK(control_type IN ('gesture', 'keyboard')),
+      created_at INTEGER NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
   // Migrate older databases by adding new columns if they are missing
   try { await db.exec('ALTER TABLE users ADD COLUMN email TEXT'); } catch(e) {}
   try { await db.exec('ALTER TABLE users ADD COLUMN game_data TEXT'); } catch(e) {}

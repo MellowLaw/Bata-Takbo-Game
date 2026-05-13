@@ -496,6 +496,26 @@ export const AdminDashboard = {
     }
   },
 
+  async _launchTestMode(settings) {
+    try {
+      const res = await fetch('/admin/test-token', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings)
+      });
+      if (!res.ok) {
+        this.showToast('Failed to get test token — are you still logged in as admin?', true);
+        return;
+      }
+      const { token } = await res.json();
+      sessionStorage.setItem('admin_test_token', token);
+      window.__screenManager.navigate('game-screen');
+    } catch (e) {
+      this.showToast('Network error — could not launch test mode', true);
+    }
+  },
+
   handleTestAction(action) {
     switch (action) {
       case 'unlock-ch1':
@@ -519,109 +539,40 @@ export const AdminDashboard = {
         });
         break;
       case 'test-attack':
-        sessionStorage.setItem('admin_test_mode', JSON.stringify({ 
-          mode: 'test_attack',
-          chapterId: 1,
-          invincible: false
-        }));
-        window.__screenManager.navigate('game-screen');
+        this._launchTestMode({ mode: 'test_attack', chapterId: 1, invincible: false });
         break;
       case 'easy-win':
-        sessionStorage.setItem('admin_test_mode', JSON.stringify({ 
-          mode: 'easy_win',
-          chapterId: 1,
-          invincible: true,
-          oneHitKill: true
-        }));
-        window.__screenManager.navigate('game-screen');
+        this._launchTestMode({ mode: 'easy_win', chapterId: 1, invincible: true, oneHitKill: true });
         break;
       case 'god-mode':
-        sessionStorage.setItem('admin_test_mode', JSON.stringify({ 
-          mode: 'god_mode',
-          chapterId: 1,
-          invincible: true
-        }));
-        window.__screenManager.navigate('game-screen');
+        this._launchTestMode({ mode: 'god_mode', chapterId: 1, invincible: true });
         break;
       case 'test-ch3-0':
-        sessionStorage.setItem('admin_test_mode', JSON.stringify({ 
-          mode: 'test_attack',
-          chapterId: 3,
-          attackId: 0,
-          invincible: true
-        }));
-        window.__screenManager.navigate('game-screen');
+        this._launchTestMode({ mode: 'test_attack', chapterId: 3, attackId: 0, invincible: true });
         break;
       case 'test-ch3-1':
-        sessionStorage.setItem('admin_test_mode', JSON.stringify({ 
-          mode: 'test_attack',
-          chapterId: 3,
-          attackId: 1,
-          invincible: true
-        }));
-        window.__screenManager.navigate('game-screen');
+        this._launchTestMode({ mode: 'test_attack', chapterId: 3, attackId: 1, invincible: true });
         break;
       case 'test-ch3-2':
-        sessionStorage.setItem('admin_test_mode', JSON.stringify({ 
-          mode: 'test_attack',
-          chapterId: 3,
-          attackId: 2,
-          invincible: true
-        }));
-        window.__screenManager.navigate('game-screen');
+        this._launchTestMode({ mode: 'test_attack', chapterId: 3, attackId: 2, invincible: true });
         break;
       case 'test-ch3-3':
-        sessionStorage.setItem('admin_test_mode', JSON.stringify({ 
-          mode: 'test_attack',
-          chapterId: 3,
-          attackId: 3,
-          invincible: true
-        }));
-        window.__screenManager.navigate('game-screen');
+        this._launchTestMode({ mode: 'test_attack', chapterId: 3, attackId: 3, invincible: true });
         break;
       case 'test-ch3-4':
-        sessionStorage.setItem('admin_test_mode', JSON.stringify({ 
-          mode: 'test_attack',
-          chapterId: 3,
-          attackId: 4,
-          invincible: true
-        }));
-        window.__screenManager.navigate('game-screen');
+        this._launchTestMode({ mode: 'test_attack', chapterId: 3, attackId: 4, invincible: true });
         break;
       case 'test-ch3-5':
-        sessionStorage.setItem('admin_test_mode', JSON.stringify({ 
-          mode: 'test_attack',
-          chapterId: 3,
-          attackId: 5,
-          invincible: true
-        }));
-        window.__screenManager.navigate('game-screen');
+        this._launchTestMode({ mode: 'test_attack', chapterId: 3, attackId: 5, invincible: true });
         break;
       case 'test-ch3-6':
-        sessionStorage.setItem('admin_test_mode', JSON.stringify({ 
-          mode: 'test_attack',
-          chapterId: 3,
-          attackId: 6,
-          invincible: true
-        }));
-        window.__screenManager.navigate('game-screen');
+        this._launchTestMode({ mode: 'test_attack', chapterId: 3, attackId: 6, invincible: true });
         break;
       case 'test-ch3-7':
-        sessionStorage.setItem('admin_test_mode', JSON.stringify({ 
-          mode: 'test_attack',
-          chapterId: 3,
-          attackId: 7,
-          invincible: true
-        }));
-        window.__screenManager.navigate('game-screen');
+        this._launchTestMode({ mode: 'test_attack', chapterId: 3, attackId: 7, invincible: true });
         break;
       case 'test-ch3-ult':
-        sessionStorage.setItem('admin_test_mode', JSON.stringify({ 
-          mode: 'test_ultimate',
-          chapterId: 3,
-          invincible: true
-        }));
-        window.__screenManager.navigate('game-screen');
+        this._launchTestMode({ mode: 'test_ultimate', chapterId: 3, invincible: true });
         break;
       case 'export-state':
         console.log('=== GAME STATE ===');

@@ -28,7 +28,7 @@ export class HandDetector {
     this._camH = isMobile ? 240 : 480;
 
     // Throttle: only send a frame to MediaPipe every N ms
-    this._frameInterval = isMobile ? 80 : 50; // ~12fps mobile, ~20fps desktop
+    this._frameInterval = isMobile ? 50 : 33; // ~20fps mobile, ~30fps desktop
     this._lastFrameTime = 0;
     
     if (this.camera) this.camera.stop();

@@ -1,317 +1,221 @@
-# INF (Endless) Mode - Implementation Plan
+# Per-Chapter INF Mode — Implementation Plan
 
 ## Overview
-INF Mode is an endless survival mode where players face an infinite gauntlet of all bosses. The mode unlocks after completing all chapters, offering a skill-based competitive experience with separate leaderboards for different control schemes.
+Each chapter gets its own endless survival mode. The boss has infinite HP — it never dies. Instead, attacks loop forever with progressive speed scaling. Players compete on **score** (dodged attacks + golden tile pickups + time bonus) via a dual leaderboard split by control type. Unlocked per-chapter after clearing that chapter normally.
 
 ---
 
-## Core Design Philosophy
+## Design Decisions & Rationale
 
-### 1. **Accessibility vs. Mastery**
-- Early waves should be winnable by average players (build confidence)
-- Late waves should test mastery of ALL attack patterns
-- Damage taken should be punishing but fair - one mistake = significant HP loss, not instant death
+### 1. Speed Scaling — Yes, Do It
+Progressive speed scaling is the right call. Here's why:
+- **Thrilling** — the pressure ramp keeps players engaged ("just one more wave")
+- **Skill differentiation** — top players are separated not by luck but by how long they handle the speed
+- **Reference games** — Geometry Dash, Crypt of the Necrodancer, and most bullet hells all do this
+- **RNG is fine** — over a long run the random attack pool averages out; top players survive longer *because* they handle bad RNG, not despite it
 
-### 2. **Progressive Difficulty Scaling**
-Instead of pure stat increases, use **layered complexity**:
-
-| Wave Range | Boss HP | Attack Speed | Special Mechanics |
-|------------|---------|--------------|-------------------|
-| 1-5 | 100% | Normal | Standard patterns |
-| 6-15 | +20% per wave | +10% faster | 2x simultaneous attacks |
-| 16-30 | +30% per wave | +25% faster | 3x simultaneous attacks, faster telegraphs |
-| 31+ | +50% per wave | +40% faster | All bosses have "enraged" variants |
-
-### 3. **Boss Rotation System**
-**RECOMMENDATION: Sequential with Random Attacks**
-
-Why sequential?
-- Predictable progression (players can plan strategy)
-- Fair leaderboard comparison (same boss order)
-- Psychological: "I'm on Wave 47, facing Kapre again!"
-
-**Rotation Pattern:**
-```
-Wave 1: Chapter 1 Boss (Manananggal)
-Wave 2: Chapter 2 Boss (Bungisngis)  
-Wave 3: Chapter 3 Boss (Fish King)
-Wave 4: Chapter 1 Boss (harder variant)
-Wave 5: Chapter 2 Boss (harder variant)
-...and so on
-```
-
----
-
-## Enhanced Attack Balance for INF Mode
-
-### Problem: Some Attacks Are Undodgeable at High Speeds
-
-**Solution: Attack Categorization with Scaling Limits**
-
-#### Category A - "Predictable" (Can scale infinitely)
-- Linear projectiles (bats, sharks)
-- Fixed pattern attacks (explosion grids)
-- Telegraph time always sufficient
-- **Scaling:** Speed can increase 2x safely
-
-#### Category B - "Reaction-Based" (Hard capped scaling)
-- Sudden directional changes
-- Instant appearance attacks (medusa gaze)
-- Player position tracking
-- **Scaling:** Speed capped at +25%, instead increase **frequency** of attacks
-
-#### Category C - "Area Denial" (Modified for fairness)
-- Large unavoidable zones
-- Multiple overlapping hitboxes
-- **INF Mode Modification:** 
-  - Always leave at least 1 "safe tile"
-  - Reduce hitbox size by 10% per wave after 20
-  - Add visual "breathing room" indicators
-
-### Specific Balance Adjustments for INF Mode
-
-| Attack | Chapter | Issue at High Speed | INF Mode Fix |
-|--------|---------|---------------------|--------------|
-| Angler (Blackout) | 3 | Hard to see safe zones | Add pulsing safe zone borders |
-| Medusa Gaze | 3 | Instant damage on move | Add 0.5s grace period before damage |
-| Bat Dive Bomb | 3 | 5 bats = screen covered | Cap at 3 bats, increase speed instead |
-| Shark Lanes | 3 | Multiple sharks = unavoidable | Max 3 simultaneous sharks |
-| Siren's Lure | 3 | Snake too fast to outrun | Snake pauses every 3rd tile |
-
----
-
-## Health & Survival Mechanics
-
-### Player Health Scaling
+**Speed Ramp Formula:**
 ```javascript
-// Don't let player die in one hit
-const maxPlayerHealth = 3; // Hearts system
-const damagePerHit = 1;    // Always consistent
+// Applied to telegraph duration and attack travel speed
+// Starts at 1.0, softcaps at 2.5x — never gets physically undodgeable
+const speedMultiplier = Math.min(1.0 + (waveCount * 0.015), 2.5);
 
-// Recovery mechanic
-const healOnBossDefeat = 1; // Restore 1 heart per boss
-const maxHeartsCap = 5;     // Can't overheal beyond 5
+// Telegraph duration scales DOWN (less warning time)
+const telegraphMs = Math.max(400, 1200 / speedMultiplier);
+
+// Applied inside Boss.executeAttack() via this.infSpeedMultiplier
 ```
 
-### Boss Health Formula
-```javascript
-// Exponential but bounded growth
-const baseHealth = 1000;
-const waveMultiplier = Math.min(1 + (wave * 0.15), 5); // Cap at 5x HP
-const bossHealth = baseHealth * waveMultiplier;
+Scaling starts subtle (~+1.5% per wave), so the first 20 waves feel normal. Wave 50 is noticeably faster. Wave 100+ is genuinely punishing.
+
+### 2. Score System
+Score rewards **skill expression**, not just survival time. Three components:
+
 ```
+SCORE = (waves_survived × 100)          ← primary: how far you got
+      + (golden_tiles_collected × 50)   ← skill: risky pickups under fire
+      + (time_alive_seconds × 2)        ← tiebreaker: rewarding efficiency
+      + (perfect_waves × 25)            ← bonus: no-damage waves
+```
+
+**Golden Tiles** — these are the existing loot/power-up tiles the boss already spawns. In INF mode they give score instead of (or in addition to) their normal effect. No new mechanic needed — just emit a `inf:tilecollected` event and accumulate.
+
+**Perfect Wave** — a wave where the player takes 0 damage. Already trackable via `player.hp` before/after each `executeAttack()` cycle.
+
+### 3. Leaderboard Fairness — RNG Verdict
+RNG is acceptable and common in competitive games (Hades, Dead Cells, Slay the Spire). The attack pool is the same for everyone — no player gets a guaranteed easy sequence. The skill ceiling comes from handling *any* attack, not memorizing a fixed pattern. This is actually **healthier for a leaderboard** since it can't be pattern-solved.
 
 ---
 
-## Dual Leaderboard System
+## Database
 
-### Separation Criteria
-| Control Type | Input Method | Leaderboard |
-|--------------|--------------|-------------|
-| **Standard** | Keyboard / Touch D-pad / Gamepad | `leaderboard_standard` |
-| **Gesture** | Hand tracking (MediaPipe) | `leaderboard_gesture` |
+Extends the existing `endless_scores` table pattern. New table in `db.js`:
 
-### Why Separate?
-1. **Fairness**: Gesture has higher latency (~100-200ms) vs keyboard (instant)
-2. **Different Skill Sets**: Gesture requires physical stamina, keyboard requires precision
-3. **Prevents Hybrid Cheating**: Can't switch mid-run for advantage
-
-### Leaderboard Schema
 ```sql
-CREATE TABLE inf_leaderboard (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT NOT NULL,
-    control_type TEXT CHECK(control_type IN ('standard', 'gesture')),
-    wave_reached INTEGER NOT NULL,
-    bosses_defeated INTEGER NOT NULL,
-    total_score INTEGER NOT NULL,
-    run_duration_seconds INTEGER,
-    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-    verified BOOLEAN DEFAULT FALSE -- Anti-cheat flag
+CREATE TABLE IF NOT EXISTS inf_scores (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  username TEXT NOT NULL,
+  chapter_id INTEGER NOT NULL CHECK(chapter_id IN (1, 2, 3)),
+  score INTEGER NOT NULL,
+  waves_survived INTEGER NOT NULL,
+  survival_seconds INTEGER NOT NULL,
+  control_type TEXT NOT NULL CHECK(control_type IN ('gesture', 'keyboard')),
+  created_at INTEGER NOT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- Composite ranking: Wave first, then score
-CREATE INDEX idx_leaderboard_ranking 
-ON inf_leaderboard(control_type, wave_reached DESC, total_score DESC);
+CREATE INDEX IF NOT EXISTS idx_inf_scores_ranking
+ON inf_scores(chapter_id, control_type, score DESC);
 ```
 
-### Score Calculation
-```javascript
-// Rewards both survival and efficiency
-const survivalScore = waveReached * 1000;
-const speedBonus = Math.max(0, 300 - runDurationMinutes) * 10;
-const perfectWaveBonus = wavesWithoutDamage * 50;
-const totalScore = survivalScore + speedBonus + perfectWaveBonus;
-```
+Migration: add `try { await db.exec('CREATE TABLE IF NOT EXISTS inf_scores ...') } catch(e){}` in `db.js` alongside existing migrations.
 
 ---
 
-## Technical Implementation Plan
+## Server Endpoints
 
-### Phase 1: Core Infrastructure (Week 1)
-1. **Database Schema**
-   - Add `inf_leaderboard` table
-   - Migration script for existing users
+Two new endpoints in `server.js`, mirroring `/leaderboard/endless`:
 
-2. **State Manager Updates**
-   - Add `inf_mode_unlocked` flag (set when all chapters completed)
-   - Add `inf_best_wave` tracking per control type
+```
+POST /leaderboard/inf
+  Body: { chapterId, score, wavesSurvived, survivalSeconds, controlType }
+  Auth: required (registered users only)
+  Validation: min 30s run, score ≤ waves×200+seconds×3 (anti-cheat ceiling)
 
-3. **New Scene: INFModeScene.js**
-   - Extends BaseBossScene
-   - Dynamic boss loading based on wave number
-   - Wave transition system
+GET /leaderboard/inf?chapterId=1&controlType=keyboard
+  Returns: top 20 best scores per user (GROUP BY user_id, MAX score)
+  Public: no auth required
+```
 
-### Phase 2: Boss Adaptation (Week 2)
-1. **Boss Factory Pattern**
-   ```javascript
-   class BossFactory {
-       static createBossForWave(waveNumber, chapterId) {
-           const boss = new Boss(chapterId);
-           boss.applyINFScaling(waveNumber);
-           return boss;
-       }
-   }
-   ```
+### Caching Strategy
+The game uses **SQLite** (no Redis). For this scale, **in-memory server-side caching** is sufficient:
 
-2. **Scaling System**
-   - `applyINFScaling(wave)` method on Boss class
-   - Configurable per-attack scaling rules
+```javascript
+// Simple Map cache in server.js — no Redis needed
+const lbCache = new Map();
+const LB_CACHE_TTL = 60_000; // 1 minute
 
-3. **Attack Modifiers**
-   - Speed multiplier
-   - HP multiplier  
-   - Simultaneous attack count
-   - Safe zone adjustments
+// On GET /leaderboard/inf:
+const cacheKey = `inf_${chapterId}_${controlType}`;
+const cached = lbCache.get(cacheKey);
+if (cached && Date.now() - cached.ts < LB_CACHE_TTL) {
+  return res.json({ entries: cached.data });
+}
+// ... run DB query, then:
+lbCache.set(cacheKey, { data: rows, ts: Date.now() });
+```
 
-### Phase 3: UI/UX (Week 3)
-1. **INF Mode Menu**
-   - Unlock notification popup
-   - Best wave display per control type
-   - Leaderboard preview
-
-2. **In-Game HUD**
-   - Wave counter (prominent)
-   - Boss rotation indicator ("Next: Bungisngis")
-   - Current scaling level ("Speed: 1.5x")
-
-3. **Leaderboard Screen**
-   - Tabbed view (Standard / Gesture)
-   - Player rank highlight
-   - "Watch Replay" button (future feature)
-
-### Phase 4: Balance & Testing (Week 4)
-1. **Internal Testing**
-   - Playtest waves 1-50
-   - Identify impossible attack combinations
-   - Tune scaling curves
-
-2. **Soft Launch**
-   - Release to beta testers
-   - Monitor average wave reached
-   - Adjust difficulty distribution
+**Why this is fine for your scale:**
+- SQLite handles ~10k reads/sec easily
+- Leaderboard fetches are infrequent (only on results screen load)
+- 1-minute cache means the DB gets hit at most once per minute per leaderboard tab
+- If you ever scale to thousands of concurrent users, swap the Map for Redis — the interface is identical (`get`/`set`/`TTL`)
+- Cache is invalidated automatically on POST (new score submitted)
 
 ---
 
-## Anti-Cheat Measures
+## Game Logic Changes
 
-### Client-Side (Basic)
-- Input validation (reject impossible movement speeds)
-- Gesture confidence threshold (reject low-confidence classifications)
-- Runtime integrity checks
-
-### Server-Side (Primary)
+### Boss.js
 ```javascript
-// Run validation on score submission
-function validateRun(runData) {
-    // 1. Check minimum possible time per wave
-    const minTimePerWave = 45; // seconds
-    if (runData.duration < runData.wave * minTimePerWave) {
-        return { valid: false, reason: 'Impossible speed' };
-    }
-    
-    // 2. Verify boss sequence matches server seed
-    const expectedSequence = generateBossSequence(runData.seed);
-    if (!arraysEqual(runData.bossOrder, expectedSequence)) {
-        return { valid: false, reason: 'Sequence mismatch' };
-    }
-    
-    // 3. Score calculation verification
-    const expectedScore = calculateScore(runData);
-    if (Math.abs(runData.score - expectedScore) > 100) {
-        return { valid: false, reason: 'Score mismatch' };
-    }
-    
-    return { valid: true };
+// New property set by GameScene when inf mode is active
+this.isInfMode = false;
+this.infWaveCount = 0;
+this.infSpeedMultiplier = 1.0;
+
+// In executeAttack() — instead of checking hp <= 0 to stop:
+if (this.isInfMode) {
+  this.infWaveCount++;
+  this.infSpeedMultiplier = Math.min(1.0 + (this.infWaveCount * 0.015), 2.5);
+  // Never call showGameOver on boss death — reset HP instead
+  this.hp = this.maxHp;
 }
 ```
 
----
+Telegraph calls inside attacks already use a duration parameter — multiply it by `(1 / this.infSpeedMultiplier)` to speed up warnings proportionally.
 
-## Monetization (Optional Future)
+### GameScene.js
+```javascript
+// Passed via GameScreen navigation data
+this.isInfMode = data.isInfMode || false;
+this.infScore = 0;
+this.infPerfectWave = true; // reset each wave
 
-### Cosmetic-Only Approach
-- **INF Skins**: Unlock palette swaps at wave milestones
-  - Wave 10: Gold trim
-  - Wave 25: Neon cyberpunk theme
-  - Wave 50: True black & white classic
+// On player.takeDamage() in inf mode: this.infPerfectWave = false
+// On each executeAttack() complete: accumulate score, reset infPerfectWave
+// On player death (hp === 0): call showGameOver with inf score instead of chapter score
+```
 
-- **Taunt Emotes**: Usable between waves
-  - Unlocked by perfect waves (no damage)
-
-### Never Pay-to-Win
-- No continues
-- No power-ups
-- Pure skill-based progression
-
----
-
-## Open Questions for Discussion
-
-1. **Should we allow "INF Mode Practice"?**
-   - Option to practice any wave you've reached
-   - No leaderboard impact
-   - Risk: Players might grind only easy waves
-
-2. **Weekly Rotations?**
-   - Special weekly modifiers ("All attacks 2x speed", "Invisible telegraphs")
-   - Separate weekly leaderboards
-
-3. **Spectator Mode?**
-   - Allow watching top players' runs
-   - Educational for gesture users
-
-4. **Guild/Clan System?**
-   - Cooperative INF mode (share lives?)
-   - Guild leaderboard (sum of top 5 members)
+### HUDScene.js
+In INF mode, replace the boss HP bar area with a **wave counter + score display**. The boss HP bar is meaningless since the boss never dies.
 
 ---
 
-## Recommended First Steps
+## Leaderboard Screen Changes
 
-### Immediate (Today)
-1. Add `inf_mode_unlocked` to StateManager
-2. Create `INF_MODE_PLAN.md` (this document)
-3. Design database schema
+The existing `Leaderboard.js` screen gets a new tab row:
 
-### This Week
-1. Implement basic INFModeScene with sequential boss rotation
-2. Add simple HP scaling (no attack speed yet)
-3. Create placeholder leaderboard UI
+```
+[ ENDLESS ] [ CH1 INF ] [ CH2 INF ] [ CH3 INF ]
+            [ keyboard / gesture toggle ]
+```
 
-### Testing Priority
-1. Wave 1-10: Should be accessible to chapter 3 completers
-2. Wave 20-30: Should challenge top 10% players
-3. Wave 50+: Should be "Impossible but theoretically survivable"
+Each tab fetches `GET /leaderboard/inf?chapterId=X&controlType=Y`.
+Same display format as the existing endless leaderboard.
+
+---
+
+## Implementation Order
+
+### Step 1 — Database & Server (½ day)
+1. Add `inf_scores` table to `db.js`
+2. Add POST + GET `/leaderboard/inf` endpoints to `server.js` with in-memory cache
+
+### Step 2 — Game Logic (1 day)
+1. Add `isInfMode` flag to `Boss.js` — reset HP on "death" instead of triggering victory
+2. Add speed multiplier applied to telegraph durations
+3. Add score accumulation in `GameScene.js` (waves + golden tiles + time + perfect)
+4. Pass `isInfMode: true` from `ChapterSelect` as a mode toggle
+
+### Step 3 — HUD (½ day)
+1. In `HUDScene.js` — swap boss HP bar for wave counter in inf mode
+2. Show live score in top bar (already has `scoreText`)
+
+### Step 4 — Results & Submit (½ day)
+1. Add `_submitInfScore()` to `ResultsScreen.js` (copy of `_submitEndlessScore`)
+2. Add inf-specific results layout showing wave reached + score
+
+### Step 5 — Leaderboard UI (½ day)
+1. Add CH1/CH2/CH3 INF tabs to `Leaderboard.js`
+2. Wire fetch to new endpoint
+
+**Total: ~3 days of focused work**
+
+---
+
+## Anti-Cheat
+
+Server-side validation on POST `/leaderboard/inf`:
+```javascript
+// Impossible score ceiling — catches injected scores
+const maxPossibleScore = (wavesSurvived * 200) + (survivalSeconds * 3);
+if (score > maxPossibleScore) return res.status(400).json({ error: 'Invalid score' });
+
+// Minimum time sanity check (~15s per wave minimum)
+if (survivalSeconds < wavesSurvived * 15) return res.status(400).json({ error: 'Impossible speed' });
+```
 
 ---
 
 ## Summary
 
-INF Mode transforms Bata, Takbo! from a chapter-based game into an infinite skill expression platform. The dual leaderboard system respects different playstyles while the progressive scaling ensures both accessibility and long-term mastery.
-
-**Key Success Metrics:**
-- 60%+ of chapter-completers try INF mode within 1 week
-- Average wave reached: 12-15 for standard, 8-12 for gesture
-- Top 1% players reach wave 40+
-- No "impossible" attack combinations in first 50 waves
+| Aspect | Decision |
+|--------|----------|
+| Speed scaling | Yes — +1.5%/wave, softcap 2.5× |
+| Score formula | Waves×100 + tiles×50 + seconds×2 + perfect×25 |
+| RNG fairness | Acceptable — same pool for all, skill = handling any pattern |
+| Leaderboard split | keyboard vs gesture per chapter (6 boards total) |
+| Caching | In-memory Map, 60s TTL — no Redis needed at this scale |
+| DB | New `inf_scores` table, same SQLite setup |
+| Complexity | ~3 days — reuses all existing attack infrastructure |

@@ -12,12 +12,13 @@ export class CameraManager {
 
   async initialize() {
     if (this.isActive) return;
+    const isMobile = /Mobi|Android/i.test(navigator.userAgent);
     try {
       this.stream = await navigator.mediaDevices.getUserMedia({
         video: {
-          width: { ideal: 640 },
-          height: { ideal: 480 },
-          facingMode: 'user', // Front-facing camera
+          width:  { ideal: isMobile ? 320 : 640 },
+          height: { ideal: isMobile ? 240 : 480 },
+          facingMode: 'user',
         },
         audio: false,
       });

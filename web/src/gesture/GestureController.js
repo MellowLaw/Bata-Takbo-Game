@@ -21,6 +21,7 @@ class GestureController {
 
     // Movement Debouncing
     this.currentGesture = 'idle';
+    this.lastEmittedGesture = 'idle';
     this.gestureStartStamp = 0;
 
     // Listen for setting changes
@@ -135,15 +136,18 @@ class GestureController {
         detectedMove = pred.label;
       }
 
-      // Debouncing: We must see the same move for X ms to emit.
+      // Debouncing: gesture must be held for debounce ms before emitting.
+      // Only reset the timer if the gesture changed from the current tracked one.
+      // Single flickered frames back to a previous gesture don't reset the timer.
       if (detectedMove !== this.currentGesture) {
         this.currentGesture = detectedMove;
         this.gestureStartStamp = performance.now();
-      } else {
-        const heldFor = performance.now() - this.gestureStartStamp;
-        if (heldFor >= settings.gesture.debounce) {
-          state.emit('gesture:detected', detectedMove);
-        }
+      }
+
+      const heldFor = performance.now() - this.gestureStartStamp;
+      if (heldFor >= settings.gesture.debounce && detectedMove !== this.lastEmittedGesture) {
+        this.lastEmittedGesture = detectedMove;
+        state.emit('gesture:detected', detectedMove);
       }
     }
   }

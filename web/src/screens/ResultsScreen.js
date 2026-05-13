@@ -6,10 +6,77 @@ export const ResultsScreen = {
     
     // Format mm:ss
     const m = Math.floor(result.timeSurvived / 60).toString().padStart(2, '0');
-    const s = (result.timeSurvived % 60).toString().padStart(2, '0');
+    const s = Math.floor(result.timeSurvived % 60).toString().padStart(2, '0');
     
     const isVictory = result.isVictory;
     const isEndless = result.isEndless === true;
+    const isInfMode = result.isInfMode === true;
+    const wavesSurvived = result.wavesSurvived || 0;
+    const chapterLabel = result.chapterId === 1 ? 'CH1' : result.chapterId === 2 ? 'CH2' : 'CH3';
+
+    if (isInfMode) {
+      return `
+        <div class="results-screen screen results-screen--endless" style="
+          position: relative; display: flex; align-items: stretch; background: #000; overflow: hidden;
+        ">
+          <img id="kill-cam-bg" style="
+            position: absolute; inset: 0; width: 100%; height: 100%;
+            object-fit: cover; filter: sepia(40%) brightness(0.35) saturate(2) hue-rotate(180deg);
+            transform: rotate(-5deg) scale(1.12); transform-origin: center; z-index: 0;
+          " />
+          <div style="
+            position: absolute; inset: 0;
+            background: linear-gradient(to right, rgba(0,0,0,0.97) 30%, rgba(0,0,0,0.6) 60%, transparent 100%);
+            z-index: 1;
+          "></div>
+          <div style="
+            position: relative; z-index: 2;
+            width: clamp(60%, 65%, 70%);
+            display: flex; flex-direction: column; justify-content: center;
+            padding: clamp(16px,4vw,40px) clamp(16px,3vw,40px) clamp(16px,4vw,40px) clamp(20px,8vw,100px);
+          ">
+            <div style="font-family:'GigaSaturn',sans-serif; font-size:clamp(2.5rem,8vw,5rem); color:#00cfff; line-height:1; letter-spacing:2px; margin-bottom:4px;">∞</div>
+            <h1 style="font-family:'GigaSaturn',sans-serif; font-size:clamp(1.4rem,4vw,3rem); color:#00cfff; margin:0 0 clamp(12px,2vh,28px) 0; line-height:1; letter-spacing:2px;">${chapterLabel} INF MODE</h1>
+            <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:clamp(12px,2vh,24px);">
+              <div style="display:flex; align-items:baseline; gap:0; flex-wrap:wrap;">
+                <span style="font-family:'GigaSaturn',sans-serif; font-size:clamp(0.75rem,1.8vw,1.4rem); color:rgba(255,255,255,0.9); min-width:clamp(120px,18vw,200px); letter-spacing:1px;">WAVES:</span>
+                <span style="font-family:'GigaSaturn',sans-serif; font-size:clamp(0.85rem,2vw,1.6rem); color:#00cfff;">${wavesSurvived}</span>
+              </div>
+              <div style="display:flex; align-items:baseline; gap:0; flex-wrap:wrap;">
+                <span style="font-family:'GigaSaturn',sans-serif; font-size:clamp(0.75rem,1.8vw,1.4rem); color:rgba(255,255,255,0.9); min-width:clamp(120px,18vw,200px); letter-spacing:1px;">SURVIVED:</span>
+                <span style="font-family:'GigaSaturn',sans-serif; font-size:clamp(0.85rem,2vw,1.6rem); color:white;">${m}:${s}</span>
+              </div>
+              <div style="display:flex; align-items:baseline; gap:0; flex-wrap:wrap;">
+                <span style="font-family:'GigaSaturn',sans-serif; font-size:clamp(0.75rem,1.8vw,1.4rem); color:rgba(255,255,255,0.9); min-width:clamp(120px,18vw,200px); letter-spacing:1px;">SCORE:</span>
+                <span style="font-family:'GigaSaturn',sans-serif; font-size:clamp(0.85rem,2vw,1.6rem); color:#ffd700;">${result.score.toLocaleString()}</span>
+              </div>
+            </div>
+            <hr style="border:0; border-top:2px solid rgba(0,207,255,0.4); margin:0 0 clamp(12px,3vh,32px) 0; width:60%;">
+            <div id="inf-lb-status" style="
+              font-family:'VCR',monospace; font-size:clamp(0.7rem,1.5vw,1rem);
+              color:rgba(0,207,255,0.8); margin-bottom:clamp(10px,2vh,20px); min-height:1.4em;
+            "></div>
+            <div style="display:flex; gap:clamp(16px,4vw,60px); align-items:center; flex-wrap:wrap;">
+              <button class="menu-btn" id="btn-results-retry" style="
+                font-family:'GigaSaturn',sans-serif; font-size:clamp(1rem,2.5vw,2rem);
+                padding:0; margin:0; min-width:0; background:transparent; border:none; color:white;
+                letter-spacing:2px; min-height:44px; touch-action:manipulation;
+              ">RETRY</button>
+              <button class="menu-btn" id="btn-results-lb" style="
+                font-family:'GigaSaturn',sans-serif; font-size:clamp(1rem,2.5vw,2rem);
+                padding:0; margin:0; min-width:0; background:transparent; border:none; color:#00cfff;
+                letter-spacing:2px; min-height:44px; touch-action:manipulation;
+              ">LEADERBOARD</button>
+              <button class="menu-btn" id="btn-results-menu" style="
+                font-family:'GigaSaturn',sans-serif; font-size:clamp(1rem,2.5vw,2rem);
+                padding:0; margin:0; min-width:0; background:transparent; border:none; color:white;
+                letter-spacing:2px; min-height:44px; touch-action:manipulation;
+              ">MENU</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
 
     if (isEndless) {
       return `
@@ -306,11 +373,26 @@ export const ResultsScreen = {
     const result = state.get('lastGameResult') || { chapterId: 1, isVictory: false };
     const isVictory = result.isVictory;
     const isEndless = result.isEndless === true;
+    const isInfMode = result.isInfMode === true;
+
+    if (isInfMode) {
+      el.querySelector('#btn-results-retry').addEventListener('click', () => {
+        window.__screenManager.navigate('game-screen', { chapterId: result.chapterId, character: result.character || 'male', control: result.control || 'keyboard', isInfMode: true });
+      });
+      el.querySelector('#btn-results-menu').addEventListener('click', () => {
+        window.__screenManager.navigate('main-menu');
+      });
+      const lbBtn = el.querySelector('#btn-results-lb');
+      if (lbBtn) lbBtn.addEventListener('click', () => window.__screenManager.navigate('leaderboard'));
+      this._submitInfScore(el, result);
+      this.generateCollage(el, false);
+      return;
+    }
 
     if (isEndless) {
       // Wire endless buttons
       el.querySelector('#btn-results-retry').addEventListener('click', () => {
-        window.__screenManager.navigate('game-screen', { chapterId: 4 });
+        window.__screenManager.navigate('game-screen', { chapterId: 4, character: result.character || 'male', control: result.control || 'keyboard' });
       });
       el.querySelector('#btn-results-menu').addEventListener('click', () => {
         window.__screenManager.navigate('main-menu');
@@ -341,12 +423,12 @@ export const ResultsScreen = {
     const btnNext = el.querySelector('#btn-results-next');
     if (btnNext) {
       btnNext.addEventListener('click', () => {
-        window.__screenManager.navigate('game-screen', { chapterId: result.chapterId + 1 });
+        window.__screenManager.navigate('game-screen', { chapterId: result.chapterId + 1, character: result.character || 'male', control: result.control || 'keyboard' });
       });
     }
 
     el.querySelector('#btn-results-retry').addEventListener('click', () => {
-      window.__screenManager.navigate('game-screen', { chapterId: result.chapterId });
+      window.__screenManager.navigate('game-screen', { chapterId: result.chapterId, character: result.character || 'male', control: result.control || 'keyboard' });
     });
 
     el.querySelector('#btn-results-menu').addEventListener('click', () => {
@@ -355,6 +437,37 @@ export const ResultsScreen = {
 
     // Always generate collage (both victory and game over)
     this.generateCollage(el, isVictory);
+  },
+
+  async _submitInfScore(el, result) {
+    const statusEl = el.querySelector('#inf-lb-status');
+    if (!state.get('isAuthenticated')) {
+      if (statusEl) statusEl.textContent = 'Sign in to submit your score to the INF leaderboard!';
+      return;
+    }
+    if (statusEl) statusEl.textContent = 'Submitting score...';
+    const controlType = result.control === 'gesture' ? 'gesture' : 'keyboard';
+    try {
+      const res = await fetch('/leaderboard/inf', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chapterId: result.chapterId,
+          score: result.score,
+          wavesSurvived: result.wavesSurvived || 0,
+          survivalSeconds: result.timeSurvived,
+          controlType
+        })
+      });
+      if (res.ok) {
+        if (statusEl) statusEl.textContent = '✓ Score submitted to INF leaderboard!';
+      } else {
+        if (statusEl) statusEl.textContent = 'Could not submit score.';
+      }
+    } catch (e) {
+      if (statusEl) statusEl.textContent = 'Offline — score not submitted.';
+    }
   },
 
   async _submitEndlessScore(el, result) {

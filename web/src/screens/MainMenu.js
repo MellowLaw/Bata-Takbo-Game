@@ -5,7 +5,6 @@
  * for all other menu screens (How to Play, Gesture Setup, Settings, Leaderboard, About).
  */
 import { state } from '../utils/StateManager.js';
-import { DialogueBox } from '../utils/DialogueBox.js';
 import { isGuest, confirmGuestLeave } from '../utils/GuestGuard.js';
 
 // Module-level audio instance so music persists while browsing sub-menus
@@ -85,36 +84,14 @@ export const MainMenu = {
           // Fade music out, THEN navigate
           this._fadeOutMusic(800, () => {
             btn.style.animation = '';
-            const isTutorialComplete = state.get('tutorialComplete');
-            const isGestureModelTrained = state.get('gestureModelTrained');
-            const isGestureSetupComplete = state.get('gestureSetupComplete');
-            console.log(`[PLAY] tutorialComplete=${isTutorialComplete} gestureModelTrained=${isGestureModelTrained} gestureSetupComplete=${isGestureSetupComplete}`);
-            console.log(`[PLAY] Full state:`, state._state);
-
-            // Returning player who finished the tutorial → straight to chapter select
-            if (isTutorialComplete || state.get('practiceTutorialComplete')) {
-              window.__screenManager.navigate(targetScreen);
-              return;
+            const hasSeenHowToPlay = state.get('tutorialComplete') || state.get('practiceTutorialComplete');
+            if (hasSeenHowToPlay) {
+              // Returning player — straight to chapter select
+              window.__screenManager.navigate('chapter-select');
+            } else {
+              // First-time player — show How to Play, then chapter select
+              window.__screenManager.navigate('how-to-play', { fromPlay: true });
             }
-
-            // Check if user has gesture setup OR has chosen keyboard before
-            const hasGestureSetup = isGestureSetupComplete || isGestureModelTrained;
-            const preferredControl = state.get('selectedControl');
-            
-            if (hasGestureSetup && preferredControl === 'gesture') {
-              // Has gesture setup and prefers gesture → go to practice tutorial with gesture
-              window.__screenManager.navigate('practice-tutorial', { control: 'gesture' });
-              return;
-            }
-            
-            if (preferredControl === 'keyboard') {
-              // Already chose keyboard before → go to practice tutorial with keyboard
-              window.__screenManager.navigate('practice-tutorial', { control: 'keyboard' });
-              return;
-            }
-
-            // Brand-new player → show control choice prompt
-            this._showControlChoicePrompt();
           });
         } else {
           // Music keeps playing; navigate after flash
@@ -146,122 +123,6 @@ export const MainMenu = {
   },
 
   // ── Helpers ────────────────────────────────────────────────────────────
-
-  _showControlChoicePrompt() {
-    // Guard: prevent stacking multiple prompts when Play is clicked repeatedly
-    if (this._promptOpen) return;
-    this._promptOpen = true;
-
-    const dialogue = new DialogueBox('screen-container');
-    const portrait = '/assets/entity/character-icon/character.png';
-    const portraitFrames = 5;
-
-    const cleanup = () => {
-      this._promptOpen = false;
-      dialogue.hide();
-    };
-
-    // Step 1: Welcome and explain the choice
-    const step1 = () => {
-      dialogue.show({
-        text: "Welcome to Bata, Takbo! Before you can play, let's learn the basics. First, how would you like to control your character?",
-        subtext: 'Welcome!',
-        portrait,
-        portraitFrames,
-        position: 'center',
-        overlay: true,
-        typewriter: true,
-        buttons: [
-          { label: 'Next', action: 'next' },
-          { label: 'Skip Tutorial', action: 'skip', style: 'subtle' }
-        ]
-      }, (action) => {
-        if (action === 'next') step2();
-        else if (action === 'skip') skipAll();
-      });
-    };
-
-    // Step 2: Control method choice
-    const step2 = () => {
-      dialogue.show({
-        text: "You can use hand gestures with your webcam (requires camera), or use keyboard/arrow keys for now. Which would you prefer?",
-        subtext: 'Choose Control Method',
-        portrait,
-        portraitFrames,
-        position: 'center',
-        overlay: true,
-        typewriter: true,
-        buttons: [
-          { label: '✋ Gesture Setup', action: 'gesture' },
-          { label: '⌨️ Keyboard/Arrows', action: 'keyboard' }
-        ]
-      }, (action) => {
-        if (action === 'gesture') {
-          cleanup();
-          // Go to gesture training with flag to proceed to practice after
-          window.__screenManager.navigate('gesture-training', { fromPlay: true, toPracticeAfter: true });
-        } else if (action === 'keyboard') {
-          cleanup();
-          // Save keyboard preference and go directly to practice tutorial
-          state.set('selectedControl', 'keyboard');
-          window.__screenManager.navigate('practice-tutorial', { control: 'keyboard' });
-        }
-      });
-    };
-
-    const skipAll = async () => {
-      // Player skipped the tutorial — skip all and go to chapter select
-      console.log('[TUTORIAL-DEBUG] MainMenu.skipAll(): setting tutorialComplete = true');
-      cleanup();
-      state.set('tutorialComplete', true);
-      state.set('practiceTutorialComplete', true);
-      await state.saveTutorialState();
-      await state.savePracticeTutorialState();
-      window.__screenManager.navigate('chapter-select');
-    };
-
-    step1();
-  },
-
-  _showGestureSetupCompletePrompt() {
-    // Guard: prevent stacking multiple prompts when Play is clicked repeatedly
-    if (this._promptOpen) return;
-    this._promptOpen = true;
-
-    const dialogue = new DialogueBox('screen-container');
-    const portrait = '/assets/entity/character-icon/character.png';
-    const portraitFrames = 5;
-
-    const cleanup = () => {
-      this._promptOpen = false;
-      dialogue.hide();
-    };
-
-    dialogue.show({
-      text: "Your hand gestures are already set up! Would you like to continue with the gameplay tutorial, or skip it and go straight to the action?",
-      subtext: 'Tutorial Choice',
-      portrait,
-      portraitFrames,
-      position: 'center',
-      overlay: true,
-      typewriter: true,
-      buttons: [
-        { label: '▶ Continue Tutorial', action: 'tutorial' },
-        { label: '⚡ Skip Tutorial', action: 'skip' }
-      ]
-    }, (action) => {
-      if (action === 'tutorial') {
-        cleanup();
-        window.__screenManager.navigate('tutorial-screen');
-      } else if (action === 'skip') {
-        cleanup();
-        // Mark tutorial as complete and go to chapter select
-        state.set('tutorialComplete', true);
-        state.saveTutorialState();
-        window.__screenManager.navigate('chapter-select');
-      }
-    });
-  },
 
   _startMusic() {
     if (_bgMusic) {

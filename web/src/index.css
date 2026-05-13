@@ -299,7 +299,7 @@ a {
   font-family: var(--font-display);
   font-size: var(--text-lg);
   color: var(--text-primary);
-  line-height: 0%;
+  line-height: 1.2;
   letter-spacing: 2px;
   text-transform: uppercase;
   text-align: center;
@@ -1157,10 +1157,10 @@ a {
   }
 
   .main-menu__nav .menu-btn {
-    min-height: 32px;
-    padding: 0 var(--space-md);
-    font-size: var(--text-sm);
-    line-height: 1;
+    min-height: 44px;
+    padding: 4px var(--space-md);
+    font-size: clamp(1rem, 4vw, 1.3rem);
+    line-height: 1.2;
   }
 }
 
@@ -1170,11 +1170,15 @@ a {
     gap: var(--space-xs);
   }
 
+  .main-menu__nav {
+    gap: 2px;
+  }
+
   .main-menu__nav .menu-btn {
-    min-height: 28px;
-    padding: 0 var(--space-lg);
-    font-size: clamp(0.75rem, 2.5vmin, 1rem);
-    line-height: 1;
+    min-height: 40px;
+    padding: 2px var(--space-lg);
+    font-size: clamp(1rem, 2.8vmin, 1.4rem);
+    line-height: 1.2;
   }
 }
 
@@ -2366,10 +2370,11 @@ a {
 }
 
 .gesture-dir-btn__icon {
-  height: 1em;
-  width: auto;
+  height: 1.2em;
+  width: 1.2em;
   object-fit: contain;
   image-rendering: pixelated;
+  display: block;
 }
 
 .gesture-dir-btn__count {
