@@ -3,6 +3,7 @@
  */
 import * as Phaser from 'phaser';
 import { state } from '../utils/StateManager.js';
+import { audioManager } from '../game/AudioManager.js';
 import { GameScene } from '../game/GameScene.js';
 import { HUDScene } from '../game/HUDScene.js';
 import { ChapterLoadingScreen } from './ChapterLoadingScreen.js';
@@ -101,6 +102,26 @@ export const GameScreen = {
               <button class="menu-btn" id="btn-quit" style="padding: 0.2rem 0 !important; padding-left: 0 !important; margin: 0 !important; text-align: left !important; font-size: clamp(1rem, 2.5vw, 1.5rem); color: white; text-shadow: 1px 1px 2px #000; letter-spacing: 1px; min-width: 0;">QUIT TO MENU</button>
             </div>
 
+            <!-- Audio Toggles -->
+            <div style="display: flex; gap: clamp(12px,3vw,28px); margin-bottom: clamp(0.6rem,1.5vh,1.2rem);">
+              <button id="btn-pause-music" class="menu-btn" style="
+                padding: 0.15rem 0.7rem !important; margin: 0 !important;
+                font-family: var(--font-display); font-size: clamp(0.65rem,1.4vw,0.9rem);
+                letter-spacing: 1px; border: 1.5px solid rgba(255,255,255,0.45);
+                border-radius: 3px; color: white; background: transparent;
+                min-width: 0; min-height: 0; line-height: 1.6;
+                transition: color 0.2s, border-color 0.2s;
+              ">♪ MUSIC: ON</button>
+              <button id="btn-pause-sfx" class="menu-btn" style="
+                padding: 0.15rem 0.7rem !important; margin: 0 !important;
+                font-family: var(--font-display); font-size: clamp(0.65rem,1.4vw,0.9rem);
+                letter-spacing: 1px; border: 1.5px solid rgba(255,255,255,0.45);
+                border-radius: 3px; color: white; background: transparent;
+                min-width: 0; min-height: 0; line-height: 1.6;
+                transition: color 0.2s, border-color 0.2s;
+              ">♪ SFX: ON</button>
+            </div>
+
             <!-- Settings Panel -->
             <div class="pause-settings" style="width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: var(--space-md); padding-left: 0;">
               <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -145,12 +166,15 @@ export const GameScreen = {
     
     const chapterId = params.chapterId || 1;
     const isTutorial = params.isTutorial || false;
+    const isPracticeTutorial = params.isPracticeTutorial || false;
     const character = params.character || state.get('selectedCharacter') || 'male';
+    const control = params.control || state.get('selectedControl') || 'keyboard';
     state.set('selectedCharacter', character);
+    state.set('selectedControl', control);
 
-    // 1. Boot up ML Gestures (male only — female uses keyboard/d-pad)
+    // 1. Boot up ML Gestures only if gesture control was selected
     const pip = el.querySelector('#game-camera-pip');
-    if (character === 'male') {
+    if (control === 'gesture') {
       try {
         await gestureController.initialize(this.videoEl, this.canvasEl);
         await gestureController.startCamera();
@@ -167,7 +191,7 @@ export const GameScreen = {
         pip.style.display = 'none';
       }
     } else {
-      // Female: hide camera PiP entirely (D-pad is shown by HUDScene instead)
+      // Keyboard/D-pad: hide camera PiP entirely
       if (pip) pip.style.display = 'none';
     }
 
@@ -223,7 +247,7 @@ export const GameScreen = {
 
     // Add scenes manually ONCE with the correct data, preventing double-start
     this.game.events.on('ready', () => {
-      this.game.scene.add('GameScene', GameScene, true, { chapterId, isTutorial, character });
+      this.game.scene.add('GameScene', GameScene, true, { chapterId, isTutorial, isPracticeTutorial, character, control });
       this.game.scene.add('HUDScene', HUDScene, false);
       // GameScene.create() will call scene.launch('HUDScene') when ready
     });
@@ -247,48 +271,115 @@ export const GameScreen = {
         .catch(() => { /* not admin / offline — keep hidden */ });
     }
 
-    el.querySelector('#btn-debug-lose').addEventListener('click', () => {
-      const gs = this.game && this.game.scene.getScene('GameScene');
-      if (gs && !gs.isGameOver) gs.showGameOver(false);
-    });
-    el.querySelector('#btn-debug-win').addEventListener('click', () => {
-      const gs = this.game && this.game.scene.getScene('GameScene');
-      if (gs && !gs.isGameOver) gs.showGameOver(true);
-    });
+    // Debug buttons (only in full GameScreen layout)
+    const btnDebugLose = el.querySelector('#btn-debug-lose');
+    const btnDebugWin = el.querySelector('#btn-debug-win');
+    if (btnDebugLose) {
+      btnDebugLose.addEventListener('click', () => {
+        const gs = this.game && this.game.scene.getScene('GameScene');
+        if (gs && !gs.isGameOver) gs.showGameOver(false);
+      });
+    }
+    if (btnDebugWin) {
+      btnDebugWin.addEventListener('click', () => {
+        const gs = this.game && this.game.scene.getScene('GameScene');
+        if (gs && !gs.isGameOver) gs.showGameOver(true);
+      });
+    }
     
-    // Wire up Pause Menu Live Setting Sliders
-    const sensSlider = el.querySelector('#pause-slider-sensitivity');
-    const sensVal = el.querySelector('#pause-val-sensitivity');
-    sensSlider.addEventListener('input', (e) => {
-        const raw = parseInt(e.target.value);
-        sensVal.textContent = `${raw}%`;
+    // Wire up Pause Audio Toggles
+    const btnPauseMusic = el.querySelector('#btn-pause-music');
+    const btnPauseSfx   = el.querySelector('#btn-pause-sfx');
+
+    const _savedMusicVol = { v: state.get('settings').audio.music };
+
+    const _updateMusicBtn = () => {
+      const off = state.get('settings').audio.music === 0;
+      if (!btnPauseMusic) return;
+      btnPauseMusic.textContent = off ? '♪ MUSIC: OFF' : '♪ MUSIC: ON';
+      btnPauseMusic.style.color = off ? 'rgba(255,255,255,0.35)' : 'white';
+      btnPauseMusic.style.borderColor = off ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.45)';
+    };
+    const _updateSfxBtn = () => {
+      const off = state.get('settings').audio.muted;
+      if (!btnPauseSfx) return;
+      btnPauseSfx.textContent = off ? '♪ SFX: OFF' : '♪ SFX: ON';
+      btnPauseSfx.style.color = off ? 'rgba(255,255,255,0.35)' : 'white';
+      btnPauseSfx.style.borderColor = off ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.45)';
+    };
+
+    _updateMusicBtn();
+    _updateSfxBtn();
+
+    if (btnPauseMusic) {
+      btnPauseMusic.addEventListener('click', () => {
         const s = state.get('settings');
-        s.gesture.sensitivity = raw / 100;
+        if (s.audio.music > 0) {
+          _savedMusicVol.v = s.audio.music;
+          s.audio.music = 0;
+        } else {
+          s.audio.music = _savedMusicVol.v > 0 ? _savedMusicVol.v : 0.7;
+        }
         state.set('settings', s);
         state.saveSettings();
-    });
+        _updateMusicBtn();
+      });
+    }
+
+    if (btnPauseSfx) {
+      btnPauseSfx.addEventListener('click', () => {
+        const s = state.get('settings');
+        s.audio.muted = !s.audio.muted;
+        state.set('settings', s);
+        state.saveSettings();
+        audioManager.setMuted(s.audio.muted);
+        _updateSfxBtn();
+      });
+    }
+
+    // Wire up Pause Menu Live Setting Sliders (only in full layout)
+    const sensSlider = el.querySelector('#pause-slider-sensitivity');
+    const sensVal = el.querySelector('#pause-val-sensitivity');
+    if (sensSlider && sensVal) {
+      sensSlider.addEventListener('input', (e) => {
+          const raw = parseInt(e.target.value);
+          sensVal.textContent = `${raw}%`;
+          const s = state.get('settings');
+          s.gesture.sensitivity = raw / 100;
+          state.set('settings', s);
+          state.saveSettings();
+      });
+    }
 
     const debSlider = el.querySelector('#pause-slider-debounce');
     const debVal = el.querySelector('#pause-val-debounce');
-    debSlider.addEventListener('input', (e) => {
-        const raw = parseInt(e.target.value);
-        debVal.textContent = `${raw}ms`;
-        const s = state.get('settings');
-        s.gesture.debounce = raw;
-        state.set('settings', s);
-        state.saveSettings();
-    });
+    if (debSlider && debVal) {
+      debSlider.addEventListener('input', (e) => {
+          const raw = parseInt(e.target.value);
+          debVal.textContent = `${raw}ms`;
+          const s = state.get('settings');
+          s.gesture.debounce = raw;
+          state.set('settings', s);
+          state.saveSettings();
+      });
+    }
     
-    el.querySelector('#btn-restart').addEventListener('click', () => {
-      this.game.destroy(true);
-      window.__screenManager.navigate('game-screen', { chapterId, character }, false);
-    });
-
-    el.querySelector('#btn-quit').addEventListener('click', () => {
-      this.game.destroy(true);
-      if (character === 'male') gestureController.stopCamera();
-      window.__screenManager.navigate('main-menu', {}, false);
-    });
+    // Restart/Quit buttons (with null checks for PracticeTutorial)
+    const btnRestart = el.querySelector('#btn-restart');
+    const btnQuit = el.querySelector('#btn-quit');
+    if (btnRestart) {
+      btnRestart.addEventListener('click', () => {
+        this.game.destroy(true);
+        window.__screenManager.navigate('game-screen', { chapterId, character, control }, false);
+      });
+    }
+    if (btnQuit) {
+      btnQuit.addEventListener('click', () => {
+        this.game.destroy(true);
+        if (control === 'gesture') gestureController.stopCamera();
+        window.__screenManager.navigate('main-menu', {}, false);
+      });
+    }
   },
 
   onLeave() {
@@ -314,7 +405,7 @@ export const GameScreen = {
       document.removeEventListener('webkitfullscreenchange', this._onFullscreenChange);
       this._onFullscreenChange = null;
     }
-    if (state.get('selectedCharacter') !== 'female') gestureController.stopCamera();
+    if (state.get('selectedControl') === 'gesture') gestureController.stopCamera();
     state.set('currentScreen', null);
   },
 

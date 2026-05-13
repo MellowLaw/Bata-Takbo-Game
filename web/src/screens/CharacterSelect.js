@@ -17,25 +17,25 @@ export const CharacterSelect = {
         <!-- ══ STEP 1: CHARACTER ══ -->
         <div class="cs-step" id="cs-step-1">
           <h1 class="screen-title" style="animation: fadeInUp 0.5s ease forwards;">
-            CHOOSE YOUR VESSEL
+            Sino ka?
           </h1>
-          <p class="cs-sub">Who will face the darkness?</p>
+          <p class="cs-sub">Sino ang mas angat?</p>
 
           <div class="cs-items">
             <div class="cs-item" data-gender="male" style="animation-delay:0.08s">
               <div class="cs-portrait">
-                <canvas class="cs-canvas" id="char-canvas-male"></canvas>
+                <img class="cs-portrait-img" src="/assets/ui/m.png" alt="Jose" draggable="false" />
               </div>
-              <span class="cs-name">BAYANI</span>
-              <span class="cs-tag">Male</span>
+              <span class="cs-name">Jose</span>
+              <span class="cs-tag">Ang Matapang na <br> mandirigma ng Purok 1</span>
             </div>
 
             <div class="cs-item" data-gender="female" style="animation-delay:0.18s">
               <div class="cs-portrait">
-                <canvas class="cs-canvas" id="char-canvas-female"></canvas>
+                <img class="cs-portrait-img" src="/assets/ui/w.png" alt="Maria" draggable="false" />
               </div>
-              <span class="cs-name">DIWATA</span>
-              <span class="cs-tag">Female</span>
+              <span class="cs-name">Maria</span>
+              <span class="cs-tag">Ang Matalinong at Mautak na <br> marilag ng San Sinukob</span>
             </div>
           </div>
         </div>
@@ -49,13 +49,13 @@ export const CharacterSelect = {
 
           <div class="cs-items">
             <div class="cs-item cs-item--ctrl" data-control="gesture" style="animation-delay:0.08s">
-              <img class="cs-ctrl-icon" src="/assets/ui/hand.png" alt="Hand Gesture" draggable="false" />
+              <img class="cs-ctrl-icon" src="/assets/ui/hand_gesture.png" alt="Hand Gesture" draggable="false" />
               <span class="cs-name">Hand Gesture</span>
               <span class="cs-tag">Camera-based</span>
             </div>
 
             <div class="cs-item cs-item--ctrl" data-control="keyboard" style="animation-delay:0.18s">
-              <img class="cs-ctrl-icon" src="/assets/ui/keyboard.png" alt="Keyboard" draggable="false" />
+              <img class="cs-ctrl-icon" src="/assets/ui/keyboard_gesture.png" alt="Keyboard" draggable="false" />
               <span class="cs-name">Keyboard / D-Pad</span>
               <span class="cs-tag">Arrow keys or touch</span>
             </div>
@@ -70,6 +70,7 @@ export const CharacterSelect = {
     this._params  = params || {};
     this._animIds = [];
     this._gender  = null;
+    this._control = null; // 'gesture' or 'keyboard'
 
     // ── Back / step navigation ───────────────────────────────────────────────
     const step1 = el.querySelector('#cs-step-1');
@@ -86,43 +87,6 @@ export const CharacterSelect = {
       }
     });
 
-    // ── Sprite sheet animation ───────────────────────────────────────────────
-    const TOTAL_FRAMES = 5;
-    const FRAME_MS = 140;
-
-    const startCanvas = (canvasEl, imgEl, frameOffset) => {
-      const ctx = canvasEl.getContext('2d');
-      let frameIndex = frameOffset;
-      let lastTime = 0;
-      const fw = imgEl.width / TOTAL_FRAMES;
-      const fh = imgEl.height;
-      canvasEl.width  = fw;
-      canvasEl.height = fh;
-      const draw = (idx) => {
-        ctx.clearRect(0, 0, fw, fh);
-        ctx.drawImage(imgEl, idx * fw, 0, fw, fh, 0, 0, fw, fh);
-      };
-      draw(frameIndex);
-      const animate = (ts) => {
-        if (!lastTime) lastTime = ts;
-        if (ts - lastTime >= FRAME_MS) {
-          frameIndex = (frameIndex + 1) % TOTAL_FRAMES;
-          draw(frameIndex);
-          lastTime = ts;
-        }
-        this._animIds.push(requestAnimationFrame(animate));
-      };
-      this._animIds.push(requestAnimationFrame(animate));
-    };
-
-    const img = new Image();
-    img.onload = () => {
-      startCanvas(el.querySelector('#char-canvas-male'),   img, 0);
-      startCanvas(el.querySelector('#char-canvas-female'), img, 2);
-    };
-    img.src = '/assets/entity/character-icon/a.png';
-    if (img.complete && img.naturalWidth) img.onload();
-
     // ── Step 1: pick character → advance to step 2 ──────────────────────────
     step1.querySelectorAll('.cs-item').forEach(item => {
       item.addEventListener('click', () => {
@@ -136,6 +100,7 @@ export const CharacterSelect = {
     step2.querySelectorAll('.cs-item').forEach(item => {
       item.addEventListener('click', () => {
         const control = item.dataset.control;
+        this._control = control;
 
         if (control === 'gesture') {
           const isTrained = state.get('gestureModelTrained') || state.get('gestureSetupComplete');
@@ -145,10 +110,12 @@ export const CharacterSelect = {
           }
         }
 
-        const gender = control === 'gesture' ? 'male' : 'female';
+        // Use the gender selected in step 1 and control selected in step 2
+        const gender = this._gender;
         state.set('selectedCharacter', gender);
+        state.set('selectedControl', control);
         const chapterId = this._params.chapterId || 1;
-        window.__screenManager.navigate('game-screen', { chapterId, character: gender });
+        window.__screenManager.navigate('game-screen', { chapterId, character: gender, control });
       });
     });
   },

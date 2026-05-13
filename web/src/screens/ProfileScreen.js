@@ -15,25 +15,25 @@ export const ProfileScreen = {
               <div style="width: 72px; height: 72px; background: var(--accent-orange); border-radius: 50%; margin: 0 auto var(--space-sm); display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: bold; color: #111; animation: pulse 1.5s infinite;"></div>
             </div>
             <h2 id="profile-username" style="color: var(--text-primary); font-family: var(--font-display); font-size: var(--text-xl); margin: 0 0 var(--space-xs);">Loading...</h2>
-            <p id="profile-account-type" style="color: var(--text-dim); font-family: var(--font-ui); font-size: var(--text-xs); letter-spacing: 2px; text-transform: uppercase; margin: 0 0 var(--space-lg);"></p>
+            <p id="profile-account-type" style="color: var(--text-secondary); font-family: 'VCR', sans-serif; font-size: var(--text-sm); letter-spacing: 2px; text-transform: uppercase; margin: 0 0 var(--space-lg);"></p>
 
             <!-- STATS GRID -->
             <div id="profile-stats-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-sm); text-align: left;">
-              <div style="background: rgba(0,0,0,0.3); border: 1px solid rgba(228,207,192,0.1); border-radius: var(--radius-sm); padding: var(--space-sm) var(--space-md);">
-                <div style="font-family: var(--font-ui); font-size: var(--text-xs); color: var(--text-dim); letter-spacing: 1px; margin-bottom: 2px;">EMAIL</div>
-                <div id="profile-email" style="font-family: var(--font-display); font-size: var(--text-xs); color: var(--text-primary); word-break: break-all;">-</div>
+              <div style="background: rgba(0,0,0,0.3); border: 1px solid rgba(228,207,192,0.2); border-radius: var(--radius-sm); padding: var(--space-sm) var(--space-md);">
+                <div style="font-family: 'VCR', sans-serif; font-size: var(--text-sm); color: var(--text-secondary); letter-spacing: 2px; margin-bottom: 4px; text-transform: uppercase;">Email</div>
+                <div id="profile-email" style="font-family: 'VCR', sans-serif; font-size: var(--text-sm); color: var(--text-primary); word-break: break-all;">-</div>
               </div>
-              <div style="background: rgba(0,0,0,0.3); border: 1px solid rgba(228,207,192,0.1); border-radius: var(--radius-sm); padding: var(--space-sm) var(--space-md);">
-                <div style="font-family: var(--font-ui); font-size: var(--text-xs); color: var(--text-dim); letter-spacing: 1px; margin-bottom: 2px;">MEMBER SINCE</div>
-                <div id="profile-date" style="font-family: var(--font-display); font-size: var(--text-xs); color: var(--text-primary);">-</div>
+              <div style="background: rgba(0,0,0,0.3); border: 1px solid rgba(228,207,192,0.2); border-radius: var(--radius-sm); padding: var(--space-sm) var(--space-md);">
+                <div style="font-family: 'VCR', sans-serif; font-size: var(--text-sm); color: var(--text-secondary); letter-spacing: 2px; margin-bottom: 4px; text-transform: uppercase;">Member Since</div>
+                <div id="profile-date" style="font-family: 'VCR', sans-serif; font-size: var(--text-sm); color: var(--text-primary);">-</div>
               </div>
-              <div style="background: rgba(0,0,0,0.3); border: 1px solid rgba(228,207,192,0.1); border-radius: var(--radius-sm); padding: var(--space-sm) var(--space-md);">
-                <div style="font-family: var(--font-ui); font-size: var(--text-xs); color: var(--text-dim); letter-spacing: 1px; margin-bottom: 2px;">GAMES PLAYED</div>
-                <div id="profile-games" style="font-family: var(--font-display); font-size: var(--text-lg); color: var(--accent-orange);">-</div>
+              <div style="background: rgba(0,0,0,0.3); border: 1px solid rgba(228,207,192,0.2); border-radius: var(--radius-sm); padding: var(--space-sm) var(--space-md);">
+                <div style="font-family: 'VCR', sans-serif; font-size: var(--text-sm); color: var(--text-secondary); letter-spacing: 2px; margin-bottom: 4px; text-transform: uppercase;">Games Played</div>
+                <div id="profile-games" style="font-family: 'VCR', sans-serif; font-size: var(--text-xl); color: var(--accent-orange);">-</div>
               </div>
-              <div style="background: rgba(0,0,0,0.3); border: 1px solid rgba(228,207,192,0.1); border-radius: var(--radius-sm); padding: var(--space-sm) var(--space-md);">
-                <div style="font-family: var(--font-ui); font-size: var(--text-xs); color: var(--text-dim); letter-spacing: 1px; margin-bottom: 2px;">TOTAL SCORE</div>
-                <div id="profile-score" style="font-family: var(--font-display); font-size: var(--text-lg); color: var(--accent-orange);">-</div>
+              <div style="background: rgba(0,0,0,0.3); border: 1px solid rgba(228,207,192,0.2); border-radius: var(--radius-sm); padding: var(--space-sm) var(--space-md);">
+                <div style="font-family: 'VCR', sans-serif; font-size: var(--text-sm); color: var(--text-secondary); letter-spacing: 2px; margin-bottom: 4px; text-transform: uppercase;">Total Score</div>
+                <div id="profile-score" style="font-family: 'VCR', sans-serif; font-size: var(--text-xl); color: var(--accent-orange);">-</div>
               </div>
             </div>
 
@@ -47,7 +47,7 @@ export const ProfileScreen = {
 
           <!-- ACCOUNT SETTINGS -->
           <div id="cu-group" style="animation: fadeInUp 0.4s ease 0.15s forwards; opacity: 0; margin-bottom: var(--space-lg);">
-            <p style="font-family: var(--font-ui); font-size: var(--text-xs); color: var(--text-dim); letter-spacing: 2px; text-transform: uppercase; margin-bottom: var(--space-sm); padding: 0 var(--space-xs);">Change Username</p>
+            <p style="font-family: 'VCR', sans-serif; font-size: var(--text-sm); color: var(--text-secondary); letter-spacing: 2px; text-transform: uppercase; margin-bottom: var(--space-sm); padding: 0 var(--space-xs);">Change Username</p>
             <div style="display: flex; flex-direction: column; gap: var(--space-sm);">
               <input type="text" id="cu-new" class="login-card__input" placeholder="NEW USERNAME" maxlength="20" autocomplete="off" style="font-size: var(--text-sm); padding: var(--space-sm);" />
               <p id="cu-msg" style="font-size: var(--text-sm); font-weight: bold; min-height: 1.2em; text-align: center;"></p>
@@ -59,7 +59,7 @@ export const ProfileScreen = {
           </div>
 
           <div id="ce-group" style="animation: fadeInUp 0.4s ease 0.2s forwards; opacity: 0; margin-bottom: var(--space-lg);">
-            <p style="font-family: var(--font-ui); font-size: var(--text-xs); color: var(--text-dim); letter-spacing: 2px; text-transform: uppercase; margin-bottom: var(--space-sm); padding: 0 var(--space-xs);">Change Email</p>
+            <p style="font-family: 'VCR', sans-serif; font-size: var(--text-sm); color: var(--text-secondary); letter-spacing: 2px; text-transform: uppercase; margin-bottom: var(--space-sm); padding: 0 var(--space-xs);">Change Email</p>
             <div style="display: flex; flex-direction: column; gap: var(--space-sm);">
               <input type="email" id="ce-new" class="login-card__input" placeholder="NEW EMAIL ADDRESS" maxlength="255" autocomplete="off" style="font-size: var(--text-sm); padding: var(--space-sm);" />
               <input type="password" id="ce-password" class="login-card__input" placeholder="CONFIRM WITH PASSWORD" style="font-size: var(--text-sm); padding: var(--space-sm);" />
@@ -72,11 +72,11 @@ export const ProfileScreen = {
           </div>
 
           <div style="animation: fadeInUp 0.4s ease 0.25s forwards; opacity: 0; margin-bottom: var(--space-lg);">
-            <p style="font-family: var(--font-ui); font-size: var(--text-xs); color: var(--text-dim); letter-spacing: 2px; text-transform: uppercase; margin-bottom: var(--space-sm); padding: 0 var(--space-xs);">Change Password</p>
+            <p style="font-family: 'VCR', sans-serif; font-size: var(--text-sm); color: var(--text-secondary); letter-spacing: 2px; text-transform: uppercase; margin-bottom: var(--space-sm); padding: 0 var(--space-xs);">Change Password</p>
             <div style="display: flex; flex-direction: column; gap: var(--space-sm);">
               <input type="password" id="cp-current" class="login-card__input" placeholder="CURRENT PASSWORD" style="font-size: var(--text-sm); padding: var(--space-sm);" />
               <input type="password" id="cp-new" class="login-card__input" placeholder="NEW PASSWORD" style="font-size: var(--text-sm); padding: var(--space-sm);" />
-              <div id="cp-requirements" style="width: 100%; text-align: left; font-family: var(--font-display); font-size: 0.65rem; color: #a89b8c; margin-top: 0.2rem; margin-bottom: 0.1rem; display: flex; flex-direction: column; gap: 2px;">
+              <div id="cp-requirements" style="width: 100%; text-align: left; font-family: 'VCR', sans-serif; font-size: 0.85rem; color: #a89b8c; margin-top: 0.2rem; margin-bottom: 0.1rem; display: flex; flex-direction: column; gap: 2px;">
                 <span id="cp-req-length">✗ 8 CHARACTERS MINIMUM</span>
                 <span id="cp-req-number">✗ 1 NUMBER</span>
                 <span id="cp-req-special">✗ 1 SPECIAL CHARACTER</span>
@@ -102,7 +102,7 @@ export const ProfileScreen = {
 
           <!-- DELETE ACCOUNT (danger zone, below the fold) -->
           <div id="da-group" style="display: none; text-align: center; padding: var(--space-xl) 0 var(--space-md);">
-            <button id="btn-delete-account" style="background: transparent; border: none; color: var(--accent-red); font-family: var(--font-ui); font-size: var(--text-xs); cursor: pointer; text-decoration: underline; letter-spacing: 1px; opacity: 0.5;">Delete Account</button>
+            <button id="btn-delete-account" style="background: rgba(230, 57, 70, 0.15); border: 2px solid var(--accent-red); border-radius: var(--radius-md); color: var(--accent-red); font-family: 'VCR', sans-serif; font-size: var(--text-sm); cursor: pointer; letter-spacing: 2px; text-transform: uppercase; padding: var(--space-sm) var(--space-md); transition: all 0.2s ease;">Delete Account</button>
           </div>
 
         </div>
@@ -580,10 +580,10 @@ export const ProfileScreen = {
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);display:flex;align-items:center;justify-content:center;z-index:9999;';
     overlay.innerHTML = `
       <div style="background:var(--bg-panel);border:1px solid var(--accent-red);border-radius:8px;padding:var(--space-lg);min-width:280px;max-width:400px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,0.8);animation:fadeInUp 0.2s ease forwards;">
-        <h3 style="color:var(--accent-red);font-family:var(--font-display);font-size:var(--text-base);text-transform:uppercase;margin-bottom:var(--space-xs);text-align:center;">Delete Account</h3>
-        <p style="color:var(--text-dim);font-size:var(--text-xs);text-align:center;margin-bottom:var(--space-md);line-height:1.5;">This is <b style="color:var(--text-primary);">permanent</b>. All your data and progress will be erased and cannot be recovered.</p>
-        <input id="da-modal-password" type="password" placeholder="ENTER YOUR PASSWORD" style="width:100%;padding:var(--space-sm);background:var(--bg-secondary);border:2px solid rgba(230,57,70,0.5);border-radius:4px;color:var(--text-primary);font-family:var(--font-display);font-size:var(--text-sm);text-align:center;outline:none;box-sizing:border-box;margin-bottom:var(--space-xs);" />
-        <p id="da-modal-msg" style="font-size:var(--text-xs);font-weight:bold;min-height:1.2em;text-align:center;margin-bottom:var(--space-md);color:var(--accent-red);"></p>
+        <h3 style="color:var(--accent-red);font-family:'VCR',sans-serif;font-size:var(--text-lg);text-transform:uppercase;margin-bottom:var(--space-xs);text-align:center;letter-spacing:2px;">Delete Account</h3>
+        <p style="color:var(--text-secondary);font-family:'VCR',sans-serif;font-size:var(--text-sm);text-align:center;margin-bottom:var(--space-md);line-height:1.5;">This is <b style="color:var(--text-primary);">PERMANENT</b>. All your data and progress will be erased and cannot be recovered.</p>
+        <input id="da-modal-password" type="password" placeholder="ENTER YOUR PASSWORD" style="width:100%;padding:var(--space-sm);background:var(--bg-secondary);border:2px solid rgba(230,57,70,0.5);border-radius:4px;color:var(--text-primary);font-family:'VCR',sans-serif;font-size:var(--text-sm);text-align:center;outline:none;box-sizing:border-box;margin-bottom:var(--space-xs);" />
+        <p id="da-modal-msg" style="font-family:'VCR',sans-serif;font-size:var(--text-sm);font-weight:bold;min-height:1.2em;text-align:center;margin-bottom:var(--space-md);color:var(--accent-red);"></p>
         <div style="display:flex;gap:var(--space-sm);">
           <button id="da-modal-cancel" class="login-card__join-btn" style="flex:1;padding:var(--space-sm);font-size:var(--text-sm);">CANCEL</button>
           <button id="da-modal-confirm" class="login-card__join-btn" style="flex:1;padding:var(--space-sm);font-size:var(--text-sm);background:var(--accent-red);color:#fff;">DELETE</button>

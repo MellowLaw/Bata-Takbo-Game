@@ -928,6 +928,57 @@ app.post('/admin/reset-cheat', authMiddleware, adminMiddleware, async (req, res)
   }
 });
 
+// ========== ENDLESS LEADERBOARD ==========
+
+// Submit endless score (registered users only)
+app.post('/leaderboard/endless', authMiddleware, async (req, res) => {
+  try {
+    const { survivalSeconds, controlType } = req.body;
+    if (!survivalSeconds || !controlType) return res.status(400).json({ error: 'Missing survivalSeconds or controlType' });
+    if (!['gesture', 'keyboard'].includes(controlType)) return res.status(400).json({ error: 'Invalid controlType' });
+    if (typeof survivalSeconds !== 'number' || survivalSeconds < 0 || survivalSeconds > 86400) {
+      return res.status(400).json({ error: 'Invalid survivalSeconds' });
+    }
+
+    const user = await db.get('SELECT username, banned FROM users WHERE id = ?', [req.user.id]);
+    if (!user || user.banned) return res.status(403).json({ error: 'Forbidden' });
+
+    await db.run(
+      'INSERT INTO endless_scores (user_id, username, survival_seconds, control_type, created_at) VALUES (?, ?, ?, ?, ?)',
+      [req.user.id, user.username, Math.floor(survivalSeconds), controlType, Date.now()]
+    );
+    return res.status(200).json({ success: true });
+  } catch (err) {
+    console.error('Endless score submit error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get endless leaderboard (top 20 per control type, best score per user)
+app.get('/leaderboard/endless', async (req, res) => {
+  try {
+    const { controlType } = req.query;
+    if (!controlType || !['gesture', 'keyboard'].includes(controlType)) {
+      return res.status(400).json({ error: 'Invalid or missing controlType' });
+    }
+
+    const rows = await db.all(`
+      SELECT e.username, MAX(e.survival_seconds) AS best_seconds
+      FROM endless_scores e
+      INNER JOIN users u ON e.user_id = u.id
+      WHERE e.control_type = ? AND u.banned = 0
+      GROUP BY e.user_id
+      ORDER BY best_seconds DESC
+      LIMIT 20
+    `, [controlType]);
+
+    return res.status(200).json({ entries: rows });
+  } catch (err) {
+    console.error('Endless leaderboard fetch error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Initialize database and start server
 initDb().then(database => {
   db = database;

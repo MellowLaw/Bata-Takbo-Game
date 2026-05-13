@@ -1,4 +1,5 @@
 import * as Phaser from 'phaser';
+import { audioManager } from './AudioManager.js';
 
 export class Projectile {
   constructor(scene, grid, targetCol, targetRow) {
@@ -20,6 +21,7 @@ export class Projectile {
 
     this.sprite = scene.add.sprite(startX, startY, chosen);
     this.sprite.setScale(2.0); // Scaled up!
+    audioManager.play('sfx_warning');
 
     // Animate Y dropping straight down
     scene.tweens.add({

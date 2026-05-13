@@ -9,6 +9,77 @@ export const ResultsScreen = {
     const s = (result.timeSurvived % 60).toString().padStart(2, '0');
     
     const isVictory = result.isVictory;
+    const isEndless = result.isEndless === true;
+
+    if (isEndless) {
+      return `
+        <div class="results-screen screen results-screen--endless" style="
+          position: relative; display: flex; align-items: stretch; background: #000; overflow: hidden;
+        ">
+          <img id="kill-cam-bg" style="
+            position: absolute; inset: 0; width: 100%; height: 100%;
+            object-fit: cover; filter: sepia(80%) brightness(0.4) saturate(1.6) hue-rotate(20deg);
+            transform: rotate(-5deg) scale(1.12); transform-origin: center; z-index: 0;
+          " />
+          <div style="
+            position: absolute; inset: 0;
+            background: linear-gradient(to right, rgba(0,0,0,0.97) 30%, rgba(0,0,0,0.6) 60%, transparent 100%);
+            z-index: 1;
+          "></div>
+          <a id="btn-download-killcam" href="#" download="bata_takbo_endless.png" style="
+            position: absolute; top: 20px; right: 24px; z-index: 10; color: white;
+            text-decoration: none; opacity: 0; transition: opacity 0.4s;
+          ">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+          </a>
+          <div style="
+            position: relative; z-index: 2;
+            width: clamp(60%, 65%, 70%);
+            display: flex; flex-direction: column; justify-content: center;
+            padding: clamp(16px,4vw,40px) clamp(16px,3vw,40px) clamp(16px,4vw,40px) clamp(20px,8vw,100px);
+          ">
+            <div style="font-family:'GigaSaturn',sans-serif; font-size:clamp(2.5rem,8vw,5rem); color:#ffd700; line-height:1; letter-spacing:2px; margin-bottom:4px;">∞</div>
+            <h1 style="font-family:'GigaSaturn',sans-serif; font-size:clamp(1.4rem,4vw,3.5rem); color:#ffd700; margin:0 0 clamp(12px,2vh,28px) 0; line-height:1; letter-spacing:2px;">ENDLESS BATTLE</h1>
+            <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:clamp(12px,2vh,24px);">
+              <div style="display:flex; align-items:baseline; gap:0; flex-wrap:wrap;">
+                <span style="font-family:'GigaSaturn',sans-serif; font-size:clamp(0.75rem,1.8vw,1.4rem); color:rgba(255,255,255,0.9); min-width:clamp(120px,18vw,200px); letter-spacing:1px;">SURVIVED:</span>
+                <span style="font-family:'GigaSaturn',sans-serif; font-size:clamp(0.85rem,2vw,1.6rem); color:white;">${m}:${s}</span>
+              </div>
+              <div style="display:flex; align-items:baseline; gap:0; flex-wrap:wrap;">
+                <span style="font-family:'GigaSaturn',sans-serif; font-size:clamp(0.75rem,1.8vw,1.4rem); color:rgba(255,255,255,0.9); min-width:clamp(120px,18vw,200px); letter-spacing:1px;">SCORE:</span>
+                <span style="font-family:'GigaSaturn',sans-serif; font-size:clamp(0.85rem,2vw,1.6rem); color:#ffd700;">${result.score.toLocaleString()}</span>
+              </div>
+            </div>
+            <hr style="border:0; border-top:2px solid rgba(255,215,0,0.5); margin:0 0 clamp(12px,3vh,32px) 0; width:60%;">
+            <div id="endless-lb-status" style="
+              font-family:'VCR',monospace; font-size:clamp(0.7rem,1.5vw,1rem);
+              color:rgba(255,215,0,0.8); margin-bottom:clamp(10px,2vh,20px); min-height:1.4em;
+            "></div>
+            <div style="display:flex; gap:clamp(16px,4vw,60px); align-items:center; flex-wrap:wrap;">
+              <button class="menu-btn" id="btn-results-retry" style="
+                font-family:'GigaSaturn',sans-serif; font-size:clamp(1rem,2.5vw,2rem);
+                padding:0; margin:0; min-width:0; background:transparent; border:none; color:white;
+                letter-spacing:2px; min-height:44px; touch-action:manipulation;
+              ">RETRY</button>
+              <button class="menu-btn" id="btn-results-lb" style="
+                font-family:'GigaSaturn',sans-serif; font-size:clamp(1rem,2.5vw,2rem);
+                padding:0; margin:0; min-width:0; background:transparent; border:none; color:#ffd700;
+                letter-spacing:2px; min-height:44px; touch-action:manipulation;
+              ">LEADERBOARD</button>
+              <button class="menu-btn" id="btn-results-menu" style="
+                font-family:'GigaSaturn',sans-serif; font-size:clamp(1rem,2.5vw,2rem);
+                padding:0; margin:0; min-width:0; background:transparent; border:none; color:white;
+                letter-spacing:2px; min-height:44px; touch-action:manipulation;
+              ">MENU</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
 
     return `
       <div class="results-screen screen" style="
@@ -88,6 +159,24 @@ export const ResultsScreen = {
                 <span style="font-family: 'GigaSaturn', sans-serif; font-size: clamp(0.85rem, 2vw, 1.6rem); color: #ffd700;">${result.score.toLocaleString()}</span>
               </div>
             </div>
+
+            <!-- Ch3 completion: bonus level unlock banner -->
+            ${result.chapterId === 3 ? `
+            <div style="
+              display: flex; align-items: center; gap: 10px;
+              margin-bottom: clamp(10px, 2vh, 20px);
+              padding: 10px 14px;
+              background: rgba(255,215,0,0.08);
+              border: 1px solid rgba(255,215,0,0.35);
+              border-radius: 4px;
+              max-width: clamp(260px, 45vw, 440px);
+            ">
+              <span style="font-size: clamp(1.4rem,3vw,2rem); line-height:1;">∞</span>
+              <div>
+                <div style="font-family:'GigaSaturn',sans-serif; font-size:clamp(0.6rem,1.4vw,1rem); color:#ffd700; letter-spacing:2px;">BONUS LEVEL UNLOCKED</div>
+                <div style="font-family:'VCR',monospace; font-size:clamp(0.5rem,1.1vw,0.8rem); color:rgba(255,255,255,0.55); margin-top:2px;">WALANG KATAPUSAN · ENDLESS BATTLE</div>
+              </div>
+            </div>` : ''}
 
             <!-- Separator -->
             <hr class="results-separator" style="border: 0; border-top: 2px solid rgba(255,215,0,0.5); margin: 0 0 clamp(12px, 3vh, 40px) 0; width: 60%;">
@@ -216,11 +305,34 @@ export const ResultsScreen = {
   onEnter(el) {
     const result = state.get('lastGameResult') || { chapterId: 1, isVictory: false };
     const isVictory = result.isVictory;
+    const isEndless = result.isEndless === true;
+
+    if (isEndless) {
+      // Wire endless buttons
+      el.querySelector('#btn-results-retry').addEventListener('click', () => {
+        window.__screenManager.navigate('game-screen', { chapterId: 4 });
+      });
+      el.querySelector('#btn-results-menu').addEventListener('click', () => {
+        window.__screenManager.navigate('main-menu');
+      });
+      const lbBtn = el.querySelector('#btn-results-lb');
+      if (lbBtn) {
+        lbBtn.addEventListener('click', () => {
+          window.__screenManager.navigate('leaderboard');
+        });
+      }
+
+      // Submit score to leaderboard if registered user
+      this._submitEndlessScore(el, result);
+
+      // Generate collage for background
+      this.generateCollage(el, false);
+      return;
+    }
 
     // Trigger screen entrance animation
     const screen = el.querySelector('.results-screen');
     if (screen) {
-      // Force reflow to ensure animation always replays
       screen.classList.remove('victory-enter', 'gameover-enter');
       void screen.offsetWidth;
       screen.classList.add(isVictory ? 'victory-enter' : 'gameover-enter');
@@ -243,6 +355,36 @@ export const ResultsScreen = {
 
     // Always generate collage (both victory and game over)
     this.generateCollage(el, isVictory);
+  },
+
+  async _submitEndlessScore(el, result) {
+    const statusEl = el.querySelector('#endless-lb-status');
+
+    // Only registered (non-guest) users can submit
+    if (!state.get('isAuthenticated')) {
+      if (statusEl) statusEl.textContent = 'Sign in to submit your score to the leaderboard!';
+      return;
+    }
+
+    if (statusEl) statusEl.textContent = 'Submitting score...';
+
+    const controlType = result.control === 'gesture' ? 'gesture' : 'keyboard';
+
+    try {
+      const res = await fetch('/leaderboard/endless', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ survivalSeconds: result.timeSurvived, controlType })
+      });
+      if (res.ok) {
+        if (statusEl) statusEl.textContent = '✓ Score submitted to leaderboard!';
+      } else {
+        if (statusEl) statusEl.textContent = 'Could not submit score.';
+      }
+    } catch (e) {
+      if (statusEl) statusEl.textContent = 'Offline — score not submitted.';
+    }
   },
 
   generateCollage(el, isVictory = false) {

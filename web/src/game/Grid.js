@@ -6,10 +6,11 @@ export class Grid {
    * @param {number} cols 
    * @param {number} rows 
    */
-  constructor(scene, cols = 7, rows = 9) {
+  constructor(scene, cols = 7, rows = 9, useFullScreen = false) {
     this.scene = scene;
     this.cols = cols;
     this.rows = rows;
+    this.useFullScreen = useFullScreen;
     
     // Will hold graphic backgrounds or tile sprites
     this.cells = [];
@@ -23,6 +24,39 @@ export class Grid {
 
   calculateGrid() {
     const { width, height } = this.scene.scale;
+    
+    // For practice tutorial, use full screen (no left panel)
+    if (this.useFullScreen) {
+      const paddingX = width * 0.15;
+      const paddingY = height * 0.15;
+      const availableWidth = width - paddingX * 2;
+      const availableHeight = height - paddingY * 2;
+
+      const rawWidth = availableWidth / this.cols;
+      const rawHeight = availableHeight / this.rows;
+      
+      this.tileSize = Math.floor(Math.min(rawWidth, rawHeight));
+      
+      const gridWidth = this.tileSize * this.cols;
+      const gridHeight = this.tileSize * this.rows;
+
+      this.boardWidth = gridWidth;
+      this.boardHeight = gridHeight;
+
+      // Center on full screen
+      this.offsetX = Math.floor((width - gridWidth) / 2);
+      this.offsetY = Math.floor((height - gridHeight) / 2);
+      
+      this.panelRect = {
+        x: 0,
+        y: 0,
+        w: width,
+        h: height
+      };
+      return;
+    }
+    
+    // For regular game, use right panel layout (with left panel for boss/camera)
     const leftWidth = Math.max(width < 768 ? 160 : 250, Math.min(450, width * 0.28));
     const rightWidth = width - leftWidth;
     const rightHeight = height;
