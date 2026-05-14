@@ -98,14 +98,9 @@ export class Player {
     this.col = targetCol;
     this.row = targetRow;
 
-    // Play directional movement SFX
-    if (actDir === 'left') {
-      audioManager.play('sfx_move_l');
-    } else if (actDir === 'right') {
-      audioManager.play('sfx_move_r');
-    } else {
-      audioManager.play('sfx_move_ud');
-    }
+    // Play footstep SFX (random variant for variety)
+    const stepVariant = Math.floor(Math.random() * 6) + 1;
+    audioManager.play(`sfx_step_${stepVariant}`, { volume: 0.6 });
 
     const targetPos = this.grid.getPixelPosition(this.col, this.row);
 

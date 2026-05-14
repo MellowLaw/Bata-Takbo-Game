@@ -376,6 +376,8 @@ export class Boss {
         const dest = this.grid.getPixelPosition(c, r);
         const startY = dest.y - 450; // Drop from sky high
 
+        audioManager.play('ch1_splatter_drop', { volume: 0.8 });
+
         // Force angle downwards naturally, scale up the 16px beam to be 6x larger
         const blood = this.scene.add.sprite(dest.x, startY, 'blood_chem', 6);
         blood.setDisplaySize(80, 20).setRotation(Math.PI / 2).setDepth(30);
@@ -387,7 +389,7 @@ export class Boss {
             // Scale up the 32px splat to 5x
             const splat = this.scene.add.sprite(dest.x, dest.y, 'blood_splat_000').setScale(5.0).setDepth(20);
             splat.play('anim_blood_splat').once('animationcomplete', () => splat.destroy());
-            audioManager.playBloodHit();
+            audioManager.play('ch1_splatter_burst', { volume: 0.9 });
 
             // Native Area Damage Check
             if (this.scene.player.col === c && this.scene.player.row === r) {
@@ -420,6 +422,7 @@ export class Boss {
     const eye = this.scene.add.sprite(startX, startY, 'ch1_eye')
       .setScale(1.5).setDepth(40).setRotation(angle);
     eye.play('anim_ch1_eye');
+    audioManager.play('ch1_eye_whoosh', { volume: 0.85 });
 
     // Animate to target over 1.5s warning period (giving the dripping trail time to render continuously)
     this.scene.tweens.add({
@@ -429,6 +432,7 @@ export class Boss {
         // Eye explosion FX
         const splat = this.scene.add.sprite(dest.x, dest.y, 'eye_explosion').setScale(2.0).setDepth(22);
         splat.play('anim_eye_explosion').once('animationcomplete', () => splat.destroy());
+        audioManager.play('ch1_eye_land', { volume: 1.0 });
         // Exact Area Damage Check
         if (this.scene.player.col === c && this.scene.player.row === r) {
           this.scene.player.takeDamage();
@@ -508,6 +512,7 @@ export class Boss {
 
         this.scene.time.delayedCall(1000, () => {
           hand.destroy();
+          audioManager.play('ch1_volley_shoot', { volume: 0.85 });
           const blood = this.scene.add.sprite(startLoc.x, startLoc.y, 'blood_chem', 6).setDisplaySize(80, 20).setDepth(45);
 
           // Calculates precise geometry projection angle to face the target exactly
@@ -533,6 +538,7 @@ export class Boss {
               trailTimer.remove();
               const splat = this.scene.add.sprite(dest.x, dest.y, 'blood_splat_000').setScale(5.0).setDepth(20);
               splat.play('anim_blood_splat').once('animationcomplete', () => splat.destroy());
+              audioManager.play('ch1_volley_burst', { volume: 0.9 });
               audioManager.playBloodHit();
 
               if (this.scene.player.col === targetCol && this.scene.player.row === targetRow) {
@@ -559,6 +565,7 @@ export class Boss {
       .setScale(0.5)
       .setDepth(50)
       .play('anim_ult_start');
+    audioManager.play('ch1_vortex_spawn', { volume: 1.0 });
     
     // Shake camera during vortex formation
     this.scene.cameras.main.shake(1000, 0.02);
@@ -593,6 +600,7 @@ export class Boss {
 
         // Use Player.forceMove which exists and handles tweening correctly
         player.forceMove(s.dCol, s.dRow, Math.min(180, stepDelay));
+        audioManager.play('ch1_vortex_pull', { volume: 0.7 });
 
         // Visual trail effect at player's new tile
         const trailPos = this.grid.getPixelPosition(player.col, player.row);
@@ -1698,22 +1706,18 @@ export class Boss {
       this.die();
       return;
     }
+    if (!this.isInfMode) {
+      this.hp--;
+      this.scene.events.emit('boss:damaged', this.hp, this.maxHp);
+    }
     
-    this.hp--;
     this.scene.cameras.main.shake(200, 0.02);
-    this.scene.events.emit('boss:damaged', this.hp, this.maxHp);
 
     if (this.isTutorial) {
       state.emit('tutorial:bossDamaged');
     }
 
-    if (this.hp <= 0) {
-      if (this.isInfMode) {
-        // INF mode: reset HP, speed up, emit reset event for HUD
-        this.hp = this.maxHp;
-        this.scene.events.emit('boss:damaged', this.hp, this.maxHp);
-        return;
-      }
+    if (!this.isInfMode && this.hp <= 0) {
       this.die();
     } else if (!this.isTutorial && this.scene.chapterId === 2) {
       if (this.attackTimer) this.attackTimer.remove();
@@ -4182,6 +4186,7 @@ R8: . . . . Y . . . .
           this.grid.telegraph(t.c, t.r, 800);
           const alert = scene.add.sprite(pos.x, pos.y - ts * 0.4, 'symbol_alert')
             .setDepth(200).setScale(0.8).play('anim_symbol_alert');
+          audioManager.play('sfx_telegraph', { volume: 0.4 });
           alert.once('animationcomplete', () => alert.destroy());
 
           // After telegraph, lightning strikes
@@ -4229,6 +4234,7 @@ R8: . . . . Y . . . .
           const edgePos = this.grid.getPixelPosition(0, r);
           const alert2 = scene.add.sprite(edgePos.x - ts, edgePos.y, 'symbol_alert2')
             .setDepth(200).setScale(0.8).play('anim_symbol_alert2');
+          audioManager.play('sfx_telegraph', { volume: 0.4 });
           alert2.once('animationcomplete', () => alert2.destroy());
 
           scene.time.delayedCall(700, () => {
@@ -4256,6 +4262,7 @@ R8: . . . . Y . . . .
           const edgePos = this.grid.getPixelPosition(c, 0);
           const alert2 = scene.add.sprite(edgePos.x, edgePos.y - ts, 'symbol_alert2')
             .setDepth(200).setScale(0.8).play('anim_symbol_alert2');
+          audioManager.play('sfx_telegraph', { volume: 0.4 });
           alert2.once('animationcomplete', () => alert2.destroy());
 
           scene.time.delayedCall(700, () => {

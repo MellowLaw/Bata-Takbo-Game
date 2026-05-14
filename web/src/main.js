@@ -125,7 +125,7 @@ const clickAudio = new Audio('/assets/audio/click_sound.mp3');
 clickAudio.volume = 0.5; // Optional: set a reasonable volume
 document.addEventListener('click', (e) => {
   const target = e.target.closest('button, .menu-btn, .back-btn, .ch-flip-wrapper');
-  if (target) {
+  if (target && !target.classList.contains('dpad-btn') && !target.closest('.game-dpad')) {
     clickAudio.currentTime = 0;
     clickAudio.play().catch(() => {});
   }

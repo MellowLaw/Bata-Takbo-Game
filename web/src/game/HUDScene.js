@@ -1,5 +1,6 @@
 import * as Phaser from 'phaser';
 import { state } from '../utils/StateManager.js';
+import { audioManager } from './AudioManager.js';
 
 export class HUDScene extends Phaser.Scene {
   constructor() {
@@ -511,9 +512,17 @@ export class HUDScene extends Phaser.Scene {
     this._hpBarCurrent = 1;
     this._hpBarState = 0;
     const hpTextSize = bossBoxW < 200 ? '11px' : '13px';
-    this.bossHpText = this.add.text(leftWidth - 16, hpBarY + 8, '1000/1000', {
-      fontFamily: 'VCR', fontSize: hpTextSize, color: '#f0e6d3', align: 'right'
-    }).setOrigin(1, 0.5).setDepth(11);
+    
+    if (this.chapterId === 4 || this.isInfMode) {
+      // Do not hide the health bar in INF mode, just show 'INF' text beside it
+      this.bossHpText = this.add.text(boxPadX + (64 * hpBarScaleX) + 8, hpBarY + 8, 'INF', {
+        fontFamily: 'VCR', fontSize: '18px', color: '#f0e6d3', align: 'left'
+      }).setOrigin(0, 0.5).setDepth(11);
+    } else {
+      this.bossHpText = this.add.text(boxPadX + (64 * hpBarScaleX) + 8, hpBarY + 8, '1000/1000', {
+        fontFamily: 'VCR', fontSize: hpTextSize, color: '#f0e6d3', align: 'left'
+      }).setOrigin(0, 0.5).setDepth(11);
+    }
     }
 
     // ========== CAMERA BOX or D-PAD — based on control method ==========
@@ -611,10 +620,10 @@ export class HUDScene extends Phaser.Scene {
       // Mirror the same dynamic layout as create()
       const bossNamePx  = bbW < 160 ? 14 : bbW < 200 ? 18 : bbW < 250 ? 22 : 28;
       const bossTitlePx = bbW < 160 ? 9  : bbW < 200 ? 10 : bbW < 250 ? 12 : 14;
-      const bossNameY   = 28 + 28;
-      const bossTitleY  = bossNameY + bossNamePx + 5;
-      const hpBarY      = bossTitleY + bossTitlePx + 5;
-      const bbY         = hpBarY + 18 + 5;
+      const bossNameY   = 28 + 35; // 28 is topBarY approx
+      const bossTitleY  = bossNameY + bossNamePx + 8;
+      const hpBarY      = bossTitleY + bossTitlePx + 8 + 8;
+      const bbY         = hpBarY + 28 + 12;
       const remH        = h - bbY;
       const bbRatio     = h < 500 ? 0.28 : h < 650 ? 0.32 : 0.38;
       const bbH         = Math.floor(remH * bbRatio);
@@ -636,10 +645,17 @@ export class HUDScene extends Phaser.Scene {
         this.bloodOverlay.setDisplaySize(w - lw, h);
       }
 
-      // Reposition boss HP text (inside left panel, right side)
+      // Reposition hpBarSprite
+      const hpBarScaleX = Math.min(3, (bbW - 8) / 64);
+      if (this.hpBarSprite) {
+        this.hpBarSprite.setPosition(24, hpBarY + 8);
+        this.hpBarSprite.setScale(hpBarScaleX, 2.2);
+      }
+
+      // Reposition boss HP text directly next to health bar
       if (this.bossHpText) {
         const hpTextSize = bbW < 200 ? '11px' : '13px';
-        this.bossHpText.setPosition(lw - 16, hpBarY + 8);
+        this.bossHpText.setPosition(24 + (64 * hpBarScaleX) + 8, hpBarY + 8);
         this.bossHpText.setFontSize(hpTextSize);
       }
 
@@ -717,6 +733,7 @@ export class HUDScene extends Phaser.Scene {
       btn.addEventListener('pointerdown', (e) => {
         e.preventDefault();
         img.src = `/assets/ui/dpad/arrow-${dir}-pressed.png`;
+        audioManager.play('sfx_dpad_click', { volume: 0.5 });
         fire();
       });
       btn.addEventListener('pointerup',     () => { img.src = `/assets/ui/dpad/arrow-${dir}.png`; });
@@ -900,10 +917,14 @@ export class HUDScene extends Phaser.Scene {
     }
 
     if (this.bossHpText) {
-      // Show actual boss HP values (current/max)
-      const currentHp = Math.ceil(current);
-      const maxHp = Math.ceil(max);
-      this.bossHpText.setText(`${currentHp}/${maxHp}`);
+      if (this.chapterId === 4 || this.isInfMode) {
+        this.bossHpText.setText('INF');
+      } else {
+        // Show actual boss HP values (current/max)
+        const currentHp = Math.ceil(current);
+        const maxHp = Math.ceil(max);
+        this.bossHpText.setText(`${currentHp}/${maxHp}`);
+      }
     }
   }
 

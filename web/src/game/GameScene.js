@@ -312,6 +312,14 @@ export class GameScene extends Phaser.Scene {
 
     // Initialize AudioManager with this scene
     audioManager.init(this);
+    
+    // Play background music (loaded based on chapterId in preload)
+    audioManager.playMusic('bg_music');
+    
+    // Ensure music stops when scene shuts down (quit or game over)
+    this.events.once('shutdown', () => {
+      audioManager.stopMusic();
+    });
 
     // Endless mode: treat like chapter 1 grid (legacy, isInfMode uses actual chapterId)
     const isEndless = this.chapterId === 4;
@@ -845,6 +853,7 @@ export class GameScene extends Phaser.Scene {
         const alertSpr = this.add.sprite(this.player.sprite.x, this.player.sprite.y - 60, 'symbol_alert');
         alertSpr.setScale(1.2).setDepth(200);
         alertSpr.play('anim_symbol_alert');
+        audioManager.play('sfx_telegraph', { volume: 0.4 });
         alertSpr.once('animationcomplete', () => alertSpr.destroy());
       }
     });
@@ -867,7 +876,7 @@ export class GameScene extends Phaser.Scene {
       }
       this._infLastPlayerHp = this.player ? this.player.hp : 6;
       this.infScore = (this.infWavesSurvived * 100)
-        + (this.infTilesCollected * 50)
+        + (this.infTilesCollected * 500) // Increased pickup multiplier
         + (elapsedSecs * 2)
         + (this.infPerfectWaves * 25);
       if (hud && hud.updateScore) hud.updateScore(this.infScore);
@@ -878,6 +887,14 @@ export class GameScene extends Phaser.Scene {
     this.events.on('damageTile:collected', () => {
       if (!this.isInfMode) return;
       this.infTilesCollected++;
+      
+      const hud = this.scene.get('HUDScene');
+      const elapsedSecs = hud ? Math.floor(hud.elapsed / 1000) : 0;
+      this.infScore = (this.infWavesSurvived * 100)
+        + (this.infTilesCollected * 500) // Significantly increased score for pickup to make it rewarding
+        + (elapsedSecs * 2)
+        + (this.infPerfectWaves * 25);
+      if (hud && hud.updateScore) hud.updateScore(this.infScore);
     });
 
     // ─── Helper: Generate the particle texture once ───────────────────────────
@@ -1015,6 +1032,7 @@ export class GameScene extends Phaser.Scene {
       onComplete: () => {
         // Play start anim on landing
         vortex.play('anim_ult_start');
+        audioManager.play('ch1_vortex_spawn', { volume: 1.0 });
         this.cameras.main.shake(300, 0.02);
 
         // "RESIST!" hint
@@ -1051,6 +1069,8 @@ export class GameScene extends Phaser.Scene {
               glowRing.clear();
               glowRing.lineStyle(4, 0xff2200, 0.8);
               glowRing.strokeCircle(targetPos.x, targetPos.y, (PULL_COUNT - pullsDone + 1) * 30);
+
+              audioManager.play('ch1_vortex_pull', { volume: 0.7 });
 
               // Calculate pull direction (one tile toward vortex)
               const dc = Math.sign(tC - this.player.col);
@@ -1245,6 +1265,7 @@ export class GameScene extends Phaser.Scene {
     const alertSpr = this.add.sprite(alertX, y, 'symbol_alert2');
     alertSpr.setScale(1.2).setDepth(200);
     alertSpr.play('anim_symbol_alert2');
+    audioManager.play('sfx_telegraph', { volume: 0.4 });
     alertSpr.once('animationcomplete', () => alertSpr.destroy());
 
     // 2. Wait 1 second before spawning the moving part

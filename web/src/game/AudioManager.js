@@ -34,6 +34,14 @@ class AudioManager {
     // Update Phaser sound volume if scene exists
     if (this.scene && this.scene.sound) {
       this.scene.sound.volume = this.muted ? 0 : this.volume;
+      if (this.currentMusic) {
+        try {
+          this.currentMusic.setVolume(this.muted ? 0 : this.volume * 0.4);
+        } catch (e) {
+          console.warn('[AudioManager] currentMusic reference was dead, clearing it.');
+          this.currentMusic = null;
+        }
+      }
     }
   }
 
@@ -44,9 +52,21 @@ class AudioManager {
    */
   loadChapterSFX(scene, chapterId) {
     const basePath = '/assets/audio/sd';
+    const bgmPath = '/assets/audio';
     
-    // Chapter 1: Blood/Gore/Dark (Manananggal)
-    if (chapterId === 1) {
+    // Load background music
+    if (scene.isInfMode || chapterId === 4) {
+      scene.load.audio('bg_music', `${bgmPath}/bg-inf.mp3`);
+    } else if (chapterId === 1) {
+      scene.load.audio('bg_music', `${bgmPath}/chapter-1-bg.mp3`);
+    } else if (chapterId === 2) {
+      scene.load.audio('bg_music', `${bgmPath}/chapter-2-bg.mp3`);
+    } else if (chapterId === 3) {
+      scene.load.audio('bg_music', `${bgmPath}/chapter-3-bg.mp3`);
+    }
+    
+    // Chapter 1: Blood/Gore/Dark (Manananggal) — also chapter 4 (INF mode)
+    if (chapterId === 1 || chapterId === 4) {
       scene.load.audio('ch1_blood_crunch', `${basePath}/DSGNImpt_EXPLOSION-Cruncher_HY_PC-001.wav`);
       scene.load.audio('ch1_blood_splat', `${basePath}/DSGNImpt_EXPLOSION-Crunching_HY_PC-001.wav`);
       scene.load.audio('ch1_gore_pierce', `${basePath}/DSGNMisc_HIT-Gore Pierce_HY_PC-001.wav`);
@@ -54,6 +74,15 @@ class AudioManager {
       scene.load.audio('ch1_dark_hit', `${basePath}/DSGNImpt_MELEE-Hollow Punch_HY_PC-001.wav`);
       scene.load.audio('ch1_eye_spawn', `${basePath}/DSGNMisc_CAST-Slime Ball_HY_PC-001.wav`);
       scene.load.audio('ch1_hand_slam', `${basePath}/DSGNImpt_EXPLOSION-Thud_HY_PC-001.wav`);
+      // Attack-specific SFX
+      scene.load.audio('ch1_splatter_drop', `${basePath}/DSGNMisc_CAST-Slime Ball_HY_PC-002.wav`);
+      scene.load.audio('ch1_splatter_burst', `${basePath}/DSGNMisc_SKILL IMPACT-Crunchy Burst_HY_PC-003.wav`);
+      scene.load.audio('ch1_eye_whoosh', `${basePath}/DSGNMisc_MOVEMENT-Whoosh Sweep_HY_PC-001.wav`);
+      scene.load.audio('ch1_eye_land', `${basePath}/DSGNImpt_EXPLOSION-Crunching_HY_PC-005.wav`);
+      scene.load.audio('ch1_volley_shoot', `${basePath}/DSGNImpt_EXPLOSION-Bit Bomb_HY_PC-006.wav`);
+      scene.load.audio('ch1_volley_burst', `${basePath}/DSGNImpt_EXPLOSION-Crunchy Burst_HY_PC-004.wav`);
+      scene.load.audio('ch1_vortex_spawn', `${basePath}/DSGNMisc_MOVEMENT-Mecha Large Takeoff_HY_PC-001.wav`);
+      scene.load.audio('ch1_vortex_pull', `${basePath}/DSGNMisc_MOVEMENT-Noise Sweeper_HY_PC-001.wav`);
     }
     
     // Chapter 2: Nature/Plant (Bungisngis)
@@ -79,13 +108,17 @@ class AudioManager {
     }
     
     // Shared SFX for all chapters
-    scene.load.audio('sfx_move_l', `${basePath}/SWSH_MOVEMENT-Reso Swish_HY_PC-001.wav`);
-    scene.load.audio('sfx_move_r', `${basePath}/SWSH_MOVEMENT-Tiny Chime_HY_PC-001.wav`);
-    scene.load.audio('sfx_move_ud', `${basePath}/SWSH_MOVEMENT-Sparkle Zap_HY_PC-001.wav`);
+    scene.load.audio('sfx_step_1', `${basePath}/FEETMisc_STEP-Boots on Generic Ground 2_HY_PC-001.wav`);
+    scene.load.audio('sfx_step_2', `${basePath}/FEETMisc_STEP-Boots on Generic Ground 2_HY_PC-002.wav`);
+    scene.load.audio('sfx_step_3', `${basePath}/FEETMisc_STEP-Boots on Generic Ground 2_HY_PC-003.wav`);
+    scene.load.audio('sfx_step_4', `${basePath}/FEETMisc_STEP-Boots on Generic Ground 2_HY_PC-004.wav`);
+    scene.load.audio('sfx_step_5', `${basePath}/FEETMisc_STEP-Boots on Generic Ground 2_HY_PC-005.wav`);
+    scene.load.audio('sfx_step_6', `${basePath}/FEETMisc_STEP-Boots on Generic Ground 2_HY_PC-006.wav`);
     scene.load.audio('sfx_melee_hit', `${basePath}/MAGSpel_CAST-Zippy Particle_HY_PC-001.wav`);
     scene.load.audio('sfx_sword_spawn', `${basePath}/DSGNTonl_SKILL RELEASE-Rising Lasers_HY_PC-001.wav`);
     scene.load.audio('sfx_sword_pickup', `${basePath}/DSGNSynth_CAST-Mecha Sword Cast_HY_PC-001.wav`);
     scene.load.audio('sfx_warning', `${basePath}/DSGNTonl_MELEE-Sword Critical_HY_PC-001.wav`);
+    scene.load.audio('sfx_telegraph', `${basePath}/DSGNSynth_BUFF-Metallic Dodge Chance_HY_PC-005.wav`);
     scene.load.audio('sfx_blood_hit_1', `${basePath}/DSGNTonl_SKILL RELEASE-Ricochet 2_HY_PC-001.wav`);
     scene.load.audio('sfx_blood_hit_2', `${basePath}/DSGNTonl_SKILL RELEASE-Ricochet 2_HY_PC-002.wav`);
     scene.load.audio('sfx_blood_hit_3', `${basePath}/DSGNTonl_SKILL RELEASE-Ricochet 2_HY_PC-003.wav`);
@@ -94,6 +127,7 @@ class AudioManager {
     scene.load.audio('sfx_blood_hit_6', `${basePath}/DSGNTonl_SKILL RELEASE-Ricochet 2_HY_PC-006.wav`);
     scene.load.audio('sfx_explosion', `${basePath}/DSGNImpt_EXPLOSION-Bit Bomb_HY_PC-002.wav`);
     scene.load.audio('sfx_ui_click', `${basePath}/DSGNMisc_INTERFACE-Zap Select_HY_PC-001.wav`);
+    scene.load.audio('sfx_dpad_click', `${basePath}/UIClick_INTERFACE-Positive Click_HY_PC-001.wav`);
     scene.load.audio('sfx_dash', `${basePath}/DSGNMisc_MOVEMENT-Jump Sparkle_HY_PC-001.wav`);
     scene.load.audio('sfx_damage', `${basePath}/DSGNMisc_HIT-Hit Noise_HY_PC-001.wav`);
     scene.load.audio('sfx_alert', `${basePath}/DSGNMisc_SKILL IMPACT-Jacobs Ladder_HY_PC-001.wav`);
@@ -127,6 +161,36 @@ class AudioManager {
       this.scene.sound.play(key, { volume: playVolume, loop: options.loop || false });
     } catch (e) {
       console.warn(`[AudioManager] Failed to play ${key}:`, e);
+    }
+  }
+
+  /**
+   * Play background music
+   * @param {string} key - The sound key for the music
+   */
+  playMusic(key) {
+    if (!this.scene || !this.scene.sound) return;
+    
+    if (this.currentMusic) {
+      this.currentMusic.stop();
+    }
+    
+    if (this.scene.cache.audio.exists(key)) {
+      this.currentMusic = this.scene.sound.add(key, { 
+        loop: true, 
+        volume: this.muted ? 0 : this.volume * 0.4 // BGM usually needs to be quieter than SFX
+      });
+      this.currentMusic.play();
+    }
+  }
+
+  /**
+   * Stop background music
+   */
+  stopMusic() {
+    if (this.currentMusic) {
+      this.currentMusic.stop();
+      this.currentMusic = null;
     }
   }
 

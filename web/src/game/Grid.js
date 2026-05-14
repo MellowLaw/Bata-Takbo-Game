@@ -1,4 +1,5 @@
 import * as Phaser from 'phaser';
+import { audioManager } from './AudioManager.js';
 
 export class Grid {
   /**
