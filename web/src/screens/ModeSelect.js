@@ -31,16 +31,8 @@ export const ModeSelect = {
               <div class="ch-face ch-face--back">
                 <img src="/assets/ui/chapter-selection/chapter-back.png" alt="Normal" />
               </div>
-              <div class="ch-face ch-face--front" style="
-                display: flex; flex-direction: column; align-items: center;
-                justify-content: center; gap: 10px; background: #1a1208;
-              ">
-                <img src="/assets/ui/chapter-selection/chapter-front.png" alt="Normal Mode"
-                  style="width: 80%; height: 60%; object-fit: contain;" />
-                <div style="font-family:'GigaSaturn',sans-serif; font-size:clamp(0.9rem,2vw,1.3rem); color:#ffd700; letter-spacing:2px; text-align:center;">NORMAL</div>
-                <div style="font-family:'VCR',monospace; font-size:clamp(0.55rem,1.2vw,0.8rem); color:rgba(255,255,255,0.6); text-align:center; padding: 0 8px;">
-                  Talunin ang boss<br>at i-clear ang chapter
-                </div>
+              <div class="ch-face ch-face--front">
+                <img src="/assets/ui/chapter-selection/normal_mode.png" alt="Normal Mode" style="width: 100%; height: 100%; object-fit: cover; border-radius: 10px;" />
               </div>
             </div>
           </div>
@@ -51,20 +43,15 @@ export const ModeSelect = {
               <div class="ch-face ch-face--back">
                 <img src="/assets/ui/chapter-selection/chapter-back.png" alt="INF" />
               </div>
-              <div class="ch-face ch-face--front" style="
-                display: flex; flex-direction: column; align-items: center;
-                justify-content: center; gap: 10px; background: #0a0a1a;
-              ">
+              <div class="ch-face ch-face--front">
                 ${chapterCleared ? `
-                  <div style="font-family:'GigaSaturn',sans-serif; font-size:clamp(2rem,5vw,3.5rem); color:#00cfff; line-height:1;">∞</div>
-                  <div style="font-family:'GigaSaturn',sans-serif; font-size:clamp(0.9rem,2vw,1.3rem); color:#00cfff; letter-spacing:2px; text-align:center;">INF MODE</div>
-                  <div style="font-family:'VCR',monospace; font-size:clamp(0.55rem,1.2vw,0.8rem); color:rgba(255,255,255,0.6); text-align:center; padding: 0 8px;">
-                    Survive forever<br>Leaderboard · Speed scales up
-                  </div>
+                  <img src="/assets/ui/chapter-selection/endless_mode.png" alt="INF Mode" style="width: 100%; height: 100%; object-fit: cover; border-radius: 10px;" />
                 ` : `
-                  <div style="font-family:'GigaSaturn',sans-serif; font-size:clamp(1.5rem,3vw,2.5rem); color:rgba(255,255,255,0.3); line-height:1;">🔒</div>
-                  <div style="font-family:'VCR',monospace; font-size:clamp(0.55rem,1.2vw,0.8rem); color:rgba(255,255,255,0.35); text-align:center; padding: 0 8px;">
-                    I-clear muna ang chapter<br>para ma-unlock
+                  <div style="width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #0a0a1a; border-radius: 10px; gap: 10px;">
+                    <div style="font-family:'GigaSaturn',sans-serif; font-size:clamp(1.5rem,3vw,2.5rem); color:rgba(255,255,255,0.3); line-height:1;">🔒</div>
+                    <div style="font-family:'VCR',monospace; font-size:clamp(0.55rem,1.2vw,0.8rem); color:rgba(255,255,255,0.35); text-align:center; padding: 0 8px;">
+                      I-clear muna ang chapter<br>para ma-unlock
+                    </div>
                   </div>
                 `}
               </div>
