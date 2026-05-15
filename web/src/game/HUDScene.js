@@ -730,14 +730,29 @@ export class HUDScene extends Phaser.Scene {
         if (gs && !gs.isGameOver) gs.player.move(dir);
       };
 
+      let holdInitialTimer = null;
+      let holdRepeatTimer = null;
+
+      const stopHold = () => {
+        clearTimeout(holdInitialTimer);
+        clearInterval(holdRepeatTimer);
+        holdInitialTimer = null;
+        holdRepeatTimer = null;
+        img.src = `/assets/ui/dpad/arrow-${dir}.png`;
+      };
+
       btn.addEventListener('pointerdown', (e) => {
         e.preventDefault();
         img.src = `/assets/ui/dpad/arrow-${dir}-pressed.png`;
         audioManager.play('sfx_dpad_click', { volume: 0.5 });
         fire();
+        // After initial delay, start repeating
+        holdInitialTimer = setTimeout(() => {
+          holdRepeatTimer = setInterval(() => { fire(); }, 160);
+        }, 300);
       });
-      btn.addEventListener('pointerup',     () => { img.src = `/assets/ui/dpad/arrow-${dir}.png`; });
-      btn.addEventListener('pointerleave',  () => { img.src = `/assets/ui/dpad/arrow-${dir}.png`; });
+      btn.addEventListener('pointerup',    stopHold);
+      btn.addEventListener('pointerleave', stopHold);
 
       dpad.appendChild(btn);
     });

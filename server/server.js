@@ -8,13 +8,21 @@ import crypto from 'crypto';
 import rateLimit from 'express-rate-limit';
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import path from 'path';
 
-dotenv.config();
+const __envPath = path.join(path.dirname(fileURLToPath(import.meta.url)), '.env');
+dotenv.config({ path: __envPath });
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_jwt_key_at_least_256_bits_long_1234567890_abcdefghij';
-const AES_SECRET_KEY = process.env.AES_SECRET_KEY || 'stable_secure_backend_aes_256_ky';
+const IS_PROD = process.env.NODE_ENV === 'production';
+if (!process.env.JWT_SECRET || !process.env.AES_SECRET_KEY) {
+  console.error('[FATAL] JWT_SECRET and AES_SECRET_KEY must be set in environment variables.');
+  process.exit(1);
+}
+const JWT_SECRET = process.env.JWT_SECRET;
+const AES_SECRET_KEY = process.env.AES_SECRET_KEY;
 
 // Nodemailer Transporter Configuration (Check 2)
 const hasEmailCreds = process.env.EMAIL_USER && process.env.EMAIL_PASS;
@@ -42,9 +50,9 @@ if (hasEmailCreds) {
   console.log('[EMAIL] No credentials in .env - email features disabled (OK for dev)');
 }
 
-// CORS policy: strictly allow only the Vite development server origin
+// CORS policy: dev = Vite dev server, prod = real domain from env
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: IS_PROD ? process.env.FRONTEND_URL : 'http://localhost:5173',
   credentials: true
 }));
 
@@ -231,7 +239,7 @@ app.post('/auth/register', async (req, res) => {
     res.cookie('jwt', token, {
       httpOnly: true,
       maxAge: 2592000000,
-      secure: false,
+      secure: IS_PROD,
       sameSite: 'lax'
     });
 
@@ -280,7 +288,7 @@ app.post('/auth/login', loginLimiter, async (req, res) => {
       res.cookie('jwt', token, {
         httpOnly: true,
         maxAge: 2592000000, // 30 days
-        secure: false, // Requires HTTPS in production
+        secure: IS_PROD,
         sameSite: 'lax'
       });
 
@@ -492,7 +500,7 @@ app.post('/auth/change-username', authMiddleware, async (req, res) => {
     res.cookie('jwt', newToken, {
       httpOnly: true,
       maxAge: 2592000000,
-      secure: false,
+      secure: IS_PROD,
       sameSite: 'lax'
     });
 
@@ -535,7 +543,7 @@ app.post('/auth/logout-all', authMiddleware, async (req, res) => {
     await db.run('UPDATE users SET invalidate_before = ? WHERE id = ?', [Date.now(), req.user.id]);
     const token = req.cookies.jwt;
     if (token) tokenBlacklist.add(token);
-    res.clearCookie('jwt', { httpOnly: true, secure: false, sameSite: 'lax' });
+    res.clearCookie('jwt', { httpOnly: true, secure: IS_PROD, sameSite: 'lax' });
     return res.status(200).json({ success: true });
   } catch (err) {
     console.error('Logout all error:', err);
@@ -548,7 +556,7 @@ app.post('/auth/logout', authMiddleware, (req, res) => {
   if (token) tokenBlacklist.add(token);
   res.clearCookie('jwt', {
     httpOnly: true,
-    secure: false,
+    secure: IS_PROD,
     sameSite: 'lax'
   });
   return res.status(200).json({ success: true });
@@ -569,7 +577,7 @@ app.delete('/auth/delete-account', authMiddleware, async (req, res) => {
     // Invalidate JWT cookie
     const token = req.cookies.jwt;
     if (token) tokenBlacklist.add(token);
-    res.clearCookie('jwt', { httpOnly: true, secure: false, sameSite: 'lax' });
+    res.clearCookie('jwt', { httpOnly: true, secure: IS_PROD, sameSite: 'lax' });
 
     return res.status(200).json({ success: true, message: 'Account deleted successfully' });
   } catch (err) {

@@ -125,10 +125,11 @@ export const LoginScreen = {
                 <img src="/assets/ui/eye_closed.png" style="width: 22px; height: 22px; opacity: 0.8;" alt="Toggle" />
               </button>
             </div>
-            <div id="pw-requirements" style="width: 100%; text-align: left; font-family: 'VCR', sans-serif; font-size: clamp(0.6rem, 1.1vw, 0.8rem); color: #a89b8c; margin-top: 0.1rem; margin-bottom: 0.1rem; display: flex; flex-direction: column; gap: 2px;">
+            <div id="pw-requirements" style="width: 100%; text-align: left; font-family: 'VCR', sans-serif; font-size: clamp(0.6rem, 1.1vw, 0.8rem); color: #a89b8c; margin-top: 0.1rem; margin-bottom: 0.1rem; display: grid; grid-template-columns: 1fr 1fr; gap: 2px 8px;">
               <span id="req-length">✗ 8 CHARACTERS MINIMUM</span>
               <span id="req-number">✗ 1 NUMBER</span>
               <span id="req-special">✗ 1 SPECIAL CHARACTER</span>
+              <span id="req-upper">✗ 1 UPPERCASE LETTER</span>
             </div>
             <div style="width: 100%; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; margin-bottom: 0.3rem; overflow: hidden;">
               <div id="pw-strength-bar" style="height: 100%; width: 0%; border-radius: 2px; transition: width 0.3s ease, background 0.3s ease;"></div>
@@ -205,10 +206,11 @@ export const LoginScreen = {
                 <input class="login-ref-input" type="password" id="frp-pw" placeholder="NEW PASSWORD" maxlength="50" autocomplete="new-password" />
                 <button type="button" id="frp-toggle-pw" class="login-ref-toggle-btn"><img src="/assets/ui/eye_closed.png" style="width: 22px; height: 22px; opacity: 0.8;" /></button>
               </div>
-              <div style="width: 100%; text-align: left; font-family: 'VCR', sans-serif; font-size: clamp(0.6rem, 1.1vw, 0.8rem); color: #a89b8c; margin-bottom: 0.1rem; display: flex; flex-direction: column; gap: 2px;">
+              <div style="width: 100%; text-align: left; font-family: 'VCR', sans-serif; font-size: clamp(0.6rem, 1.1vw, 0.8rem); color: #a89b8c; margin-bottom: 0.1rem; display: grid; grid-template-columns: 1fr 1fr; gap: 2px 8px;">
                 <span id="frp-req-length">✗ 8 CHARACTERS MINIMUM</span>
                 <span id="frp-req-number">✗ 1 NUMBER</span>
                 <span id="frp-req-special">✗ 1 SPECIAL CHARACTER</span>
+                <span id="frp-req-upper">✗ 1 UPPERCASE LETTER</span>
               </div>
               <div style="width: 100%; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden;">
                 <div id="frp-strength-bar" style="height: 100%; width: 0%; border-radius: 2px; transition: width 0.3s ease, background 0.3s ease;"></div>
@@ -243,10 +245,11 @@ export const LoginScreen = {
                 <img src="/assets/ui/eye_closed.png" style="width: 22px; height: 22px; opacity: 0.8;" alt="Toggle" />
               </button>
             </div>
-            <div id="reset-pw-requirements" style="width: 100%; text-align: left; font-family: 'VCR', sans-serif; font-size: clamp(0.6rem, 1.1vw, 0.8rem); color: #a89b8c; margin-bottom: 0.2rem; display: flex; flex-direction: column; gap: 2px;">
+            <div id="reset-pw-requirements" style="width: 100%; text-align: left; font-family: 'VCR', sans-serif; font-size: clamp(0.6rem, 1.1vw, 0.8rem); color: #a89b8c; margin-bottom: 0.2rem; display: grid; grid-template-columns: 1fr 1fr; gap: 2px 8px;">
               <span id="reset-req-length">✗ 8 CHARACTERS MINIMUM</span>
               <span id="reset-req-number">✗ 1 NUMBER</span>
               <span id="reset-req-special">✗ 1 SPECIAL CHARACTER</span>
+              <span id="reset-req-upper">✗ 1 UPPERCASE LETTER</span>
             </div>
             <div class="login-ref-input-wrap">
               <input class="login-ref-input" type="password" id="reset-confirm" placeholder="CONFIRM NEW PASSWORD" maxlength="50" autocomplete="new-password" />
@@ -688,11 +691,12 @@ export const LoginScreen = {
 
     if (pwIn) pwIn.addEventListener('input', () => {
       const v = pwIn.value;
-      const okL = v.length >= 8, okN = /\d/.test(v), okS = /[!@#$%^&*(),.?":{}|<>]/.test(v);
+      const okL = v.length >= 8, okN = /\d/.test(v), okS = /[!@#$%^&*(),.?":{}|<>]/.test(v), okU = /[A-Z]/.test(v);
       if (reqLength) { reqLength.textContent = (okL ? '\u2713' : '\u2717') + ' 8 CHARACTERS MINIMUM'; reqLength.style.color = okL ? '#4ade80' : '#a89b8c'; }
       if (reqNumber) { reqNumber.textContent = (okN ? '\u2713' : '\u2717') + ' 1 NUMBER'; reqNumber.style.color = okN ? '#4ade80' : '#a89b8c'; }
       if (reqSpecial) { reqSpecial.textContent = (okS ? '\u2713' : '\u2717') + ' 1 SPECIAL CHARACTER'; reqSpecial.style.color = okS ? '#4ade80' : '#a89b8c'; }
-      const score = (okL ? 1 : 0) + (okN ? 1 : 0) + (okS ? 1 : 0) + (v.length >= 12 ? 1 : 0);
+      if (reqUpper) { reqUpper.textContent = (okU ? '\u2713' : '\u2717') + ' 1 UPPERCASE LETTER'; reqUpper.style.color = okU ? '#4ade80' : '#a89b8c'; }
+      const score = (okL ? 1 : 0) + (okN ? 1 : 0) + (okS ? 1 : 0) + (okU ? 1 : 0);
       if (strengthBar) { strengthBar.style.width = ['0%','25%','50%','75%','100%'][score]; strengthBar.style.background = ['transparent','#e63946','#ff9a4a','#ffd700','#2ecc71'][score]; }
     });
 
@@ -779,17 +783,15 @@ export const LoginScreen = {
     const reqLength = this.container.querySelector('#reset-req-length');
     const reqNumber = this.container.querySelector('#reset-req-number');
     const reqSpecial = this.container.querySelector('#reset-req-special');
+    const reqUpper = this.container.querySelector('#reset-req-upper');
 
     pwIn.addEventListener('input', () => {
       const val = pwIn.value;
-      if (val.length >= 8) { reqLength.textContent = '✓ 8 CHARACTERS MINIMUM'; reqLength.style.color = '#4ade80'; } 
-      else { reqLength.textContent = '✗ 8 CHARACTERS MINIMUM'; reqLength.style.color = '#a89b8c'; }
-
-      if (/\d/.test(val)) { reqNumber.textContent = '✓ 1 NUMBER'; reqNumber.style.color = '#4ade80'; } 
-      else { reqNumber.textContent = '✗ 1 NUMBER'; reqNumber.style.color = '#a89b8c'; }
-
-      if (/[!@#$%^&*(),.?":{}|<>]/.test(val)) { reqSpecial.textContent = '✓ 1 SPECIAL CHARACTER'; reqSpecial.style.color = '#4ade80'; } 
-      else { reqSpecial.textContent = '✗ 1 SPECIAL CHARACTER'; reqSpecial.style.color = '#a89b8c'; }
+      const okL = val.length >= 8, okN = /\d/.test(val), okS = /[!@#$%^&*(),.?":{}|<>]/.test(val), okU = /[A-Z]/.test(val);
+      reqLength.textContent = (okL ? '✓' : '✗') + ' 8 CHARACTERS MINIMUM'; reqLength.style.color = okL ? '#4ade80' : '#a89b8c';
+      reqNumber.textContent = (okN ? '✓' : '✗') + ' 1 NUMBER'; reqNumber.style.color = okN ? '#4ade80' : '#a89b8c';
+      reqSpecial.textContent = (okS ? '✓' : '✗') + ' 1 SPECIAL CHARACTER'; reqSpecial.style.color = okS ? '#4ade80' : '#a89b8c';
+      if (reqUpper) { reqUpper.textContent = (okU ? '✓' : '✗') + ' 1 UPPERCASE LETTER'; reqUpper.style.color = okU ? '#4ade80' : '#a89b8c'; }
     });
 
     const handleReset = async () => {
@@ -950,6 +952,7 @@ export const LoginScreen = {
     const pwReqLength = this.container.querySelector('#req-length');
     const pwReqNumber = this.container.querySelector('#req-number');
     const pwReqSpecial = this.container.querySelector('#req-special');
+    const pwReqUpper = this.container.querySelector('#req-upper');
 
     const confirmMatchEl = this.container.querySelector('#reg-confirm-match');
 
@@ -971,6 +974,7 @@ export const LoginScreen = {
       const okLength = val.length >= 8;
       const okNumber = /\d/.test(val);
       const okSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(val);
+      const okUpper = /[A-Z]/.test(val);
 
       pwReqLength.textContent = (okLength ? '✓' : '✗') + ' 8 CHARACTERS MINIMUM';
       pwReqLength.style.color = okLength ? '#4ade80' : '#a89b8c';
@@ -978,8 +982,9 @@ export const LoginScreen = {
       pwReqNumber.style.color = okNumber ? '#4ade80' : '#a89b8c';
       pwReqSpecial.textContent = (okSpecial ? '✓' : '✗') + ' 1 SPECIAL CHARACTER';
       pwReqSpecial.style.color = okSpecial ? '#4ade80' : '#a89b8c';
+      if (pwReqUpper) { pwReqUpper.textContent = (okUpper ? '✓' : '✗') + ' 1 UPPERCASE LETTER'; pwReqUpper.style.color = okUpper ? '#4ade80' : '#a89b8c'; }
 
-      const score = (okLength ? 1 : 0) + (okNumber ? 1 : 0) + (okSpecial ? 1 : 0) + (val.length >= 12 ? 1 : 0);
+      const score = (okLength ? 1 : 0) + (okNumber ? 1 : 0) + (okSpecial ? 1 : 0) + (okUpper ? 1 : 0);
       const widths = ['0%', '25%', '50%', '75%', '100%'];
       const colors = ['transparent', '#e63946', '#ff9a4a', '#ffd700', '#2ecc71'];
       if (pwStrengthBar) { pwStrengthBar.style.width = widths[score]; pwStrengthBar.style.background = colors[score]; }

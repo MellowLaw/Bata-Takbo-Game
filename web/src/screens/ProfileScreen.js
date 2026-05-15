@@ -76,10 +76,11 @@ export const ProfileScreen = {
             <div style="display: flex; flex-direction: column; gap: var(--space-sm);">
               <input type="password" id="cp-current" class="login-card__input" placeholder="CURRENT PASSWORD" style="font-size: var(--text-sm); padding: var(--space-sm);" />
               <input type="password" id="cp-new" class="login-card__input" placeholder="NEW PASSWORD" style="font-size: var(--text-sm); padding: var(--space-sm);" />
-              <div id="cp-requirements" style="width: 100%; text-align: left; font-family: 'VCR', sans-serif; font-size: 0.85rem; color: #a89b8c; margin-top: 0.2rem; margin-bottom: 0.1rem; display: flex; flex-direction: column; gap: 2px;">
+              <div id="cp-requirements" style="width: 100%; text-align: left; font-family: 'VCR', sans-serif; font-size: 0.85rem; color: #a89b8c; margin-top: 0.2rem; margin-bottom: 0.1rem; display: grid; grid-template-columns: 1fr 1fr; gap: 2px 8px;">
                 <span id="cp-req-length">✗ 8 CHARACTERS MINIMUM</span>
                 <span id="cp-req-number">✗ 1 NUMBER</span>
                 <span id="cp-req-special">✗ 1 SPECIAL CHARACTER</span>
+                <span id="cp-req-upper">✗ 1 UPPERCASE LETTER</span>
               </div>
               <div style="width: 100%; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; margin-bottom: 0.3rem; overflow: hidden;">
                 <div id="cp-strength-bar" style="height: 100%; width: 0%; border-radius: 2px; transition: width 0.3s ease, background 0.3s ease;"></div>
@@ -412,6 +413,7 @@ export const ProfileScreen = {
       const cpReqLength = el.querySelector('#cp-req-length');
       const cpReqNumber = el.querySelector('#cp-req-number');
       const cpReqSpecial = el.querySelector('#cp-req-special');
+      const cpReqUpper = el.querySelector('#cp-req-upper');
 
       const cpStrengthBar = el.querySelector('#cp-strength-bar');
       if (cpNew && cpReqLength && cpReqNumber && cpReqSpecial) {
@@ -420,13 +422,15 @@ export const ProfileScreen = {
           const okLength = v.length >= 8;
           const okNumber = /\d/.test(v);
           const okSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(v);
+          const okUpper = /[A-Z]/.test(v);
           cpReqLength.textContent = (okLength ? '✓' : '✗') + ' 8 CHARACTERS MINIMUM';
           cpReqLength.style.color = okLength ? '#4ade80' : '#a89b8c';
           cpReqNumber.textContent = (okNumber ? '✓' : '✗') + ' 1 NUMBER';
           cpReqNumber.style.color = okNumber ? '#4ade80' : '#a89b8c';
           cpReqSpecial.textContent = (okSpecial ? '✓' : '✗') + ' 1 SPECIAL CHARACTER';
           cpReqSpecial.style.color = okSpecial ? '#4ade80' : '#a89b8c';
-          const score = (okLength ? 1 : 0) + (okNumber ? 1 : 0) + (okSpecial ? 1 : 0) + (v.length >= 12 ? 1 : 0);
+          if (cpReqUpper) { cpReqUpper.textContent = (okUpper ? '✓' : '✗') + ' 1 UPPERCASE LETTER'; cpReqUpper.style.color = okUpper ? '#4ade80' : '#a89b8c'; }
+          const score = (okLength ? 1 : 0) + (okNumber ? 1 : 0) + (okSpecial ? 1 : 0) + (okUpper ? 1 : 0);
           const widths = ['0%', '25%', '50%', '75%', '100%'];
           const colors = ['transparent', '#e63946', '#ff9a4a', '#ffd700', '#2ecc71'];
           if (cpStrengthBar) { cpStrengthBar.style.width = widths[score]; cpStrengthBar.style.background = colors[score]; }

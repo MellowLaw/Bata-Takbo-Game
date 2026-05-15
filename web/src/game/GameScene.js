@@ -980,8 +980,17 @@ export class GameScene extends Phaser.Scene {
   }
 
   handleGesture(direction) {
-    if (direction === 'idle' || this.isGameOver) return;
-    this.player.move(direction.toLowerCase());
+    if (this.isGameOver) return;
+    if (direction === 'idle') {
+      this._heldGesture = null;
+      return;
+    }
+    const dir = direction.toLowerCase();
+    // Single tap: always fire immediately
+    this.player.move(dir);
+    // Track for hold — if gesture stays non-idle, update() will repeat
+    this._heldGesture = dir;
+    this._gestureHoldTimer = 0;
   }
 
   _triggerUltimate() {
@@ -1317,11 +1326,16 @@ export class GameScene extends Phaser.Scene {
 
   update(time, delta) {
     if (this.isGameOver) return;
+    const HOLD_INITIAL_DELAY = 300; // ms before continuous kicks in
+    const HOLD_REPEAT_INTERVAL = 160; // ms between repeated moves while held
+
+    // Keyboard: tap = JustDown (1 tile), hold = isDown after initial delay
     const dirs = ['up', 'down', 'left', 'right'];
     dirs.forEach(dir => {
       if (Phaser.Input.Keyboard.JustDown(this.cursors[dir])) {
         this.player.move(dir);
-        // Visual feedback for D-pad controls
+        this._keyHoldTimers = this._keyHoldTimers || {};
+        this._keyHoldTimers[dir] = -HOLD_INITIAL_DELAY; // negative = in delay phase
         if (this.control === 'keyboard') {
           const btn = document.querySelector(`.dpad-${dir}`);
           if (btn) {
@@ -1329,8 +1343,35 @@ export class GameScene extends Phaser.Scene {
             setTimeout(() => btn.classList.remove('dpad-btn--active'), 150);
           }
         }
+      } else if (this.cursors[dir].isDown) {
+        this._keyHoldTimers = this._keyHoldTimers || {};
+        this._keyHoldTimers[dir] = (this._keyHoldTimers[dir] || 0) + delta;
+        if (this._keyHoldTimers[dir] >= HOLD_REPEAT_INTERVAL) {
+          this._keyHoldTimers[dir] = 0;
+          this.player.move(dir);
+        }
+      } else {
+        if (this._keyHoldTimers) this._keyHoldTimers[dir] = 0;
       }
     });
+
+    // Gesture hold: if a gesture direction is held, repeat movement
+    if (this._heldGesture) {
+      this._gestureHoldTimer = (this._gestureHoldTimer || 0) + delta;
+      if (this._gestureHoldTimer >= HOLD_REPEAT_INTERVAL + HOLD_INITIAL_DELAY / 4) {
+        // Repeat interval after a short extra pause post first move
+        if (!this._gestureRepeatStarted) {
+          this._gestureRepeatStarted = true;
+          this._gestureHoldTimer = 0;
+        } else if (this._gestureHoldTimer >= HOLD_REPEAT_INTERVAL) {
+          this._gestureHoldTimer = 0;
+          this.player.move(this._heldGesture);
+        }
+      }
+    } else {
+      this._gestureRepeatStarted = false;
+      this._gestureHoldTimer = 0;
+    }
 
     if (this.chapterId === 1 && this.horizontalProjectiles) {
       this.horizontalProjectiles.getChildren().forEach(proj => {
