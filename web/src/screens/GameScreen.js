@@ -182,6 +182,7 @@ export const GameScreen = {
     });
     
     const chapterId = params.chapterId || 1;
+    this.chapterId = chapterId;
     const isTutorial = params.isTutorial || false;
     const isPracticeTutorial = params.isPracticeTutorial || false;
     const isInfMode = params.isInfMode || false;
@@ -437,6 +438,7 @@ export const GameScreen = {
 
   togglePause(shouldPause) {
     this.isPaused = shouldPause;
+    const isCh1to3 = this.chapterId >= 1 && this.chapterId <= 3;
     
     if (shouldPause) {
       this.pauseMenu.classList.remove('hidden');
@@ -448,6 +450,7 @@ export const GameScreen = {
         this.game.scene.pause('GameScene');
         this.game.scene.pause('HUDScene');
       }
+      if (isCh1to3) audioManager.pauseMusicWithFade(500);
     } else {
       this.pauseMenu.classList.add('hidden');
       this.pauseMenu.classList.remove('animating-in');
@@ -455,6 +458,7 @@ export const GameScreen = {
         this.game.scene.resume('GameScene');
         this.game.scene.resume('HUDScene');
       }
+      if (isCh1to3) audioManager.resumeMusicWithFade(500);
     }
   }
 };
