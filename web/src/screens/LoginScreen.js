@@ -691,7 +691,7 @@ export const LoginScreen = {
 
     if (pwIn) pwIn.addEventListener('input', () => {
       const v = pwIn.value;
-      const okL = v.length >= 8, okN = /\d/.test(v), okS = /[!@#$%^&*(),.?":{}|<>]/.test(v), okU = /[A-Z]/.test(v);
+      const okL = v.length >= 8, okN = /\d/.test(v), okS = /[^a-zA-Z0-9]/.test(v), okU = /[A-Z]/.test(v);
       if (reqLength) { reqLength.textContent = (okL ? '\u2713' : '\u2717') + ' 8 CHARACTERS MINIMUM'; reqLength.style.color = okL ? '#4ade80' : '#a89b8c'; }
       if (reqNumber) { reqNumber.textContent = (okN ? '\u2713' : '\u2717') + ' 1 NUMBER'; reqNumber.style.color = okN ? '#4ade80' : '#a89b8c'; }
       if (reqSpecial) { reqSpecial.textContent = (okS ? '\u2713' : '\u2717') + ' 1 SPECIAL CHARACTER'; reqSpecial.style.color = okS ? '#4ade80' : '#a89b8c'; }
@@ -709,7 +709,7 @@ export const LoginScreen = {
     const doReset = async () => {
       const newPassword = pwIn ? pwIn.value : '';
       const confirm = confirmIn ? confirmIn.value : '';
-      if (newPassword.length < 8 || !/\d/.test(newPassword) || !/[!@#$%^&*(),.?":{}|<>]/.test(newPassword)) {
+      if (newPassword.length < 8 || !/\d/.test(newPassword) || !/[^a-zA-Z0-9]/.test(newPassword)) {
         if (msgEl) { msgEl.textContent = 'Password does not meet requirements.'; msgEl.style.color = '#ef4444'; }
         return;
       }
@@ -787,7 +787,7 @@ export const LoginScreen = {
 
     pwIn.addEventListener('input', () => {
       const val = pwIn.value;
-      const okL = val.length >= 8, okN = /\d/.test(val), okS = /[!@#$%^&*(),.?":{}|<>]/.test(val), okU = /[A-Z]/.test(val);
+      const okL = val.length >= 8, okN = /\d/.test(val), okS = /[^a-zA-Z0-9]/.test(val), okU = /[A-Z]/.test(val);
       reqLength.textContent = (okL ? '✓' : '✗') + ' 8 CHARACTERS MINIMUM'; reqLength.style.color = okL ? '#4ade80' : '#a89b8c';
       reqNumber.textContent = (okN ? '✓' : '✗') + ' 1 NUMBER'; reqNumber.style.color = okN ? '#4ade80' : '#a89b8c';
       reqSpecial.textContent = (okS ? '✓' : '✗') + ' 1 SPECIAL CHARACTER'; reqSpecial.style.color = okS ? '#4ade80' : '#a89b8c';
@@ -810,7 +810,7 @@ export const LoginScreen = {
         msgEl.classList.remove('hidden');
         return;
       }
-      if (!/[!@#$%^&*(),.?":{}|<>]/.test(newPassword)) {
+      if (!/[^a-zA-Z0-9]/.test(newPassword)) {
         msgEl.textContent = 'Password must contain at least one special character.';
         msgEl.style.color = '#ef4444';
         msgEl.classList.remove('hidden');
@@ -973,7 +973,7 @@ export const LoginScreen = {
       const val = passIn.value;
       const okLength = val.length >= 8;
       const okNumber = /\d/.test(val);
-      const okSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(val);
+      const okSpecial = /[^a-zA-Z0-9]/.test(val);
       const okUpper = /[A-Z]/.test(val);
 
       pwReqLength.textContent = (okLength ? '✓' : '✗') + ' 8 CHARACTERS MINIMUM';
@@ -1073,7 +1073,7 @@ export const LoginScreen = {
         return;
       }
 
-      const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/;
+      const hasSpecial = /[^a-zA-Z0-9]/;
       if (!hasSpecial.test(password)) {
         errorMsg.textContent = 'Password must contain at least one special character.';
         errorMsg.classList.remove('hidden');

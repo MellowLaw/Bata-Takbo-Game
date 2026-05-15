@@ -383,7 +383,13 @@ class StateManager {
       const { gameData } = await res.json();
       console.log(`[LOAD] /auth/me received: tutorialComplete=${gameData?.tutorialComplete} gestureSetupComplete=${gameData?.gestureSetupComplete} chaptersUnlocked=${gameData?.chapterProgress?.chaptersUnlocked} hasModel=${!!gameData?.gestureModel}`);
 
-      if (!gameData) return true; // brand-new account — defaults are correct
+      if (!gameData) {
+        // Brand-new account — clear any leftover guest gesture model from IDB
+        if (window.__gestureController) {
+          try { await window.__gestureController.resetAllGestures(); } catch(e) {}
+        }
+        return true;
+      }
 
       // Strict boolean coercion
       const tutorialComplete = gameData.tutorialComplete === true || gameData.tutorialComplete === 'true';
@@ -411,6 +417,9 @@ class StateManager {
         } catch (e) {
           console.error('[LOAD] failed to import gesture model:', e);
         }
+      } else if (!gameData.gestureModel && window.__gestureController) {
+        // Account has no saved model — clear any stale local IDB model
+        try { await window.__gestureController.resetAllGestures(); } catch(e) {}
       }
 
       // Mirror to localStorage WITHOUT triggering another server round-trip.

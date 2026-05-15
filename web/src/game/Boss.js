@@ -15,11 +15,13 @@ export class Boss {
     
     // In tutorial mode, we want a lot of HP so it doesn't die.
     if (this.isTutorial) {
-      this.maxHp = 999;
+      this.maxHp = 9999;
+    } else if (this.isInfMode) {
+      this.maxHp = Infinity; // INF mode has infinite health
     } else if (scene.chapterId === 1) {
       this.maxHp = 5;
     } else if (scene.chapterId === 2) {
-      this.maxHp = 8;
+      this.maxHp = 7;
     } else if (scene.chapterId === 3) {
       this.maxHp = 10;
     } else {
@@ -1934,6 +1936,7 @@ export class Boss {
       return;
     }
     if (!this.isInfMode) {
+      // Deal 1 damage per hit (decrement HP)
       this.hp--;
       this.scene.events.emit('boss:damaged', this.hp, this.maxHp);
     }

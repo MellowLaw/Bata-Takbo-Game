@@ -514,12 +514,13 @@ export class HUDScene extends Phaser.Scene {
     const hpTextSize = bossBoxW < 200 ? '11px' : '13px';
     
     if (this.chapterId === 4 || this.isInfMode) {
-      // Do not hide the health bar in INF mode, just show 'INF' text beside it
-      this.bossHpText = this.add.text(boxPadX + (64 * hpBarScaleX) + 8, hpBarY + 8, 'INF', {
+      // Do not hide the health bar in INF mode, just show infinity symbol beside it
+      this.bossHpText = this.add.text(boxPadX + (64 * hpBarScaleX) + 8, hpBarY + 8, '∞', {
         fontFamily: 'VCR', fontSize: '18px', color: '#f0e6d3', align: 'left'
       }).setOrigin(0, 0.5).setDepth(11);
     } else {
-      this.bossHpText = this.add.text(boxPadX + (64 * hpBarScaleX) + 8, hpBarY + 8, '1000/1000', {
+      // Initial placeholder text — actual HP will update from boss data (in thousands format)
+      this.bossHpText = this.add.text(boxPadX + (64 * hpBarScaleX) + 8, hpBarY + 8, '5,000/5,000', {
         fontFamily: 'VCR', fontSize: hpTextSize, color: '#f0e6d3', align: 'left'
       }).setOrigin(0, 0.5).setDepth(11);
     }
@@ -845,13 +846,17 @@ export class HUDScene extends Phaser.Scene {
     for (let i = 0; i < 3; i++) {
       // Frame indexes: 147 (full), 146 (half), 145 (empty)
       let frame = 145;
+      let isHalf = false;
       if (lives >= (i + 1) * 2) {
         frame = 147;
       } else if (lives === (i * 2) + 1) {
         frame = 146;
+        isHalf = true;
       }
       if (this.hearts[i]) {
         this.hearts[i].setFrame(frame);
+        // Flip half-heart horizontally to fix inverted appearance
+        this.hearts[i].setFlipX(isHalf);
       }
     }
 
@@ -932,13 +937,13 @@ export class HUDScene extends Phaser.Scene {
     }
 
     if (this.bossHpText) {
-      if (this.chapterId === 4 || this.isInfMode) {
-        this.bossHpText.setText('INF');
+      if (this.chapterId === 4 || this.isInfMode || max === Infinity || !isFinite(max)) {
+        this.bossHpText.setText('∞');
       } else {
-        // Show actual boss HP values (current/max)
-        const currentHp = Math.ceil(current);
-        const maxHp = Math.ceil(max);
-        this.bossHpText.setText(`${currentHp}/${maxHp}`);
+        // Show boss HP in thousands format (5 HP = 5000)
+        const currentHp = Math.ceil(current) * 1000;
+        const maxHp = Math.ceil(max) * 1000;
+        this.bossHpText.setText(`${currentHp.toLocaleString()}/${maxHp.toLocaleString()}`);
       }
     }
   }

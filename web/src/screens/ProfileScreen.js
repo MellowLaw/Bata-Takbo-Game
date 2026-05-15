@@ -421,7 +421,7 @@ export const ProfileScreen = {
           const v = cpNew.value;
           const okLength = v.length >= 8;
           const okNumber = /\d/.test(v);
-          const okSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(v);
+          const okSpecial = /[^a-zA-Z0-9]/.test(v);
           const okUpper = /[A-Z]/.test(v);
           cpReqLength.textContent = (okLength ? '✓' : '✗') + ' 8 CHARACTERS MINIMUM';
           cpReqLength.style.color = okLength ? '#4ade80' : '#a89b8c';

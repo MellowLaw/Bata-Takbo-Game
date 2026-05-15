@@ -435,8 +435,8 @@ export class Grid {
 
      this.bawangs[key] = { sprite: bawangSpr, shadow: shadow, col: col, row: row };
 
-     // Despawn after 2.5 seconds (disappear if not picked up)
-     this.scene.time.delayedCall(2500, () => {
+     // Despawn after 5 seconds (disappear if not picked up)
+     this.scene.time.delayedCall(5000, () => {
          if (this.bawangs && this.bawangs[key]) {
              const data = this.bawangs[key];
              delete this.bawangs[key];
@@ -499,9 +499,12 @@ export class Grid {
        this.scene.audioManager.play('chest_spawn', { volume: 0.8 });
      }
 
+     // Chest sprites are 32x32, scale to match grid tile size
+     const chestScale = this.tileSize / 32;
+
      // Spawn effect animation (chest_effects spritesheet)
      const effect = this.scene.add.sprite(pos.x, pos.y, 'chest_effects')
-       .setScale(1.5)
+       .setScale(chestScale)
        .setDepth(25)
        .setAlpha(1);
      effect.play('anim_chest_effects');
@@ -515,12 +518,12 @@ export class Grid {
        .setScale(0)
        .setDepth(20);
 
-     const shadow = this.scene.add.ellipse(pos.x, pos.y + 16, 30, 14, 0x000000).setDepth(19).setAlpha(0);
+     const shadow = this.scene.add.ellipse(pos.x, pos.y + this.tileSize * 0.3, this.tileSize * 0.6, this.tileSize * 0.25, 0x000000).setDepth(19).setAlpha(0);
 
      // Pop in animation
      this.scene.tweens.add({
          targets: chestSpr,
-         scale: 1.5,
+         scale: chestScale,
          duration: 300,
          ease: 'Back.easeOut',
          onComplete: () => {

@@ -18,6 +18,7 @@ export class GameScene extends Phaser.Scene {
     this.control = data.control || 'keyboard'; // 'gesture' or 'keyboard'
     this.isInfMode = data.isInfMode || false;
     this.isGameOver = false;
+    this.chapterScore = 0; // Live score for regular chapters
     this.infScore = 0;
     this.infWavesSurvived = 0;
     this.infPerfectWaves = 0;
@@ -116,12 +117,12 @@ export class GameScene extends Phaser.Scene {
       this.load.image('diamond_loot', '/assets/projectiles/shared/diamond.png');
       this.load.image('bawang_loot', '/assets/projectiles/shared/bawang.png');
       this.load.spritesheet('bawang_effects', '/assets/fx/bawang_effects.png', { frameWidth: 64, frameHeight: 64 });
-      // Chest loot - 5 different chest variations (4 rows each, 64x64 frames)
-      this.load.spritesheet('chest1_loot', '/assets/projectiles/shared/chest1.png', { frameWidth: 64, frameHeight: 64 });
-      this.load.spritesheet('chest2_loot', '/assets/projectiles/shared/chest2.png', { frameWidth: 64, frameHeight: 64 });
-      this.load.spritesheet('chest3_loot', '/assets/projectiles/shared/chest3.png', { frameWidth: 64, frameHeight: 64 });
-      this.load.spritesheet('chest4_loot', '/assets/projectiles/shared/chest4.png', { frameWidth: 64, frameHeight: 64 });
-      this.load.spritesheet('chest5_loot', '/assets/projectiles/shared/chest5.png', { frameWidth: 64, frameHeight: 64 });
+      // Chest loot - 5 different chest variations (single column, 4 frames each ~32x32)
+      this.load.spritesheet('chest1_loot', '/assets/projectiles/shared/chest1.png', { frameWidth: 32, frameHeight: 32 });
+      this.load.spritesheet('chest2_loot', '/assets/projectiles/shared/chest2.png', { frameWidth: 34, frameHeight: 32 });
+      this.load.spritesheet('chest3_loot', '/assets/projectiles/shared/chest3.png', { frameWidth: 32, frameHeight: 32 });
+      this.load.spritesheet('chest4_loot', '/assets/projectiles/shared/chest4.png', { frameWidth: 31, frameHeight: 32 });
+      this.load.spritesheet('chest5_loot', '/assets/projectiles/shared/chest5.png', { frameWidth: 32, frameHeight: 32 });
       this.load.spritesheet('chest_effects', '/assets/fx/chest2.png', { frameWidth: 64, frameHeight: 64 });
 
     } else if (this.chapterId === 2) {
@@ -157,12 +158,12 @@ export class GameScene extends Phaser.Scene {
       this.load.image('diamond_loot', '/assets/projectiles/shared/diamond.png');
       this.load.image('bawang_loot', '/assets/projectiles/shared/bawang.png');
       this.load.spritesheet('bawang_effects', '/assets/fx/bawang_effects.png', { frameWidth: 64, frameHeight: 64 });
-      // Chest loot - 5 different chest variations (4 rows each, 64x64 frames)
-      this.load.spritesheet('chest1_loot', '/assets/projectiles/shared/chest1.png', { frameWidth: 64, frameHeight: 64 });
-      this.load.spritesheet('chest2_loot', '/assets/projectiles/shared/chest2.png', { frameWidth: 64, frameHeight: 64 });
-      this.load.spritesheet('chest3_loot', '/assets/projectiles/shared/chest3.png', { frameWidth: 64, frameHeight: 64 });
-      this.load.spritesheet('chest4_loot', '/assets/projectiles/shared/chest4.png', { frameWidth: 64, frameHeight: 64 });
-      this.load.spritesheet('chest5_loot', '/assets/projectiles/shared/chest5.png', { frameWidth: 64, frameHeight: 64 });
+      // Chest loot - 5 different chest variations (single column, 4 frames each ~32x32)
+      this.load.spritesheet('chest1_loot', '/assets/projectiles/shared/chest1.png', { frameWidth: 32, frameHeight: 32 });
+      this.load.spritesheet('chest2_loot', '/assets/projectiles/shared/chest2.png', { frameWidth: 34, frameHeight: 32 });
+      this.load.spritesheet('chest3_loot', '/assets/projectiles/shared/chest3.png', { frameWidth: 32, frameHeight: 32 });
+      this.load.spritesheet('chest4_loot', '/assets/projectiles/shared/chest4.png', { frameWidth: 31, frameHeight: 32 });
+      this.load.spritesheet('chest5_loot', '/assets/projectiles/shared/chest5.png', { frameWidth: 32, frameHeight: 32 });
       this.load.spritesheet('chest_effects', '/assets/fx/chest2.png', { frameWidth: 64, frameHeight: 64 });
 
     } else if (this.chapterId === 3) {
@@ -304,8 +305,8 @@ export class GameScene extends Phaser.Scene {
     this.load.spritesheet('chest3', '/assets/fx/chest3.png', { frameWidth: 100, frameHeight: 100 });
     this.load.spritesheet('chest4', '/assets/fx/chest4.png', { frameWidth: 100, frameHeight: 100 });
     this.load.spritesheet('lives_decreased', '/assets/fx/lives_decreased.png', { frameWidth: 64, frameHeight: 64 });
-    // lives_up: 1472x64 = 23 frames of 64x64 (single row)
-    this.load.spritesheet('lives_up', '/assets/fx/lives_up.png', { frameWidth: 64, frameHeight: 64 });
+    // lives_up: 2944x128 = 23 frames of 128x128 (single row)
+    this.load.spritesheet('lives_up', '/assets/fx/lives_up.png', { frameWidth: 128, frameHeight: 128 });
     // frozen: 1536x128 = 12 frames of 128x128
     this.load.spritesheet('frozen', '/assets/fx/frozen.png', { frameWidth: 128, frameHeight: 128 });
 
@@ -420,10 +421,10 @@ export class GameScene extends Phaser.Scene {
       this.anims.create({ key: 'anim_smoke_up', frames: this.anims.generateFrameNumbers('smoke_up', { start: 0, end: 20 }), frameRate: 20, repeat: 0 });
       this.anims.create({ key: 'anim_chest1', frames: this.anims.generateFrameNumbers('chest1', { start: 0, end: 13 }), frameRate: 20, repeat: 0 });
       this.anims.create({ key: 'anim_chest2', frames: this.anims.generateFrameNumbers('chest2', { start: 0, end: 17 }), frameRate: 20, repeat: 0 });
-      this.anims.create({ key: 'anim_chest3', frames: this.anims.generateFrameNumbers('chest3', { start: 0, end: 79 }), frameRate: 28, repeat: 0 });
-      this.anims.create({ key: 'anim_chest4', frames: this.anims.generateFrameNumbers('chest4', { start: 0, end: 79 }), frameRate: 28, repeat: 0 });
+      this.anims.create({ key: 'anim_chest3', frames: this.anims.generateFrameNumbers('chest3', { start: 0, end: 69 }), frameRate: 28, repeat: 0 });
+      this.anims.create({ key: 'anim_chest4', frames: this.anims.generateFrameNumbers('chest4', { start: 0, end: 69 }), frameRate: 28, repeat: 0 });
       this.anims.create({ key: 'anim_villain_hp_up', frames: this.anims.generateFrameNumbers('villain_hp_up', { start: 0, end: 11 }), frameRate: 15, repeat: 0 });
-      this.anims.create({ key: 'anim_lives_up', frames: this.anims.generateFrameNumbers('lives_up', { start: 0, end: 22 }), frameRate: 20, repeat: 0 });
+      this.anims.create({ key: 'anim_lives_up', frames: this.anims.generateFrameNumbers('lives_up', { start: 0, end: 22 }), frameRate: 18, repeat: 0 });
       this.anims.create({ key: 'anim_lives_decreased', frames: this.anims.generateFrameNumbers('lives_decreased', { start: 105, end: 119 }), frameRate: 30, repeat: 0 });
       this.anims.create({ key: 'anim_frozen', frames: this.anims.generateFrameNumbers('frozen', { start: 0, end: 11 }), frameRate: 15, repeat: 0 });
       this.anims.create({ key: 'anim_bawang_effects', frames: this.anims.generateFrameNumbers('bawang_effects', { start: 0, end: 15 }), frameRate: 20, repeat: 0 });
@@ -702,6 +703,14 @@ export class GameScene extends Phaser.Scene {
         audioManager.play('sfx_sword_pickup');
         this.events.emit('damageTile:collected');
         this.boss.takeDamage();
+
+        // Add score for collecting golden tile (regular chapters)
+        if (!this.isInfMode) {
+          this.chapterScore += 1000; // 1000 points per golden tile
+          const hud = this.scene.get('HUDScene');
+          if (hud && hud.updateScore) hud.updateScore(this.chapterScore);
+        }
+
         // Fire golden particles from the tile toward the boss
         const hitPos = this.grid.getPixelPosition(col, row);
         this.launchAttackParticles(hitPos.x, hitPos.y);
@@ -779,9 +788,11 @@ export class GameScene extends Phaser.Scene {
       const px = this.player.sprite.x;
       const py = this.player.sprite.y;
 
-      // Show lives up effect
-      const fx = this.add.sprite(px, py - 40, 'lives_up').play('anim_lives_up').setDepth(300);
-      fx.setScale(1.3);
+      // Show lives up effect — starts at player center, floats upward while animating
+      const fx = this.add.sprite(px, py, 'lives_up').play('anim_lives_up').setDepth(300);
+      fx.setScale(0.8);
+      const animDuration = (23 / 18) * 1000; // 23 frames at 18fps
+      this.tweens.add({ targets: fx, y: py - 80, duration: animDuration, ease: 'Sine.easeOut' });
       fx.once('animationcomplete', () => fx.destroy());
 
       // Show healing text
@@ -1006,7 +1017,7 @@ export class GameScene extends Phaser.Scene {
     this.events.on('damageTile:collected', () => {
       if (!this.isInfMode) return;
       this.infTilesCollected++;
-      
+
       const hud = this.scene.get('HUDScene');
       const elapsedSecs = hud ? Math.floor(hud.elapsed / 1000) : 0;
       this.infScore = (this.infWavesSurvived * 100)
@@ -1015,6 +1026,20 @@ export class GameScene extends Phaser.Scene {
         + (this.infPerfectWaves * 25);
       if (hud && hud.updateScore) hud.updateScore(this.infScore);
     });
+
+    // Regular chapters: time-based score update every second (10 points per second)
+    if (!this.isInfMode) {
+      this.time.addEvent({
+        delay: 1000,
+        repeat: -1,
+        callback: () => {
+          if (this.isGameOver || !this.boss || this.boss.hp <= 0) return;
+          this.chapterScore += 10; // 10 points per second survived
+          const hud = this.scene.get('HUDScene');
+          if (hud && hud.updateScore) hud.updateScore(this.chapterScore);
+        }
+      });
+    }
 
     // ─── Helper: Generate the particle texture once ───────────────────────────
     if (!this.textures.exists('attack_particle')) {
@@ -1656,7 +1681,8 @@ export class GameScene extends Phaser.Scene {
         return;
       }
 
-      let finalScore = elapsedSecs * 10;
+      // Use accumulated chapterScore (time + golden tiles) and add bonuses
+      let finalScore = this.chapterScore;
       if (isVictory) finalScore += 5000;
       if (this.player.hp === this.player.maxHp && isVictory) finalScore += 3000;
 

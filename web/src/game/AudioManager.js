@@ -212,11 +212,11 @@ class AudioManager {
       scene.load.audio('ch1_hand_slam', `${basePath}/DSGNImpt_EXPLOSION-Thud_HY_PC-001.wav`);
       // Attack-specific SFX
       scene.load.audio('ch1_splatter_drop', `${basePath}/DSGNMisc_CAST-Slime Ball_HY_PC-002.wav`);
-      scene.load.audio('ch1_splatter_burst', `${basePath}/DSGNMisc_SKILL IMPACT-Crunchy Burst_HY_PC-003.wav`);
+      scene.load.audio('ch1_splatter_burst', `${basePath}/DSGNMisc_PROJECTILE-Water Bolt_HY_PC-005.wav`);
       scene.load.audio('ch1_eye_whoosh', `${basePath}/DSGNMisc_MOVEMENT-Whoosh Sweep_HY_PC-001.wav`);
       scene.load.audio('ch1_eye_land', `${basePath}/DSGNImpt_EXPLOSION-Crunching_HY_PC-005.wav`);
-      scene.load.audio('ch1_volley_shoot', `${basePath}/DSGNImpt_EXPLOSION-Bit Bomb_HY_PC-006.wav`);
-      scene.load.audio('ch1_volley_burst', `${basePath}/DSGNImpt_EXPLOSION-Crunchy Burst_HY_PC-004.wav`);
+      scene.load.audio('ch1_volley_shoot', `${basePath}/DSGNMisc_MOVEMENT-Watery Laser_HY_PC-003.wav`);
+      scene.load.audio('ch1_volley_burst', `${basePath}/DSGNMisc_PROJECTILE-Water Bolt_HY_PC-005.wav`);
       scene.load.audio('ch1_vortex_spawn', `${basePath}/DSGNMisc_MOVEMENT-Mecha Large Takeoff_HY_PC-001.wav`);
       scene.load.audio('ch1_vortex_pull', `${basePath}/DSGNMisc_MOVEMENT-Noise Sweeper_HY_PC-001.wav`);
       // Ultimate attack SFX

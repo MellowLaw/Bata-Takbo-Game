@@ -7,6 +7,7 @@ import cookieParser from 'cookie-parser';
 import crypto from 'crypto';
 import rateLimit from 'express-rate-limit';
 import nodemailer from 'nodemailer';
+import helmet from 'helmet';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import path from 'path';
@@ -51,6 +52,7 @@ if (hasEmailCreds) {
 }
 
 // CORS policy: dev = Vite dev server, prod = real domain from env
+app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({
   origin: IS_PROD ? process.env.FRONTEND_URL : 'http://localhost:5173',
   credentials: true
@@ -189,8 +191,12 @@ app.post('/auth/register', async (req, res) => {
       return res.status(400).json({ error: 'Password must contain at least one number' });
     }
 
-    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+    if (!/[^a-zA-Z0-9]/.test(password)) {
       return res.status(400).json({ error: 'Password must contain at least one special character' });
+    }
+
+    if (!/[A-Z]/.test(password)) {
+      return res.status(400).json({ error: 'Password must contain at least one uppercase letter' });
     }
 
     if (/\s/.test(password)) {
@@ -218,7 +224,7 @@ app.post('/auth/register', async (req, res) => {
     // Encrypt initial user data with AES-256
     const initialData = JSON.stringify({ registeredAt: Date.now() });
     const iv = crypto.randomBytes(12);
-    const cipher = crypto.createCipheriv('aes-256-gcm', Buffer.from(AES_SECRET_KEY, 'utf-8'), iv);
+    const cipher = crypto.createCipheriv('aes-256-gcm', Buffer.from(AES_SECRET_KEY, 'hex'), iv);
     
     let encryptedData = cipher.update(initialData, 'utf8', 'base64');
     encryptedData += cipher.final('base64');
@@ -330,7 +336,7 @@ app.get('/auth/profile', authMiddleware, async (req, res) => {
     try {
       if (user.encrypted_data) {
         const { iv, data, tag } = JSON.parse(user.encrypted_data);
-        const decipher = crypto.createDecipheriv('aes-256-gcm', Buffer.from(AES_SECRET_KEY, 'utf-8'), Buffer.from(iv, 'base64'));
+        const decipher = crypto.createDecipheriv('aes-256-gcm', Buffer.from(AES_SECRET_KEY, 'hex'), Buffer.from(iv, 'base64'));
         decipher.setAuthTag(Buffer.from(tag, 'base64'));
         let decrypted = decipher.update(data, 'base64', 'utf8');
         decrypted += decipher.final('utf8');
@@ -434,8 +440,12 @@ app.post('/auth/change-password', authMiddleware, async (req, res) => {
       return res.status(400).json({ error: 'Password must contain at least one number' });
     }
 
-    if (!/[!@#$%^&*(),.?":{}|<>]/.test(newPassword)) {
+    if (!/[^a-zA-Z0-9]/.test(newPassword)) {
       return res.status(400).json({ error: 'Password must contain at least one special character' });
+    }
+
+    if (!/[A-Z]/.test(newPassword)) {
+      return res.status(400).json({ error: 'Password must contain at least one uppercase letter' });
     }
 
     if (/\s/.test(newPassword)) {
@@ -729,8 +739,11 @@ app.post('/auth/reset-password', async (req, res) => {
     if (!/\d/.test(newPassword)) {
       return res.status(400).json({ error: 'Password must contain at least one number' });
     }
-    if (!/[!@#$%^&*(),.?":{}|<>]/.test(newPassword)) {
+    if (!/[^a-zA-Z0-9]/.test(newPassword)) {
       return res.status(400).json({ error: 'Password must contain at least one special character' });
+    }
+    if (!/[A-Z]/.test(newPassword)) {
+      return res.status(400).json({ error: 'Password must contain at least one uppercase letter' });
     }
     if (/\s/.test(newPassword)) {
       return res.status(400).json({ error: 'Password cannot contain spaces' });
