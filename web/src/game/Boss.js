@@ -33,6 +33,10 @@ export class Boss {
     this.infSpeedMultiplier = 1.0;
     this.infPerfectWave = true;
 
+    // Progressive difficulty: attacks get faster as waves progress
+    // Scales from 1.0 (normal) to 1.5 (50% faster) over 20 waves
+    this.difficultyMultiplier = 1.0;
+
     // Boss sprite is rendered by HUDScene (since HUD covers the left panel).
     // Projectiles originate from the top-center of the grid area.
     const gridCenterX = grid.offsetX + (grid.tileSize * grid.cols) / 2;
@@ -131,11 +135,21 @@ export class Boss {
   }
 
   executeAttack() {
+    // Check if time freeze power-up is active - delay attack
+    if (this.scene._timeFreezeActive) {
+      this.attackTimer = this.scene.time.delayedCall(500, this.executeAttack, [], this);
+      return;
+    }
+
     this.waveCount++;
     if (this.isInfMode) {
       this.infSpeedMultiplier = Math.min(1.0 + (this.waveCount * 0.015), 2.5);
       this.infPerfectWave = true;
       this.scene.events.emit('inf:wave', this.waveCount, this.infSpeedMultiplier);
+    } else {
+      // Progressive difficulty for regular chapters
+      // Scales from 1.0 (wave 1) to 1.5 (wave 20+) - attacks become 50% faster
+      this.difficultyMultiplier = Math.min(1.0 + ((this.waveCount - 1) * 0.025), 1.5);
     }
 
     // --- CHEAT MODE: boss sleeps, double loot rains ---
@@ -153,6 +167,16 @@ export class Boss {
     } else {
       const targets = [];
       this.attackCycleCount++;
+
+      // Every 6th attack cycle, spawn a bawang (lives up) loot
+      if (this.attackCycleCount % 6 === 0) {
+        this._spawnBawangLoot();
+      }
+
+      // Every 8th attack cycle, spawn a chest (power-up) loot
+      if (this.attackCycleCount % 8 === 0) {
+        this._spawnChestLoot();
+      }
 
       // DISABLED: Boss Phase 4 Loot Logistics - chests removed for rework
       // if (this.attackCycleCount % 5 === 0 && this.grid.spawnChest) {
@@ -288,10 +312,35 @@ export class Boss {
 
     // Dynamic Cascading Pause Scheduler setup
     // This strictly ensures the game rests for precisely 3.0 seconds AFTER the active attack phase completely clears!
+    // Progressive difficulty: breather time gets shorter as waves progress (from 3.0s down to 1.5s)
     if (this.hp > 0) {
       if (this.attackTimer) this.attackTimer.remove(); // Safely clear old references
-      this.attackTimer = this.scene.time.delayedCall(currentAttackDuration + 3000, this.executeAttack, [], this);
+      const baseBreather = this.isInfMode ? 2000 : 3000;
+      // Scale breather: at 1.5x difficulty, breather is 1/1.5 = 0.67 of base (2s -> 1.33s or 3s -> 2s)
+      const difficulty = this.isInfMode ? this.infSpeedMultiplier : this.difficultyMultiplier;
+      const scaledBreather = Math.max(1000, baseBreather / difficulty); // Min 1s breather
+      this.attackTimer = this.scene.time.delayedCall(currentAttackDuration + scaledBreather, this.executeAttack, [], this);
     }
+  }
+
+  /**
+   * Get current difficulty multiplier (for INF mode or regular chapters)
+   */
+  getDifficultyMultiplier() {
+    return this.isInfMode ? this.infSpeedMultiplier : this.difficultyMultiplier;
+  }
+
+  /**
+   * Scale warning/telegraph time based on difficulty
+   * As difficulty increases, warning time decreases (harder to react)
+   * @param {number} baseTime - Base warning time in ms
+   * @param {number} minTime - Minimum warning time (default 800ms)
+   * @returns {number} Scaled warning time
+   */
+  scaleWarningTime(baseTime, minTime = 800) {
+    const difficulty = this.getDifficultyMultiplier();
+    // At 1.5x difficulty, warning is 1/1.5 = 67% of base time
+    return Math.max(minTime, Math.floor(baseTime / difficulty));
   }
 
   /** Linger damage check over an area to punish players who walk into active effect sprites */
@@ -367,12 +416,13 @@ export class Boss {
 
   ch1AttackCrimsonSplatter() {
     const numAttacks = Phaser.Math.Between(3, 4);
+    const warningTime = this.scaleWarningTime(1500);
     for (let i = 0; i < numAttacks; i++) {
       const c = Phaser.Math.Between(0, this.grid.cols - 1);
       const r = Phaser.Math.Between(0, this.grid.rows - 1);
-      this.grid.telegraph(c, r, 1500);
+      this.grid.telegraph(c, r, warningTime);
 
-      this.scene.time.delayedCall(1500, () => {
+      this.scene.time.delayedCall(warningTime, () => {
         const dest = this.grid.getPixelPosition(c, r);
         const startY = dest.y - 450; // Drop from sky high
 
@@ -407,7 +457,8 @@ export class Boss {
     // Lock onto player immediately but do not adjust!
     const c = this.scene.player.col;
     const r = this.scene.player.row;
-    this.grid.telegraph(c, r, 1500);
+    const warningTime = this.scaleWarningTime(1500);
+    this.grid.telegraph(c, r, warningTime);
 
     // Spawn eye off-screen (top-left or top-right)
     const fromLeft = Math.random() > 0.5;
@@ -508,9 +559,10 @@ export class Boss {
         if (handImg === 'ch1_hand1') hand.setRotation(targetAngle + Math.PI / 2);
         else hand.setRotation(targetAngle);
 
-        this.grid.telegraph(targetCol, targetRow, 1000);
+        const warningMs = this.scaleWarningTime(1000, 600);
+        this.grid.telegraph(targetCol, targetRow, warningMs);
 
-        this.scene.time.delayedCall(1000, () => {
+        this.scene.time.delayedCall(warningMs, () => {
           hand.destroy();
           audioManager.play('ch1_volley_shoot', { volume: 0.85 });
           const blood = this.scene.add.sprite(startLoc.x, startLoc.y, 'blood_chem', 6).setDisplaySize(80, 20).setDepth(45);
@@ -634,6 +686,9 @@ export class Boss {
 
   /** Attack 1: The Beeswarm — Horizontal sweep visual distraction */
   ch2AttackBeeswarm() {
+    // Play bee swarm spawn sound
+    const swarmVariant = Phaser.Math.Between(1, 3);
+    audioManager.play(`ch2_bee_swarm${swarmVariant === 1 ? '' : '_' + swarmVariant}`, { volume: 0.7 });
 
     const scale = this.grid.tileSize * 1.8;
     const travelTime = 3500; // Slow sweep across full board
@@ -703,6 +758,9 @@ export class Boss {
     // Telegraph center
     this.grid.telegraph(mc, mr, 800);
 
+    // Play nature summon sound for hibiscus appearance
+    audioManager.play('ch2_nature_summon', { volume: 0.75 });
+
     // SCALE: Hibiscus landing sprite — change tileSize multiplier to resize
     const hibiscusScale = this.grid.tileSize * 2.0;
     const hibiscus = this.scene.add.sprite(centerPos.x, centerPos.y - 200, 'ch2_hibiscus')
@@ -717,6 +775,8 @@ export class Boss {
       duration: 800, ease: 'Bounce.easeOut',
       onComplete: () => {
         hibiscus.play('anim_ch2_hibiscus');
+        // Play plant growth/pop sound on land
+        audioManager.play('ch2_plant_pop', { volume: 0.8 });
         
         // Delay before beginning the burst sequence
         this.scene.time.delayedCall(1200, () => {
@@ -742,6 +802,12 @@ export class Boss {
               b.once('animationcomplete', () => b.destroy());
               this.createDamageZone([{c: mc, r: mr}], 1500);
 
+              // Play pollen burst sound for center
+              const pollenVariant = Phaser.Math.Between(1, 2);
+              audioManager.play(`ch2_pollen_burst${pollenVariant === 1 ? '' : '_' + pollenVariant}`, { volume: 0.85 });
+              // Play spore release sound
+              audioManager.play('ch2_spore_release', { volume: 0.6 });
+
               // Destroy plant with a nice fade-out so it doesn't just vanish
               this.scene.tweens.add({
                 targets: hibiscus, alpha: 0, scale: hibiscus.scale * 1.5,
@@ -766,6 +832,10 @@ export class Boss {
 
                 this.scene.time.delayedCall(500, () => {
                   if (this.hp <= 0) return;
+
+                  // Play pollen burst sound for ring expansion
+                  const ringPollenVariant = Phaser.Math.Between(1, 2);
+                  audioManager.play(`ch2_pollen_burst${ringPollenVariant === 1 ? '' : '_' + ringPollenVariant}`, { volume: 0.7 - (d * 0.05) }); // Slightly quieter for outer rings
 
                   let animsComplete = 0;
                   ringTiles.forEach(t => {
@@ -803,6 +873,10 @@ export class Boss {
     const pCol = this.scene.player.col;
     const pRow = this.scene.player.row;
 
+    // Play vine swish sound at start
+    const vineVariant = Phaser.Math.Between(1, 4);
+    audioManager.play(`ch2_vine_swish${vineVariant === 1 ? '' : '_' + vineVariant}`, { volume: 0.75 });
+
     // Telegraph a 3x3 area centered on player
     const vineTiles = [];
     for (let dx = -1; dx <= 1; dx++) {
@@ -817,6 +891,10 @@ export class Boss {
     // After warning, spawn vines and check if player is caught
     this.scene.time.delayedCall(1200, () => {
       if (this.hp <= 0 || this.scene.isGameOver) return;
+
+      // Play plant growth sound when vines spawn
+      const growVariant = Phaser.Math.Between(1, 2);
+      audioManager.play(`ch2_plant_grow${growVariant === 1 ? '' : '_' + growVariant}`, { volume: 0.8 });
 
       // Spawn vine animations on EVERY tile in the 3x3 regardless of escape
       const vineSprites = [];
@@ -1010,6 +1088,9 @@ export class Boss {
   /** Attack 5: Exploding Eggs — Spot Hazard */
   /** Attack 4: Carrot Rain - staged meteor barrage with safe gaps */
   ch2AttackCarrotRain() {
+    // Play nature magic sound at start of carrot rain
+    audioManager.play('ch2_nature_magic_2', { volume: 0.7 });
+
     const carrotScale = this.grid.tileSize * 1.45;
     const telegraphMs = 850;
     const impactDamageMs = 900;
@@ -1071,6 +1152,9 @@ export class Boss {
           carrot.play('anim_ch2_carrot');
           carrot.once('animationcomplete', () => carrot.destroy());
           this.scene.cameras.main.shake(80, 0.006);
+          // Play nature burst sound on impact
+          const burstVariant = Phaser.Math.Between(1, 3);
+          audioManager.play(`ch2_nature_burst${burstVariant === 1 ? '' : '_' + burstVariant}`, { volume: 0.75 });
           this.createDamageZone([{ c: tile.c, r: tile.r }], impactDamageMs);
         }
       });
@@ -1119,6 +1203,9 @@ export class Boss {
   }
 
   ch2AttackExplodingEggs() {
+    // Play plant summon sound for egg spawn
+    audioManager.play('ch2_nature_summon_2', { volume: 0.75 });
+
     const numEggs = Phaser.Math.Between(5, 10);
     const chosen = [];
 
@@ -1155,6 +1242,11 @@ export class Boss {
             egg.play('anim_ch2_eggs');
             egg.once('animationcomplete', () => egg.destroy());
             this.scene.cameras.main.shake(150, 0.01);
+            // Play egg crack/explosion sound
+            const crackVariant = Phaser.Math.Between(1, 2);
+            audioManager.play(`ch2_egg_crack${crackVariant === 1 ? '' : '_' + crackVariant}`, { volume: 0.85 });
+            // Play nature burst sound for extra impact
+            audioManager.play('ch2_nature_burst', { volume: 0.7 });
             // Persistent damage zone while it explodes
             this.createDamageZone([{c: t.c, r: t.r}], 1800);
           }
@@ -1167,6 +1259,9 @@ export class Boss {
 
   /** Attack 6: Snapping Flora — Melee Trap (Persistent, fire-and-forget) */
   ch2AttackSnappingFlora() {
+    // Play plant pop sound at start of snapping flora spawn
+    audioManager.play('ch2_plant_pop', { volume: 0.7 });
+
     for (let i = 0; i < 3; i++) {
       // Find a safe tile ≥2 tiles from the player
       let pc, pr, attempts = 0;
@@ -1212,6 +1307,12 @@ export class Boss {
         targets: [plant, dangerZone], alpha: 1, duration: 300, ease: 'Back.easeOut'
       });
 
+      // Play plant grow sound for each snapping flora that successfully spawns
+      const growVariant = Phaser.Math.Between(1, 2);
+      this.scene.time.delayedCall(100, () => {
+        audioManager.play(`ch2_plant_grow${growVariant === 1 ? '' : '_' + growVariant}`, { volume: 0.65 });
+      });
+
       const entity = { type: 'melee', col: pc, row: pr, sprite: plant, danger: dangerZone, active: true, _attackCooldown: false };
       this.scene.persistentEntities.push(entity);
 
@@ -1252,6 +1353,9 @@ export class Boss {
 
   /** Attack 7: Acid Spitter — 1 plant per line (7 plants total), 1 shot with 3 acid projectiles, more escapable with clear telegraphs */
   ch2AttackAcidSpitter() {
+    // Play nature summon sound for acid spitter appearance
+    audioManager.play('ch2_nature_summon', { volume: 0.7 });
+
     const SHOTS_PER_PLANT = 1; // Only 1 shot per plant (but 3 acid projectiles per shot)
     const SHOT_DELAY = 1500; // Delay before the single shot
     const PLANT_SCALE = this.grid.tileSize / 64 * 2.0;
@@ -1281,6 +1385,12 @@ export class Boss {
         .setScale(PLANT_SCALE).setDepth(18).setAlpha(0);
 
       this.scene.tweens.add({ targets: plant, alpha: 1, duration: 400, ease: 'Back.easeOut' });
+
+      // Play plant growth sound when ranged plant spawns
+      const growVariant = Phaser.Math.Between(1, 2);
+      this.scene.time.delayedCall(100, () => {
+        audioManager.play(`ch2_plant_grow${growVariant === 1 ? '' : '_' + growVariant}`, { volume: 0.6 });
+      });
 
       for (let shot = 0; shot < SHOTS_PER_PLANT; shot++) {
         this.scene.time.delayedCall(400 + shot * SHOT_DELAY, () => {
@@ -1318,6 +1428,10 @@ export class Boss {
                 .setScale(PROJ_SCALE).setDepth(41);
               charge.play('anim_ch2_acid_charge');
 
+              // Play acid spit sound when charge starts
+              const acidVariant = Phaser.Math.Between(1, 3);
+              audioManager.play(`ch2_acid_spit${acidVariant === 1 ? '' : '_' + acidVariant}`, { volume: 0.75 });
+
               charge.once('animationcomplete', () => {
                 charge.destroy();
 
@@ -1340,6 +1454,9 @@ export class Boss {
                     .setScale(SPLAT_SCALE).setDepth(20);
                   splat.play('anim_ch2_acid_burst');
                   splat.once('animationcomplete', () => splat.destroy());
+                  // Play acid splat sound on impact
+                  const splatVariant = Phaser.Math.Between(1, 2);
+                  audioManager.play(`ch2_acid_splat${splatVariant === 1 ? '' : '_' + splatVariant}`, { volume: 0.8 });
                   this.createDamageZone([{ c, r }], 1000); // Slightly shorter damage duration
                 });
 
@@ -1374,6 +1491,9 @@ export class Boss {
 
   /** Attack 8: Golem Quake Notes - side golems shake note bursts across full rows */
   ch2AttackGolemQuakeNotes() {
+    // Play earth rumble sound at start
+    audioManager.play('ch2_earth_rumble', { volume: 0.7 });
+
     const TELEGRAPH_MS = 1000;
     const STEP_MS = 180;
     const NOTE_DAMAGE_MS = 420;
@@ -1408,6 +1528,10 @@ export class Boss {
         ease: 'Back.easeOut'
       });
 
+      // Play golem step/thud sound when golem spawns
+      const golemVariant = Phaser.Math.Between(1, 2);
+      audioManager.play(`ch2_golem_step${golemVariant === 1 ? '' : '_' + golemVariant}`, { volume: 0.8 });
+
       golems.push(golem);
     };
 
@@ -1423,6 +1547,8 @@ export class Boss {
     this.scene.time.delayedCall(TELEGRAPH_MS, () => {
       if (this.hp <= 0 || this.scene.isGameOver) return;
       this.scene.cameras.main.shake(600, 0.02);
+      // Play golem quake sound when notes start firing
+      audioManager.play('ch2_golem_quake', { volume: 0.85 });
 
       lanes.forEach(({ row, fromLeft }, laneIndex) => {
         for (let step = 0; step < this.grid.cols - 1; step++) {
@@ -1438,6 +1564,9 @@ export class Boss {
               .play('anim_ch2_notes');
 
             notes.once('animationcomplete', () => notes.destroy());
+            // Play note hit sound (randomized)
+            const noteVariant = Phaser.Math.Between(1, 2);
+            audioManager.play(`ch2_note_hit${noteVariant === 1 ? '' : '_' + noteVariant}`, { volume: 0.6 });
             this.createDamageZone([{ c, r: row }], NOTE_DAMAGE_MS);
           });
         }
@@ -1466,6 +1595,11 @@ export class Boss {
     this.scene.events.emit('boss:ch2_ult');
     this.scene.cameras.main.shake(350, 0.012);
 
+    // Play ultimate SFX and ultimate start sounds
+    audioManager.play('ch2_ultimate', { volume: 0.9 });
+    audioManager.play('ch2_wind_gust', { volume: 0.8 });
+    audioManager.play('ch2_nature_magic', { volume: 0.9 });
+
     const spiralTiles = this._buildInwardSpiralTiles();
     const START_DELAY = 450;
     const STEP_MS = 115;
@@ -1493,6 +1627,13 @@ export class Boss {
 
         burst.play('anim_ch2_note_burst');
         burst.once('animationcomplete', () => burst.destroy());
+        // Play note burst sound (with rate limiting for performance)
+        if (index % 3 === 0) {
+          const burstVariant = Phaser.Math.Between(1, 2);
+          audioManager.play(`ch2_note_burst${burstVariant === 1 ? '' : '_' + burstVariant}`, { volume: 0.7 });
+        }
+        // Mini screen shake on each burst
+        this.scene.cameras.main.shake(80, 0.008);
         this.createDamageZone([{ c: tile.c, r: tile.r }], BURST_DAMAGE_MS);
       });
     });
@@ -1514,6 +1655,10 @@ export class Boss {
     this.scene.events.emit('boss:ch2_ult');
     this.scene.cameras.main.shake(450, 0.018);
 
+    // Play ultimate SFX and ultimate start sound
+    audioManager.play('ch2_ultimate', { volume: 0.9 });
+    audioManager.play('ch2_nature_magic_2', { volume: 0.85 });
+
     const WAVE_COUNT = 4;
     const WAVE_GAP_MS = 900;
     const TELEGRAPH_MS = 700;
@@ -1525,6 +1670,9 @@ export class Boss {
     const spawnBunnyArc = (delay, fromLeft, startRow) => {
       this.scene.time.delayedCall(delay, () => {
         if (this.hp <= 0 || this.scene.isGameOver) return;
+
+        // Screen shake when bunny wave starts
+        this.scene.cameras.main.shake(120, 0.015);
 
         // Pick landing spots: 3 bounces across the grid
         const bounces = [];
@@ -1566,6 +1714,10 @@ export class Boss {
           .setFlipX(!fromLeft)
           .play('anim_ch2_bunnies');
 
+        // Play bunny hop sound when bunny spawns
+        const hopVariant = Phaser.Math.Between(1, 2);
+        audioManager.play(`ch2_bunny_hop${hopVariant === 1 ? '' : '_' + hopVariant}`, { volume: 0.7 });
+
         // Animate through bounces
         let bounceIndex = 0;
         const doBounce = () => {
@@ -1590,6 +1742,10 @@ export class Boss {
           // Damage on landing
           this.createDamageZone([{ c: target.c, r: target.r }], 300);
 
+          // Play bunny land sound on each bounce
+          const landVariant = Phaser.Math.Between(1, 2);
+          audioManager.play(`ch2_bunny_land${landVariant === 1 ? '' : '_' + landVariant}`, { volume: 0.75 });
+
           // Arc bounce tween
           const midX = (bunny.x + targetPos.x) / 2;
           const midY = Math.min(bunny.y, targetPos.y) - 140;
@@ -1607,6 +1763,11 @@ export class Boss {
             },
             onComplete: () => {
               bounceIndex++;
+              // Play bunny hop sound for next bounce
+              if (bounceIndex < bounces.length) {
+                const nextHopVariant = Phaser.Math.Between(1, 2);
+                audioManager.play(`ch2_bunny_hop${nextHopVariant === 1 ? '' : '_' + nextHopVariant}`, { volume: 0.6 });
+              }
               this.scene.time.delayedCall(150, doBounce);
             }
           });
@@ -1696,6 +1857,72 @@ export class Boss {
       this.scene.events.emit('damageTile:despawned', tC, tR);
       this.grid.render();
     });
+  }
+
+  /**
+   * Spawn a bawang (garlic/lives up) loot item
+   * Spawns relatively close to player but not on their tile
+   */
+  _spawnBawangLoot() {
+    if (this.scene.isGameOver || this.hp <= 0) return;
+
+    // Find a valid spawn spot (near player but not on them)
+    let tC, tR;
+    let attempts = 0;
+    do {
+      tC = Phaser.Math.Clamp(
+        this.scene.player.col + Phaser.Math.Between(-2, 2),
+        0, this.grid.cols - 1
+      );
+      tR = Phaser.Math.Clamp(
+        this.scene.player.row + Phaser.Math.Between(-2, 2),
+        0, this.grid.rows - 1
+      );
+      attempts++;
+    } while (
+      attempts < 10 &&
+      ((tC === this.scene.player.col && tR === this.scene.player.row) ||
+        this.grid.hasChestAt(tC, tR) ||
+        this.grid.hasRubyAt(tC, tR) ||
+        this.grid.hasDiamondAt(tC, tR) ||
+        this.grid.hasBawangAt(tC, tR))
+    );
+
+    // Spawn the bawang
+    this.grid.spawnBawang(tC, tR);
+  }
+
+  /**
+   * Spawn a chest (power-up) loot item
+   * Spawns relatively close to player but not on their tile
+   */
+  _spawnChestLoot() {
+    if (this.scene.isGameOver || this.hp <= 0) return;
+
+    // Find a valid spawn spot (near player but not on them)
+    let tC, tR;
+    let attempts = 0;
+    do {
+      tC = Phaser.Math.Clamp(
+        this.scene.player.col + Phaser.Math.Between(-2, 2),
+        0, this.grid.cols - 1
+      );
+      tR = Phaser.Math.Clamp(
+        this.scene.player.row + Phaser.Math.Between(-2, 2),
+        0, this.grid.rows - 1
+      );
+      attempts++;
+    } while (
+      attempts < 10 &&
+      ((tC === this.scene.player.col && tR === this.scene.player.row) ||
+        this.grid.hasChestAt(tC, tR) ||
+        this.grid.hasRubyAt(tC, tR) ||
+        this.grid.hasDiamondAt(tC, tR) ||
+        this.grid.hasBawangAt(tC, tR))
+    );
+
+    // Spawn the chest
+    this.grid.spawnChest(tC, tR);
   }
 
   takeDamage() {
@@ -1859,6 +2086,10 @@ R8: P P P P P P P P P
     let currentSpawnTime = 1100;
     let maxAttackDuration = currentSpawnTime;
 
+    // Play water splash sound at start of explosion sequence
+    const splashVariant = Phaser.Math.Between(1, 3);
+    audioManager.play(`ch3_water_splash${splashVariant === 1 ? '' : '_' + splashVariant}`, { volume: 0.75 });
+
     steps.forEach((step) => {
       let telegraphTime = currentSpawnTime - 1100;
       if (telegraphTime < 0) telegraphTime = 0;
@@ -1896,6 +2127,11 @@ R8: P P P P P P P P P
             const exp = this.scene.add.sprite(pix.x, pix.y, animKey.replace('anim_', ''))
               .setDepth(60).setDisplaySize(ts * this._mobileScale(scaleMultiplier), ts * this._mobileScale(scaleMultiplier)).play(animKey);
             exp.once('animationcomplete', () => exp.destroy());
+            // Play voltaic blast sound for each explosion visual
+            if (index % 4 === 0) {
+              const blastVariant = Phaser.Math.Between(1, 2);
+              audioManager.play(`ch3_voltaic_blast${blastVariant === 1 ? '' : '_' + blastVariant}`, { volume: 0.7 });
+            }
           });
         });
       });
@@ -2228,6 +2464,9 @@ R8: . . . . Y . . . .
     const midY   = this.grid.getPixelPosition(0, Math.floor(this.grid.rows / 2)).y;
     const fkSize = ts * this._mobileScale(5);
 
+    // Play underwater ambiance at start
+    audioManager.play('ch3_underwater', { volume: 0.7 });
+
     this._spawnSmoke(edgeX, midY, () => {
       if (this.hp <= 0 || this.scene.isGameOver) return;
       const king = this.scene.add.sprite(edgeX, midY, 'ch3_fishking_idle')
@@ -2248,6 +2487,8 @@ R8: . . . . Y . . . .
 
           if (spellIndex === 0) {
             // Dark Bolt: 15-20 random tiles, now with clear telegraphs
+            // Play spell cast sound for dark bolt phase
+            audioManager.play('ch3_spell_cast', { volume: 0.75 });
             const count = Phaser.Math.Between(15, 20);
             for (let i = 0; i < count; i++) {
               this.scene.time.delayedCall(i * 200, () => {
@@ -2259,6 +2500,11 @@ R8: . . . . Y . . . .
                   if (this.hp <= 0 || this.scene.isGameOver || !this.scene.player) return;
                   const p = this.grid.getPixelPosition(c, r);
                   const spr = this.scene.add.sprite(p.x, p.y, 'ch3_darkbolt').setDepth(50).setScale(1.5).play('anim_ch3_darkbolt');
+                  // Play electric hit sound on each dark bolt
+                  if (i % 3 === 0) {
+                    const electricVariant = Phaser.Math.Between(1, 2);
+                    audioManager.play(`ch3_electric_hit${electricVariant === 1 ? '' : '_' + electricVariant}`, { volume: 0.6 });
+                  }
                   if (this.scene.player.col === c && this.scene.player.row === r) {
                     this.scene.player.takeDamage();
                   }
@@ -2269,6 +2515,8 @@ R8: . . . . Y . . . .
 
           } else if (spellIndex === 1) {
             // Fire Bomb: 4 bombs each hitting 3x3 area (non-overlapping)
+            // Play energy noise for fire bomb phase
+            audioManager.play('ch3_energy_noise', { volume: 0.8 });
             const bombCenters = [];
             let attempts = 0;
             while (bombCenters.length < 4 && attempts < 100) {
@@ -2304,6 +2552,9 @@ R8: . . . . Y . . . .
                   const spr = this.scene.add.sprite(p.x, p.y, 'ch3_firebomb')
                     .setDepth(55).setDisplaySize(ts * this._mobileScale(3), ts * this._mobileScale(3)).play('anim_ch3_firebomb');
                   this.scene.cameras.main.shake(150, 0.018);
+                  // Play pyro burst sound for fire bomb explosion
+                  const pyroVariant = Phaser.Math.Between(1, 2);
+                  audioManager.play(`ch3_pyro_burst${pyroVariant === 1 ? '' : '_' + pyroVariant}`, { volume: 0.85 });
                   
                   // Damage player if in 3x3
                   const pRow = this.scene.player.row;
@@ -2319,6 +2570,8 @@ R8: . . . . Y . . . .
             
           } else if (spellIndex === 2) {
             // Lightning: checkerboard half board with telegraphs
+            // Play wet electricity sound for lightning phase
+            audioManager.play('ch3_wet_electricity', { volume: 0.8 });
             const startC = Phaser.Math.Between(0, Math.floor(this.grid.cols / 2));
             const startR = Phaser.Math.Between(0, Math.floor(this.grid.rows / 2));
             const cells = [];
@@ -2331,6 +2584,9 @@ R8: . . . . Y . . . .
             }
             this.scene.time.delayedCall(1200, () => {
                if (this.hp <= 0 || this.scene.isGameOver || !this.scene.player) return;
+               // Play shimmer electric sound for lightning strike
+               const shimmerVariant = Phaser.Math.Between(1, 2);
+               audioManager.play(`ch3_shimmer_electric${shimmerVariant === 1 ? '' : '_' + shimmerVariant}`, { volume: 0.9 });
                cells.forEach(({c,r}) => {
                   const p = this.grid.getPixelPosition(c, r);
                   const spr = this.scene.add.sprite(p.x, p.y, 'ch3_lightning').setDepth(50).setScale(ts / 64).play('anim_ch3_lightning');
@@ -2343,6 +2599,8 @@ R8: . . . . Y . . . .
 
           } else if (spellIndex === 3) {
             // Spark: ball rolling left→right on 3 random rows, 3x3 in size (FASTER)
+            // Play skill release sound for spark phase
+            audioManager.play('ch3_skill_release', { volume: 0.75 });
             const rows = [];
             while (rows.length < 3) {
               const r = Phaser.Math.Between(1, this.grid.rows - 2);
@@ -2405,6 +2663,9 @@ R8: . . . . Y . . . .
     const ts = this.grid.tileSize;
     const rows = this.grid.rows;
 
+    // Play water splash sound at start
+    audioManager.play('ch3_water_splash_2', { volume: 0.8 });
+
     // Leave 2 safe rows for player to dodge
     const safeRows = new Set();
     while (safeRows.size < 2) {
@@ -2425,6 +2686,9 @@ R8: . . . . Y . . . .
       this.scene.time.delayedCall(1200 + row * 100, () => {
         this._spawnSmoke(idleX, idleY, () => {
           if (this.hp <= 0 || this.scene.isGameOver) return;
+          // Play fish swish sound when shark spawns
+          const swishVariant = Phaser.Math.Between(1, 2);
+          audioManager.play(`ch3_fish_swish${swishVariant === 1 ? '' : '_' + swishVariant}`, { volume: 0.7 });
           const shark = this.scene.add.sprite(idleX, idleY, 'ch3_shark_walk')
             .setDepth(40)
             .setFlipX(true)
@@ -2462,6 +2726,9 @@ R8: . . . . Y . . . .
   ch3JellyfishCurtain() {
     const ts = this.grid.tileSize;
 
+    // Play bubble pop sound at start
+    audioManager.play('ch3_bubble_pop', { volume: 0.75 });
+
     // 2 jellyfish, each covers a 3-column section
     const usedStarts = new Set();
     const laneStarts = [];
@@ -2485,6 +2752,8 @@ R8: . . . . Y . . . .
       this.scene.time.delayedCall(1200, () => {
         this._spawnSmoke(startX, startY, () => {
           if (this.hp <= 0 || this.scene.isGameOver) return;
+          // Play bubbly passby sound when jellyfish appears
+          audioManager.play('ch3_bubbly_passby', { volume: 0.7 });
           const jelly = this.scene.add.sprite(startX, startY, 'ch3_jelly_walk')
             .setDepth(35).setDisplaySize(ts * 3, ts * 3).play('anim_ch3_jelly_walk'); // 3 columns wide
 
@@ -2517,6 +2786,9 @@ R8: . . . . Y . . . .
     const ts = this.grid.tileSize;
     const nemoSize = ts * 1.5;
 
+    // Play bubbly resonance sound at start
+    audioManager.play('ch3_bubbly_resonance', { volume: 0.7 });
+
     const availableRows = Array.from({length: this.grid.rows}, (_, i) => i);
     Phaser.Utils.Array.Shuffle(availableRows);
 
@@ -2529,6 +2801,10 @@ R8: . . . . Y . . . .
 
           this.scene.time.delayedCall(1200 + i * 800, () => {
              if (this.hp <= 0 || this.scene.isGameOver) return;
+
+             // Play fish swish sound for each nemo spawn
+             const swishVariant = Phaser.Math.Between(1, 2);
+             audioManager.play(`ch3_fish_swish${swishVariant === 1 ? '' : '_' + swishVariant}`, { volume: 0.6 });
 
              const nemo = this.scene.add.sprite(startX, startY, 'ch3_nemo_swim')
                .setDepth(45).setDisplaySize(nemoSize, nemoSize).play('anim_ch3_nemo');
@@ -2594,7 +2870,10 @@ R8: . . . . Y . . . .
   ch3BatDiveBomb() {
     const ts = this.grid.tileSize;
     const batSize = ts * this._mobileScale(2.5);
-    
+
+    // Play electric hit sound at start
+    audioManager.play('ch3_electric_hit', { volume: 0.8 });
+
     // Entrance flash only - reduced shake
     this.scene.cameras.main.flash(400, 80, 0, 120);
     this.scene.cameras.main.shake(100, 0.01);
@@ -2643,6 +2922,9 @@ R8: . . . . Y . . . .
             const lightning = this.scene.add.sprite(pix.x, pix.y - 300, 'lightning_burst')
               .setDepth(68).setScale(this._mobileScale(2)).play('anim_lightning_burst');
             this.scene.time.delayedCall(400, () => lightning.destroy());
+            // Play laser electric zap for bat dive
+            const zapVariant = Phaser.Math.Between(1, 2);
+            audioManager.play(`ch3_laser_electric_zap${zapVariant === 1 ? '' : '_' + zapVariant}`, { volume: 0.7 });
 
             const bat = this.scene.add.sprite(pix.x, pix.y - 500, 'ch3_bat_fly')
               .setDepth(70).setDisplaySize(batSize, batSize).play('anim_ch3_bat_fly');
@@ -2656,7 +2938,10 @@ R8: . . . . Y . . . .
                 bat.play('anim_ch3_bat_hit');
                 // Reduced shake
                 this.scene.cameras.main.shake(80, 0.01);
-                
+                // Play hit sound on bat impact
+                const hitVariant = Phaser.Math.Between(1, 2);
+                audioManager.play(`ch3_hit_fleeting${hitVariant === 1 ? '' : '_' + hitVariant}`, { volume: 0.75 });
+
                 // Impact FX - lightning only (no smoke)
                 const impactLightning = this.scene.add.sprite(pix.x, pix.y, 'lightning_burst')
                   .setDepth(72).setScale(this._mobileScale(1.5)).play('anim_lightning_burst');
@@ -2704,7 +2989,10 @@ R8: . . . . Y . . . .
   // ─── ATTACK 7: Prismatic Beam Storm ─────────────────────────────
   ch3PrismaticBeamStorm() {
     const ts = this.grid.tileSize;
-    
+
+    // Play beam charge sound at start
+    audioManager.play('ch3_beam_charge', { volume: 0.8 });
+
     // Entrance flash
     this.scene.cameras.main.flash(400, 100, 0, 150);
     this.scene.cameras.main.shake(80, 0.008);
@@ -2751,7 +3039,11 @@ R8: . . . . Y . . . .
           
           this.scene.time.delayedCall(500, () => {
             if (this.hp <= 0 || this.scene.isGameOver) return;
-            
+
+            // Play laser shot sound when beam fires
+            const laserVariant = Phaser.Math.Between(1, 2);
+            audioManager.play(`ch3_laser_shot${laserVariant === 1 ? '' : '_' + laserVariant}`, { volume: 0.75 });
+
             // Spawn beam based on direction
             let beam, startX, startY, endX, endY, angle;
             const speed = 1400; // Beam travel duration
@@ -2799,7 +3091,11 @@ R8: . . . . Y . . . .
             const explosion = this.scene.add.sprite(pix.x, pix.y, 'ch3_light_showers')
               .setDepth(16).setScale(this._mobileScale(1.5)).play('anim_ch3_light_showers');
             this.scene.time.delayedCall(800, () => explosion.destroy());
-            
+
+            // Play skill impact sound on explosion
+            const impactVariant = Phaser.Math.Between(1, 2);
+            audioManager.play(`ch3_skill_impact${impactVariant === 1 ? '' : '_' + impactVariant}`, { volume: 0.7 });
+
             // Camera shake on explosion
             this.scene.cameras.main.shake(60, 0.005);
             
@@ -3016,6 +3312,9 @@ R8: . . . . Y . . . .
     // Spawn ON the first row, not off grid
     const pix = this.grid.getPixelPosition(mc, 0);
 
+    // Play shimmer tone sound at start
+    audioManager.play('ch3_shimmer_tone', { volume: 0.85 });
+
     this._spawnSmoke(pix.x, pix.y, () => {
       if (this.hp <= 0 || this.scene.isGameOver) return;
       
@@ -3059,6 +3358,9 @@ R8: . . . . Y . . . .
       // Function to play attack animation during beam attacks
       const playAttackAnim = () => {
         siren.play('anim_ch3_siren1_attack');
+        // Play critical strike sound on attack
+        const critVariant = Phaser.Math.Between(1, 2);
+        audioManager.play(`ch3_critical_strike${critVariant === 1 ? '' : '_' + critVariant}`, { volume: 0.75 });
         siren.once('animationcomplete', () => {
           siren.play('anim_ch3_siren1_walk');
         });
@@ -3067,6 +3369,9 @@ R8: . . . . Y . . . .
       // Flashy entrance effects
       this.scene.cameras.main.flash(500, 255, 0, 200);
       this.scene.cameras.main.shake(300, 0.02);
+
+      // Play spell cast sound for entrance
+      audioManager.play('ch3_spell_cast', { volume: 0.8 });
       
       // BIG TEXT: "SIREN'S KISS" with subtext that fades out with giga saturn font
       const centerX = this.grid.getPixelPosition(Math.floor(this.grid.cols / 2), Math.floor(this.grid.rows / 2)).x;
@@ -3759,6 +4064,9 @@ R8: . . . . Y . . . .
     const rows = this.grid.rows;
     const scene = this.scene;
 
+    // Play monster summon sound at start
+    audioManager.play('ch3_monster_summon', { volume: 0.85 });
+
     // Flashy intro - screen shake and flash
     scene.cameras.main.shake(600, 0.025);
     scene.cameras.main.flash(600, 50, 0, 100, true);
@@ -3810,6 +4118,9 @@ R8: . . . . Y . . . .
       // Spawn this wave after telegraph
       scene.time.delayedCall(waveIndex * waveDelay + telegraphDuration, () => {
         scene.cameras.main.shake(150 + waveIndex * 50, 0.015 + waveIndex * 0.005);
+        // Play monster step sound for each wave
+        const stepVariant = Phaser.Math.Between(1, 2);
+        audioManager.play(`ch3_monster_step${stepVariant === 1 ? '' : '_' + stepVariant}`, { volume: 0.75 });
         validWave.forEach(pos => {
           this._spawnBigMonsterOnGrid(pos.c, pos.r, ts);
         });
@@ -3856,6 +4167,9 @@ R8: . . . . Y . . . .
     const cols = this.grid.cols;
     const rows = this.grid.rows;
     const scene = this.scene;
+
+    // Play teleport sound at start
+    audioManager.play('ch3_teleport', { volume: 0.8 });
 
     // Beautiful intro - slow dramatic build (minimal shake)
     scene.cameras.main.shake(400, 0.008);
@@ -3927,6 +4241,11 @@ R8: . . . . Y . . . .
       // Spawn this wave's monsters (gentle shake)
       scene.time.delayedCall(waveIndex * waveDelay + telegraphDuration, () => {
         scene.cameras.main.shake(80, 0.006);
+        // Play shimmer tone for each wave spawn
+        if (waveIndex % 2 === 0) {
+          const shimmerVariant = Phaser.Math.Between(1, 2);
+          audioManager.play(`ch3_shimmer_tone${shimmerVariant === 1 ? '' : '_' + shimmerVariant}`, { volume: 0.6 });
+        }
         wave.forEach((pos, idx) => {
           scene.time.delayedCall(idx * 80, () => {
             this._spawnAbyssalMonster(pos.c, pos.r, ts, waveColors[waveIndex % waveColors.length]);
@@ -3956,6 +4275,8 @@ R8: . . . . Y . . . .
     });
 
     scene.time.delayedCall(finaleDelay + 500, () => {
+      // Play monster summon for finale
+      audioManager.play('ch3_monster_summon_2', { volume: 0.8 });
       edgePositions.forEach(pos => {
         this._spawnAbyssalMonster(pos.c, pos.r, ts, 0xffffff);
       });
@@ -4002,6 +4323,9 @@ R8: . . . . Y . . . .
     const rows = this.grid.rows;
     const duration = 15000; // 15 seconds
 
+    // Play eruption sound for ultimate intro
+    audioManager.play('ch3_eruption', { volume: 0.9 });
+
     // ── BIG dramatic intro ──
     scene.cameras.main.shake(800, 0.035);
     scene.cameras.main.flash(1000, 0, 80, 200, true);
@@ -4046,6 +4370,12 @@ R8: . . . . Y . . . .
         .setAlpha(0)
         .play('anim_ch3_water_beam');
 
+      // Play beam fire sound (rate limited)
+      if (fireCount % 3 === 0) {
+        const beamVariant = Phaser.Math.Between(1, 2);
+        audioManager.play(`ch3_beam_fire${beamVariant === 1 ? '' : '_' + beamVariant}`, { volume: 0.6 });
+      }
+
       // Fade in + subtle pulsing glow
       scene.tweens.add({ targets: fire, alpha: 0.9, duration: 150 });
       scene.tweens.add({
@@ -4067,6 +4397,8 @@ R8: . . . . Y . . . .
 
     // Clear all fires with explosion FX
     const clearAllFires = () => {
+      // Play energy dissipate sound when clearing fires
+      audioManager.play('ch3_energy_dissipate', { volume: 0.8 });
       fireMap.forEach(entry => {
         if (entry.sprite.active) {
           const pos = { x: entry.sprite.x, y: entry.sprite.y };

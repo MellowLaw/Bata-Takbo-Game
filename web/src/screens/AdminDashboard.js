@@ -310,6 +310,17 @@ export const AdminDashboard = {
         </div>
       </div>
 
+      <div class="settings-group" style="animation: fadeInUp 0.3s ease 0.12s forwards; margin-top: var(--space-md); opacity: 0;">
+        <h3 style="color: var(--accent-orange); margin-bottom: var(--space-xs);">Test Loot Items</h3>
+        <p style="color:var(--text-dim);font-size:var(--text-xs);margin-bottom:var(--space-md);">Test chests, power-ups, and healing items.</p>
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-sm);">
+          <button class="admin-action-btn" data-action="test-chests" style="border-color: #ffaa00; color: #ffaa00;">Test Chests (Power-ups)</button>
+          <button class="admin-action-btn" data-action="test-bawang" style="border-color: #ff4444; color: #ff4444;">Test Bawang (Lives Up)</button>
+          <button class="admin-action-btn" data-action="test-lives-fx" style="border-color: #00ff00; color: #00ff00;">Test Lives Up FX</button>
+          <button class="admin-action-btn" data-action="test-all-loot" style="border-color: var(--accent-gold); color: var(--accent-gold);">Test ALL Loot</button>
+        </div>
+      </div>
+
       <div class="settings-group" style="animation: fadeInUp 0.3s ease 0.15s forwards; margin-top: var(--space-md); opacity: 0;">
         <h3 style="color: var(--accent-orange); margin-bottom: var(--space-xs);">Chapter 3 Attack Testing</h3>
         <p style="color:var(--text-dim);font-size:var(--text-xs);margin-bottom:var(--space-md);">Test individual attacks for polishing. Launches Chapter 3 in test mode.</p>
@@ -546,6 +557,18 @@ export const AdminDashboard = {
         break;
       case 'god-mode':
         this._launchTestMode({ mode: 'god_mode', chapterId: 1, invincible: true });
+        break;
+      case 'test-chests':
+        this._launchTestMode({ mode: 'test_loot', chapterId: 1, invincible: true, testChests: true });
+        break;
+      case 'test-bawang':
+        this._launchTestMode({ mode: 'test_loot', chapterId: 1, invincible: true, testBawang: true });
+        break;
+      case 'test-lives-fx':
+        this._launchTestMode({ mode: 'test_loot', chapterId: 1, invincible: true, testLivesFx: true });
+        break;
+      case 'test-all-loot':
+        this._launchTestMode({ mode: 'test_loot', chapterId: 1, invincible: true, testChests: true, testBawang: true, testLivesFx: true });
         break;
       case 'test-ch3-0':
         this._launchTestMode({ mode: 'test_attack', chapterId: 3, attackId: 0, invincible: true });

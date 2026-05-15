@@ -9,6 +9,10 @@ class AudioManager {
     this.volume = 1.0;
     this.muted = false;
     this.initialized = false;
+    this.playerGender = null;
+    // VO cooldown tracking to prevent overlapping
+    this._voLastPlayed = 0;
+    this._voCooldownMs = 8000; // 8 second cooldown between VO lines
   }
 
   /**
@@ -36,12 +40,136 @@ class AudioManager {
       this.scene.sound.volume = this.muted ? 0 : this.volume;
       if (this.currentMusic) {
         try {
-          this.currentMusic.setVolume(this.muted ? 0 : this.volume * 0.4);
+          this.currentMusic.setVolume(this.muted ? 0 : this.volume * 0.25); // Lower BGM for clearer VO
         } catch (e) {
           console.warn('[AudioManager] currentMusic reference was dead, clearing it.');
           this.currentMusic = null;
         }
       }
+    }
+  }
+
+  /**
+   * Load player voice over files based on gender
+   * @param {Phaser.Scene} scene - The game scene to load into
+   * @param {string} gender - 'male' or 'female'
+   */
+  loadPlayerVO(scene, gender) {
+    const voBasePath = '/assets/audio';
+
+    if (gender === 'male') {
+      // Male VO files - organized by chapter relevance
+      scene.load.audio('vo_male_mananaggal_ex1', `${voBasePath}/Male VO/mananagngal ex1.mp3`);
+      scene.load.audio('vo_male_bungisngis_ex1', `${voBasePath}/Male VO/bungisngis ex1.mp3`);
+      scene.load.audio('vo_male_kataw_ex1', `${voBasePath}/Male VO/kataw ex1.mp3`);
+      scene.load.audio('vo_male_ang_sabi', `${voBasePath}/Male VO/ang sabi ng mamatanda.mp3`);
+      scene.load.audio('vo_male_bulaklak', `${voBasePath}/Male VO/bulaklak.mp3`);
+      scene.load.audio('vo_male_hindi_laging', `${voBasePath}/Male VO/hindi laging ukang halimaw.mp3`);
+      scene.load.audio('vo_male_may_dumaan', `${voBasePath}/Male VO/may dumaaan na hindi tao.mp3`);
+      scene.load.audio('vo_male_wag_titingala', `${voBasePath}/Male VO/wag kang titingala.mp3`);
+      scene.load.audio('vo_male_wag_sagutin', `${voBasePath}/Male VO/wag sagutin ang boses.mp3`);
+    } else if (gender === 'female') {
+      // Female VO files - organized by chapter relevance
+      scene.load.audio('vo_female_mananaggal_ay', `${voBasePath}/Female VO/ang manananggal daw ay.mp3`);
+      scene.load.audio('vo_female_mananaggal_sa', `${voBasePath}/Female VO/ang manananggal sa.mp3`);
+      scene.load.audio('vo_female_bungisngis', `${voBasePath}/Female VO/ang bungisngis daw.mp3`);
+      scene.load.audio('vo_female_kumanta_tubig', `${voBasePath}/Female VO/kapag may kumanta sa tubig.mp3`);
+      scene.load.audio('vo_female_akala', `${voBasePath}/Female VO/akala namin.mp3`);
+      scene.load.audio('vo_female_ang_aswang', `${voBasePath}/Female VO/ang aswang daw.mp3`);
+      scene.load.audio('vo_female_ang_sabi_matatanda', `${voBasePath}/Female VO/ang sabi ng matatanda.mp3`);
+      scene.load.audio('vo_female_ang_sabi_nila', `${voBasePath}/Female VO/ang sabi nila.mp3`);
+      scene.load.audio('vo_female_sabi_sayo_baryo', `${voBasePath}/Female VO/ang sabi sabi sa baryo.mp3`);
+      scene.load.audio('vo_female_at_ngayong_gabi', `${voBasePath}/Female VO/at ngayong gabi.mp3`);
+      scene.load.audio('vo_female_may_dumadaan', `${voBasePath}/Female VO/may dumadaan na hindi tao.mp3`);
+      scene.load.audio('vo_female_may_mga_gabing', `${voBasePath}/Female VO/may mga gabing.mp3`);
+      scene.load.audio('vo_female_may_mga_pangalan', `${voBasePath}/Female VO/may mga pangalan.mp3`);
+    }
+
+    // Store gender for later use
+    this.playerGender = gender;
+  }
+
+  /**
+   * Play a random player voice over line
+   * @param {number} chapterId - The current chapter (1, 2, or 3)
+   * @param {Object} options - Playback options
+   * @param {number} options.volume - Volume (0-1), default 1.0
+   * @param {boolean} options.forceGeneric - Force generic line instead of chapter-specific
+   * @param {boolean} options.bypassCooldown - Skip the cooldown check (for important moments like death)
+   */
+  playRandomPlayerVO(chapterId, options = {}) {
+    if (!this.playerGender) return;
+
+    // Check cooldown to prevent VO overlap (unless bypassed)
+    const now = Date.now();
+    if (!options.bypassCooldown && now - this._voLastPlayed < this._voCooldownMs) {
+      return; // Still in cooldown, skip this VO
+    }
+
+    const volume = options.volume !== undefined ? options.volume : 1.0; // Higher default volume for clarity
+    const forceGeneric = options.forceGeneric || false;
+
+    let voKeys = [];
+
+    if (this.playerGender === 'male') {
+      // Chapter-specific lines (30% chance unless forced generic)
+      if (!forceGeneric && Math.random() < 0.3) {
+        if (chapterId === 1) {
+          voKeys = ['vo_male_mananaggal_ex1'];
+        } else if (chapterId === 2) {
+          voKeys = ['vo_male_bungisngis_ex1'];
+        } else if (chapterId === 3) {
+          voKeys = ['vo_male_kataw_ex1'];
+        }
+      }
+
+      // Generic lines (used if no chapter-specific or 70% of the time)
+      if (voKeys.length === 0) {
+        voKeys = [
+          'vo_male_ang_sabi',
+          'vo_male_bulaklak',
+          'vo_male_hindi_laging',
+          'vo_male_may_dumaan',
+          'vo_male_wag_titingala',
+          'vo_male_wag_sagutin'
+        ];
+      }
+    } else {
+      // Female VO
+      // Chapter-specific lines (30% chance unless forced generic)
+      if (!forceGeneric && Math.random() < 0.3) {
+        if (chapterId === 1) {
+          voKeys = ['vo_female_mananaggal_ay', 'vo_female_mananaggal_sa'];
+        } else if (chapterId === 2) {
+          voKeys = ['vo_female_bungisngis'];
+        } else if (chapterId === 3) {
+          voKeys = ['vo_female_kumanta_tubig'];
+        }
+      }
+
+      // Generic lines
+      if (voKeys.length === 0) {
+        voKeys = [
+          'vo_female_akala',
+          'vo_female_ang_aswang',
+          'vo_female_ang_sabi_matatanda',
+          'vo_female_ang_sabi_nila',
+          'vo_female_sabi_sayo_baryo',
+          'vo_female_at_ngayong_gabi',
+          'vo_female_may_dumadaan',
+          'vo_female_may_mga_gabing',
+          'vo_female_may_mga_pangalan'
+        ];
+      }
+    }
+
+    // Pick random line from available keys
+    const randomKey = voKeys[Math.floor(Math.random() * voKeys.length)];
+
+    if (this.scene && this.scene.cache.audio.exists(randomKey)) {
+      this.play(randomKey, { volume });
+      // Update last played time to enforce cooldown
+      this._voLastPlayed = Date.now();
     }
   }
 
@@ -64,7 +192,15 @@ class AudioManager {
     } else if (chapterId === 3) {
       scene.load.audio('bg_music', `${bgmPath}/chapter-3-bg.mp3`);
     }
-    
+
+    // Shared loot SFX (all chapters)
+    // Bawang (Garlic/Lives Up) - magical buff sounds
+    scene.load.audio('bawang_spawn', `${basePath}/MAGAngl_BUFF-Buff Drop_HY_PC-001.wav`);
+    scene.load.audio('bawang_pickup', `${basePath}/MAGAngl_BUFF-Buff Pickup_HY_PC-001.wav`);
+    // Chest loot - treasure/power-up sounds
+    scene.load.audio('chest_spawn', `${basePath}/DSGNMisc_MOVEMENT-Treasure Appear_HY_PC-001.wav`);
+    scene.load.audio('chest_pickup', `${basePath}/DSGNMisc_INTERACTION-Treasure Open_HY_PC-001.wav`);
+
     // Chapter 1: Blood/Gore/Dark (Manananggal) — also chapter 4 (INF mode)
     if (chapterId === 1 || chapterId === 4) {
       scene.load.audio('ch1_blood_crunch', `${basePath}/DSGNImpt_EXPLOSION-Cruncher_HY_PC-001.wav`);
@@ -83,28 +219,195 @@ class AudioManager {
       scene.load.audio('ch1_volley_burst', `${basePath}/DSGNImpt_EXPLOSION-Crunchy Burst_HY_PC-004.wav`);
       scene.load.audio('ch1_vortex_spawn', `${basePath}/DSGNMisc_MOVEMENT-Mecha Large Takeoff_HY_PC-001.wav`);
       scene.load.audio('ch1_vortex_pull', `${basePath}/DSGNMisc_MOVEMENT-Noise Sweeper_HY_PC-001.wav`);
+      // Ultimate attack SFX
+      scene.load.audio('ch1_ultimate', `${bgmPath}/chapter1_ultimate.mp3`);
     }
     
-    // Chapter 2: Nature/Plant (Bungisngis)
+    // Chapter 2: Nature/Plant (Bungisngis) - COMPREHENSIVE SFX SET
     if (chapterId === 2) {
+      // Bee Swarm - Flying/movement sounds
       scene.load.audio('ch2_bee_swarm', `${basePath}/DSGNMisc_MOVEMENT-Bats Flying_HY_PC-001.wav`);
+      scene.load.audio('ch2_bee_swarm_2', `${basePath}/DSGNMisc_MOVEMENT-Bats Flying_HY_PC-002.wav`);
+      scene.load.audio('ch2_bee_swarm_3', `${basePath}/DSGNMisc_MOVEMENT-Bats Flying_HY_PC-003.wav`);
+
+      // Bubbly/Nature projectiles
       scene.load.audio('ch2_bubbly_shot', `${basePath}/DSGNMisc_PROJECTILE-Bubbly Wubbly_HY_PC-001.wav`);
+      scene.load.audio('ch2_bubbly_shot_2', `${basePath}/DSGNMisc_PROJECTILE-Bubbly Wubbly_HY_PC-002.wav`);
+      scene.load.audio('ch2_click_bubbly', `${basePath}/DSGNMisc_PROJECTILE-Clicky Bubbly_HY_PC-001.wav`);
+
+      // Nature Magic & Casting
       scene.load.audio('ch2_nature_magic', `${basePath}/MAGSpel_CAST-Birdsong_HY_PC-001.wav`);
+      scene.load.audio('ch2_nature_magic_2', `${basePath}/MAGSpel_CAST-Birdsong_HY_PC-002.wav`);
+      scene.load.audio('ch2_nature_summon', `${basePath}/MAGSpel_CAST-Sharp Summon_HY_PC-001.wav`);
+      scene.load.audio('ch2_nature_summon_2', `${basePath}/MAGSpel_CAST-Sharper Summon_HY_PC-001.wav`);
+
+      // Wind/Gust effects
       scene.load.audio('ch2_wind_gust', `${basePath}/MAGAngl_BUFF-Healing Gusts_HY_PC-001.wav`);
+      scene.load.audio('ch2_wind_gust_2', `${basePath}/MAGAngl_BUFF-Healing Gusts_HY_PC-002.wav`);
+      scene.load.audio('ch2_wind_gust_3', `${basePath}/MAGAngl_BUFF-Shimmering Winds_HY_PC-001.wav`);
+
+      // Acid/Slime effects
       scene.load.audio('ch2_acid_spit', `${basePath}/DSGNMisc_CAST-Slime Ball_HY_PC-001.wav`);
+      scene.load.audio('ch2_acid_spit_2', `${basePath}/DSGNMisc_CAST-Slime Ball_HY_PC-002.wav`);
+      scene.load.audio('ch2_acid_spit_3', `${basePath}/DSGNMisc_CAST-Slime Ball_HY_PC-003.wav`);
+      scene.load.audio('ch2_acid_splat', `${basePath}/DSGNImpt_EXPLOSION-Sand Impact_HY_PC-001.wav`);
+      scene.load.audio('ch2_acid_splat_2', `${basePath}/DSGNImpt_EXPLOSION-Sand Impact_HY_PC-002.wav`);
+
+      // Plant Growth & Nature Spawns
       scene.load.audio('ch2_plant_grow', `${basePath}/MAGSpel_CAST-Growing Strength_HY_PC-001.wav`);
+      scene.load.audio('ch2_plant_grow_2', `${basePath}/MAGSpel_CAST-Growing Strength_HY_PC-002.wav`);
+      scene.load.audio('ch2_plant_pop', `${basePath}/MAGSpel_CAST-Critter Transformation_HY_PC-001.wav`);
+      scene.load.audio('ch2_plant_pop_2', `${basePath}/MAGSpel_CAST-Critter Transformation_HY_PC-002.wav`);
+
+      // Vine/Plant swish & movement
       scene.load.audio('ch2_vine_swish', `${basePath}/SWSH_MOVEMENT-Bamboo Whip_HY_PC-001.wav`);
+      scene.load.audio('ch2_vine_swish_2', `${basePath}/SWSH_MOVEMENT-Bamboo Whip_HY_PC-002.wav`);
+      scene.load.audio('ch2_vine_swish_3', `${basePath}/SWSH_MOVEMENT-Bamboo Whip_HY_PC-003.wav`);
+      scene.load.audio('ch2_vine_swish_4', `${basePath}/SWSH_MOVEMENT-Reso Swish_HY_PC-001.wav`);
+
+      // Explosion/Burst effects (for eggs, golems)
+      scene.load.audio('ch2_nature_burst', `${basePath}/DSGNImpt_EXPLOSION-Grainy Burst_HY_PC-001.wav`);
+      scene.load.audio('ch2_nature_burst_2', `${basePath}/DSGNImpt_EXPLOSION-Grainy Burst_HY_PC-002.wav`);
+      scene.load.audio('ch2_nature_burst_3', `${basePath}/DSGNImpt_EXPLOSION-Crunchy Burst_HY_PC-002.wav`);
+      scene.load.audio('ch2_egg_crack', `${basePath}/DSGNImpt_EXPLOSION-Crunching_HY_PC-001.wav`);
+      scene.load.audio('ch2_egg_crack_2', `${basePath}/DSGNImpt_EXPLOSION-Crunching_HY_PC-002.wav`);
+
+      // Golem/Earth effects
+      scene.load.audio('ch2_golem_step', `${basePath}/DSGNImpt_EXPLOSION-Thud_HY_PC-001.wav`);
+      scene.load.audio('ch2_golem_step_2', `${basePath}/DSGNImpt_EXPLOSION-Thud_HY_PC-002.wav`);
+      scene.load.audio('ch2_golem_quake', `${basePath}/DSGNImpt_EXPLOSION-Eruption_HY_PC-001.wav`);
+      scene.load.audio('ch2_earth_rumble', `${basePath}/DSGNMisc_CAST-Mecha Vibration_HY_PC-001.wav`);
+
+      // Note/Music effects (for golem quake notes)
+      scene.load.audio('ch2_note_hit', `${basePath}/DSGNTonl_SKILL IMPACT-Retro Laser 1_HY_PC-001.wav`);
+      scene.load.audio('ch2_note_hit_2', `${basePath}/DSGNTonl_SKILL IMPACT-Retro Laser 2_HY_PC-001.wav`);
+      scene.load.audio('ch2_note_burst', `${basePath}/DSGNTonl_SKILL IMPACT-Energetic Impact_HY_PC-001.wav`);
+
+      // Ultimate attack SFX
+      scene.load.audio('ch2_ultimate', `${bgmPath}/chapter2_ultimate.mp3`);
+
+      // Bunny/Animal effects
+      scene.load.audio('ch2_bunny_hop', `${basePath}/DSGNMisc_MOVEMENT-Jump Sparkle_HY_PC-001.wav`);
+      scene.load.audio('ch2_bunny_hop_2', `${basePath}/DSGNMisc_MOVEMENT-Jump Sparkle_HY_PC-002.wav`);
+      scene.load.audio('ch2_bunny_land', `${basePath}/DSGNImpt_MELEE-Magic Kick_HY_PC-001.wav`);
+      scene.load.audio('ch2_bunny_land_2', `${basePath}/DSGNImpt_MELEE-Magic Kick_HY_PC-002.wav`);
+
+      // Pollen/Spore effects (for hibiscus)
+      scene.load.audio('ch2_pollen_burst', `${basePath}/DSGNMisc_SKILL IMPACT-Bubbly Zaps_HY_PC-001.wav`);
+      scene.load.audio('ch2_pollen_burst_2', `${basePath}/DSGNMisc_SKILL IMPACT-Bubbly Zaps_HY_PC-002.wav`);
+      scene.load.audio('ch2_spore_release', `${basePath}/DSGNTonl_SKILL RELEASE-Shimmery Bubbles_HY_PC-001.wav`);
+      scene.load.audio('ch2_flower_wobble', `${basePath}/DSGNMisc_MOVEMENT-Whimsy Chimes_HY_PC-001.wav`);
+
+      // Plant melee/snapping
+      scene.load.audio('ch2_snap', `${basePath}/DSGNMisc_MELEE-Sword Slash_HY_PC-001.wav`);
+      scene.load.audio('ch2_snap_2', `${basePath}/FGHTImpt_MELEE-Crunch Kick_HY_PC-001.wav`);
+      scene.load.audio('ch2_snap_3', `${basePath}/FGHTImpt_MELEE-Gut Kick_HY_PC-001.wav`);
+
+      // Projectile whoosh (for carrots, acid)
+      scene.load.audio('ch2_proj_whoosh', `${basePath}/DSGNMisc_MOVEMENT-Whoosh Sweep_HY_PC-001.wav`);
+      scene.load.audio('ch2_proj_whoosh_2', `${basePath}/DSGNMisc_MOVEMENT-Whoosh Sweep_HY_PC-002.wav`);
+      scene.load.audio('ch2_proj_fall', `${basePath}/DSGNMisc_MOVEMENT-Coin Whoosh_HY_PC-001.wav`);
+
+      // Impact/Hit sounds
+      scene.load.audio('ch2_nature_hit', `${basePath}/DSGNMisc_HIT-Hit Noise_HY_PC-001.wav`);
+      scene.load.audio('ch2_nature_hit_2', `${basePath}/DSGNMisc_HIT-Hit Rattle_HY_PC-001.wav`);
+      scene.load.audio('ch2_nature_hit_3', `${basePath}/DSGNMisc_HIT-Sweep Hit_HY_PC-001.wav`);
     }
     
-    // Chapter 3: Water/Sea (Kataw)
+    // Chapter 3: Water/Sea (Kataw) - COMPREHENSIVE SFX SET
     if (chapterId === 3) {
+      // Water splashes and movement
       scene.load.audio('ch3_water_splash', `${basePath}/DSGNMisc_MOVEMENT-Sparkly Water_HY_PC-001.wav`);
+      scene.load.audio('ch3_water_splash_2', `${basePath}/DSGNMisc_MOVEMENT-Sparkly Water_HY_PC-002.wav`);
+      scene.load.audio('ch3_water_splash_3', `${basePath}/DSGNMisc_MOVEMENT-Sparkly Water_HY_PC-003.wav`);
+      scene.load.audio('ch3_watery_laser', `${basePath}/DSGNMisc_MOVEMENT-Watery Laser_HY_PC-001.wav`);
+      scene.load.audio('ch3_watery_laser_2', `${basePath}/DSGNMisc_MOVEMENT-Watery Laser_HY_PC-002.wav`);
+
+      // Water bolts and projectiles
       scene.load.audio('ch3_water_bolt', `${basePath}/DSGNMisc_PROJECTILE-Water Bolt_HY_PC-001.wav`);
-      scene.load.audio('ch3_underwater', `${basePath}/MAGSpel_CAST-Underwater_HY_PC-001.wav`);
-      scene.load.audio('ch3_electric_hit', `${basePath}/DSGNImpt_EXPLOSION-Electric Hit_HY_PC-001.wav`);
-      scene.load.audio('ch3_water_laser', `${basePath}/DSGNMisc_MOVEMENT-Watery Laser_HY_PC-001.wav`);
+      scene.load.audio('ch3_water_bolt_2', `${basePath}/DSGNMisc_PROJECTILE-Water Bolt_HY_PC-002.wav`);
       scene.load.audio('ch3_bubble_pop', `${basePath}/DSGNMisc_PROJECTILE-Clicky Bubbly_HY_PC-001.wav`);
+      scene.load.audio('ch3_bubble_pop_2', `${basePath}/DSGNMisc_PROJECTILE-Clicky Bubbly_HY_PC-002.wav`);
       scene.load.audio('ch3_fish_swish', `${basePath}/DSGNMisc_MOVEMENT-Bubbly Laser Swish_HY_PC-001.wav`);
+      scene.load.audio('ch3_fish_swish_2', `${basePath}/DSGNMisc_MOVEMENT-Bubbly Laser Swish_HY_PC-002.wav`);
+
+      // Underwater ambiance and casting
+      scene.load.audio('ch3_underwater', `${basePath}/MAGSpel_CAST-Underwater_HY_PC-001.wav`);
+      scene.load.audio('ch3_underwater_2', `${basePath}/MAGSpel_CAST-Underwater_HY_PC-002.wav`);
+      scene.load.audio('ch3_wet_electricity', `${basePath}/MAGSpel_CAST-Wet Electricity_HY_PC-001.wav`);
+      scene.load.audio('ch3_wet_electricity_2', `${basePath}/MAGSpel_CAST-Wet Electricity_HY_PC-002.wav`);
+
+      // Electric effects
+      scene.load.audio('ch3_electric_hit', `${basePath}/DSGNImpt_EXPLOSION-Electric Hit_HY_PC-001.wav`);
+      scene.load.audio('ch3_electric_hit_2', `${basePath}/DSGNImpt_EXPLOSION-Electric Hit_HY_PC-002.wav`);
+      scene.load.audio('ch3_shimmer_electric', `${basePath}/DSGNImpt_EXPLOSION-Shimmer Electric_HY_PC-001.wav`);
+      scene.load.audio('ch3_shimmer_electric_2', `${basePath}/DSGNImpt_EXPLOSION-Shimmer Electric_HY_PC-002.wav`);
+      scene.load.audio('ch3_laser_electric_zap', `${basePath}/DSGNMisc_HIT-Laser Electric Zap_HY_PC-001.wav`);
+      scene.load.audio('ch3_laser_electric_zap_2', `${basePath}/DSGNMisc_HIT-Laser Electric Zap_HY_PC-002.wav`);
+
+      // Explosion and impact effects
+      scene.load.audio('ch3_voltaic_blast', `${basePath}/DSGNImpt_EXPLOSION-Voltaic Blast_HY_PC-001.wav`);
+      scene.load.audio('ch3_voltaic_blast_2', `${basePath}/DSGNImpt_EXPLOSION-Voltaic Blast_HY_PC-002.wav`);
+      scene.load.audio('ch3_eruption', `${basePath}/DSGNImpt_EXPLOSION-Eruption_HY_PC-001.wav`);
+      scene.load.audio('ch3_eruption_2', `${basePath}/DSGNImpt_EXPLOSION-Eruption_HY_PC-002.wav`);
+      scene.load.audio('ch3_pyro_burst', `${basePath}/DSGNImpt_EXPLOSION-Pyro Burst_HY_PC-001.wav`);
+      scene.load.audio('ch3_pyro_burst_2', `${basePath}/DSGNImpt_EXPLOSION-Pyro Burst_HY_PC-002.wav`);
+
+      // Fish/Sea creature movement
+      scene.load.audio('ch3_bubbly_laser_swish', `${basePath}/DSGNMisc_MOVEMENT-Bubbly Laser Swish_HY_PC-001.wav`);
+      scene.load.audio('ch3_bubbly_laser_swish_2', `${basePath}/DSGNMisc_MOVEMENT-Bubbly Laser Swish_HY_PC-002.wav`);
+      scene.load.audio('ch3_bubbly_passby', `${basePath}/SWSH_MOVEMENT-Bubbly Passby_HY_PC-001.wav`);
+      scene.load.audio('ch3_bubbly_resonance', `${basePath}/SWSH_MOVEMENT-Bubbly Resonance_HY_PC-001.wav`);
+
+      // Magic casting and spells
+      scene.load.audio('ch3_spell_cast', `${basePath}/MAGSpel_CAST-Zippy Particle_HY_PC-001.wav`);
+      scene.load.audio('ch3_spell_cast_2', `${basePath}/MAGSpel_CAST-Zippy Particle_HY_PC-002.wav`);
+      scene.load.audio('ch3_energy_noise', `${basePath}/MAGSpel_CAST-Energy Noise_HY_PC-001.wav`);
+      scene.load.audio('ch3_energy_noise_2', `${basePath}/MAGSpel_CAST-Energy Noise_HY_PC-002.wav`);
+      scene.load.audio('ch3_teleport', `${basePath}/MAGSpel_CAST-Teleport Downer_HY_PC-001.wav`);
+      scene.load.audio('ch3_teleport_2', `${basePath}/MAGSpel_CAST-Teleport Downer_HY_PC-002.wav`);
+
+      // Skill impacts and releases
+      scene.load.audio('ch3_skill_impact', `${basePath}/DSGNMisc_SKILL IMPACT-Highest Laser_HY_PC-001.wav`);
+      scene.load.audio('ch3_skill_impact_2', `${basePath}/DSGNMisc_SKILL IMPACT-Highest Laser_HY_PC-002.wav`);
+      scene.load.audio('ch3_critical_strike', `${basePath}/DSGNMisc_SKILL IMPACT-Critical Strike_HY_PC-001.wav`);
+      scene.load.audio('ch3_critical_strike_2', `${basePath}/DSGNMisc_SKILL IMPACT-Critical Strike_HY_PC-002.wav`);
+      scene.load.audio('ch3_energy_dissipate', `${basePath}/DSGNMisc_SKILL IMPACT-Energy Dissipate_HY_PC-001.wav`);
+      scene.load.audio('ch3_skill_release', `${basePath}/DSGNTonl_SKILL RELEASE-Laser Whoosh 1_HY_PC-001.wav`);
+      scene.load.audio('ch3_skill_release_2', `${basePath}/DSGNTonl_SKILL RELEASE-Laser Whoosh 2_HY_PC-001.wav`);
+
+      // Buff and aura effects
+      scene.load.audio('ch3_buff_healing', `${basePath}/MAGAngl_BUFF-Healing Gusts_HY_PC-001.wav`);
+      scene.load.audio('ch3_buff_healing_2', `${basePath}/MAGAngl_BUFF-Healing Gusts_HY_PC-002.wav`);
+      scene.load.audio('ch3_shimmer_tone', `${basePath}/MAGAngl_BUFF-Shimmer Tone_HY_PC-001.wav`);
+      scene.load.audio('ch3_shimmer_tone_2', `${basePath}/MAGAngl_BUFF-Shimmer Tone_HY_PC-002.wav`);
+
+      // Monster/Ambush sounds
+      scene.load.audio('ch3_monster_summon', `${basePath}/MAGSpel_CAST-Noise Summon_HY_PC-001.wav`);
+      scene.load.audio('ch3_monster_summon_2', `${basePath}/MAGSpel_CAST-Noise Summon_HY_PC-002.wav`);
+      scene.load.audio('ch3_monster_step', `${basePath}/DSGNImpt_EXPLOSION-Thud_HY_PC-001.wav`);
+      scene.load.audio('ch3_monster_step_2', `${basePath}/DSGNImpt_EXPLOSION-Thud_HY_PC-002.wav`);
+
+      // Beam and laser effects
+      scene.load.audio('ch3_beam_charge', `${basePath}/DSGNMisc_PROJECTILE-Laser Scintillating_HY_PC-001.wav`);
+      scene.load.audio('ch3_beam_charge_2', `${basePath}/DSGNMisc_PROJECTILE-Laser Scintillating_HY_PC-002.wav`);
+      scene.load.audio('ch3_beam_fire', `${basePath}/DSGNMisc_PROJECTILE-Laser Bursts_HY_PC-001.wav`);
+      scene.load.audio('ch3_beam_fire_2', `${basePath}/DSGNMisc_PROJECTILE-Laser Bursts_HY_PC-002.wav`);
+      scene.load.audio('ch3_laser_shot', `${basePath}/DSGNMisc_PROJECTILE-Laser Shot_HY_PC-001.wav`);
+      scene.load.audio('ch3_laser_shot_2', `${basePath}/DSGNMisc_PROJECTILE-Laser Shot_HY_PC-002.wav`);
+
+      // Mecha/Engine sounds for water machines
+      scene.load.audio('ch3_engine_blast', `${basePath}/DSGNImpt_EXPLOSION-Mecha Engine Blast_HY_PC-001.wav`);
+      scene.load.audio('ch3_engine_blast_2', `${basePath}/DSGNImpt_EXPLOSION-Mecha Engine Blast_HY_PC-002.wav`);
+      scene.load.audio('ch3_mecha_damage', `${basePath}/DSGNImpt_EXPLOSION-Mecha Damage_HY_PC-001.wav`);
+
+      // Hit and impact sounds
+      scene.load.audio('ch3_hit_fleeting', `${basePath}/DSGNMisc_HIT-Fleeting Hit_HY_PC-001.wav`);
+      scene.load.audio('ch3_hit_fleeting_2', `${basePath}/DSGNMisc_HIT-Fleeting Hit_HY_PC-002.wav`);
+      scene.load.audio('ch3_hit_laser', `${basePath}/DSGNMisc_HIT-Laser Hit_HY_PC-001.wav`);
+      scene.load.audio('ch3_hit_laser_2', `${basePath}/DSGNMisc_HIT-Laser Hit_HY_PC-002.wav`);
+      scene.load.audio('ch3_hit_synth', `${basePath}/DSGNMisc_HIT-Synth Hit_HY_PC-001.wav`);
+      scene.load.audio('ch3_hit_synth_2', `${basePath}/DSGNMisc_HIT-Synth Hit_HY_PC-002.wav`);
     }
     
     // Shared SFX for all chapters
@@ -116,9 +419,9 @@ class AudioManager {
     scene.load.audio('sfx_step_6', `${basePath}/FEETMisc_STEP-Boots on Generic Ground 2_HY_PC-006.wav`);
     scene.load.audio('sfx_melee_hit', `${basePath}/MAGSpel_CAST-Zippy Particle_HY_PC-001.wav`);
     scene.load.audio('sfx_sword_spawn', `${basePath}/DSGNTonl_SKILL RELEASE-Rising Lasers_HY_PC-001.wav`);
-    scene.load.audio('sfx_sword_pickup', `${basePath}/DSGNSynth_CAST-Mecha Sword Cast_HY_PC-001.wav`);
+    scene.load.audio('sfx_sword_pickup', `${basePath}/MAGAngl_BUFF-Bonus Regen Rate_HY_PC-001.wav`);
     scene.load.audio('sfx_warning', `${basePath}/DSGNTonl_MELEE-Sword Critical_HY_PC-001.wav`);
-    scene.load.audio('sfx_telegraph', `${basePath}/DSGNSynth_BUFF-Metallic Dodge Chance_HY_PC-005.wav`);
+    scene.load.audio('sfx_telegraph', `${basePath}/DSGNTonl_SKILL RELEASE-Transformizer_HY_PC-002.wav`);
     scene.load.audio('sfx_blood_hit_1', `${basePath}/DSGNTonl_SKILL RELEASE-Ricochet 2_HY_PC-001.wav`);
     scene.load.audio('sfx_blood_hit_2', `${basePath}/DSGNTonl_SKILL RELEASE-Ricochet 2_HY_PC-002.wav`);
     scene.load.audio('sfx_blood_hit_3', `${basePath}/DSGNTonl_SKILL RELEASE-Ricochet 2_HY_PC-003.wav`);
@@ -131,6 +434,7 @@ class AudioManager {
     scene.load.audio('sfx_dash', `${basePath}/DSGNMisc_MOVEMENT-Jump Sparkle_HY_PC-001.wav`);
     scene.load.audio('sfx_damage', `${basePath}/DSGNMisc_HIT-Hit Noise_HY_PC-001.wav`);
     scene.load.audio('sfx_alert', `${basePath}/DSGNMisc_SKILL IMPACT-Jacobs Ladder_HY_PC-001.wav`);
+    scene.load.audio('sfx_smoke', `${basePath}/DSGNSynth_BUFF-Mecha Guarantee Hit_HY_PC-004.wav`);
   }
 
   /**
@@ -178,7 +482,7 @@ class AudioManager {
     if (this.scene.cache.audio.exists(key)) {
       this.currentMusic = this.scene.sound.add(key, { 
         loop: true, 
-        volume: this.muted ? 0 : this.volume * 0.4 // BGM usually needs to be quieter than SFX
+        volume: this.muted ? 0 : this.volume * 0.25 // Lower BGM for clearer VO
       });
       this.currentMusic.play();
     }
@@ -191,6 +495,81 @@ class AudioManager {
     if (this.currentMusic) {
       this.currentMusic.stop();
       this.currentMusic = null;
+    }
+  }
+
+  /**
+   * Pause background music with a fade out effect
+   * @param {number} duration - Fade duration in ms
+   */
+  pauseMusicWithFade(duration = 500) {
+    if (!this.currentMusic || this.muted) return;
+    if (!this.currentMusic.isPlaying) return;
+    
+    // Prevent overlapping fades
+    if (this._fadeInterval) {
+      clearInterval(this._fadeInterval);
+      this._fadeInterval = null;
+    }
+    
+    const startVolume = this.currentMusic.volume;
+    const steps = 10;
+    const stepVol = startVolume / steps;
+    const stepTime = duration / steps;
+    
+    let currentStep = 0;
+    this._fadeInterval = setInterval(() => {
+      currentStep++;
+      if (this.currentMusic) {
+        this.currentMusic.setVolume(Math.max(0, startVolume - (stepVol * currentStep)));
+      }
+      
+      if (currentStep >= steps) {
+        if (this._fadeInterval) clearInterval(this._fadeInterval);
+        this._fadeInterval = null;
+        if (this.currentMusic) {
+          this.currentMusic.pause();
+          // Restore volume for when it resumes
+          this.currentMusic.setVolume(this.muted ? 0 : this.volume * 0.4);
+        }
+      }
+    }, stepTime);
+  }
+
+  /**
+   * Resume background music with a fade in effect
+   * @param {number} duration - Fade duration in ms
+   */
+  resumeMusicWithFade(duration = 500) {
+    if (!this.currentMusic || this.muted) return;
+    
+    // Prevent overlapping fades
+    if (this._fadeInterval) {
+      clearInterval(this._fadeInterval);
+      this._fadeInterval = null;
+    }
+    
+    if (this.currentMusic.isPaused) {
+      this.currentMusic.setVolume(0);
+      this.currentMusic.resume();
+      
+      const targetVolume = this.volume * 0.4;
+      const steps = 10;
+      const stepVol = targetVolume / steps;
+      const stepTime = duration / steps;
+      
+      let currentStep = 0;
+      this._fadeInterval = setInterval(() => {
+        currentStep++;
+        if (this.currentMusic) {
+          this.currentMusic.setVolume(Math.min(targetVolume, stepVol * currentStep));
+        }
+        
+        if (currentStep >= steps) {
+          if (this._fadeInterval) clearInterval(this._fadeInterval);
+          this._fadeInterval = null;
+        }
+      }, stepTime);
     }
   }
 

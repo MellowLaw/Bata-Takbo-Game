@@ -174,13 +174,18 @@ export class Player {
   }
 
   takeDamage() {
-    if (this.isInvulnerable || this.isInvincible || this.hp <= 0) return;
+    if (this.isInvulnerable || this.isInvincible || this.isInvisible || this.hp <= 0) return;
     
     this.hp--;
     this.scene.events.emit('player:health_changed', this.hp);
 
     // Play damage SFX
     audioManager.play('sfx_damage');
+
+    // 15% chance to play player VO on damage (pain reaction)
+    if (Math.random() < 0.15) {
+      audioManager.playRandomPlayerVO(this.scene.chapterId, { volume: 0.85, forceGeneric: true });
+    }
 
     const fx = this.scene.add.sprite(this.sprite.x, this.sprite.y, 'lives_decreased');
     fx.setDepth(300).setScale(6.0).play('anim_lives_decreased');
@@ -213,6 +218,9 @@ export class Player {
   }
 
   die() {
+    // Play death VO line (bypass cooldown for important moment)
+    audioManager.playRandomPlayerVO(this.scene.chapterId, { volume: 0.95, forceGeneric: true, bypassCooldown: true });
+
     this.sprite.setTint(0xff0000);
     this.scene.tweens.add({
       targets: this.sprite,

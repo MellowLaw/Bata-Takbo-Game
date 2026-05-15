@@ -114,6 +114,15 @@ export class GameScene extends Phaser.Scene {
       // Loot and FX
       this.load.image('ruby_loot', '/assets/projectiles/shared/ruby.png');
       this.load.image('diamond_loot', '/assets/projectiles/shared/diamond.png');
+      this.load.image('bawang_loot', '/assets/projectiles/shared/bawang.png');
+      this.load.spritesheet('bawang_effects', '/assets/fx/bawang_effects.png', { frameWidth: 64, frameHeight: 64 });
+      // Chest loot - 5 different chest variations (4 rows each, 64x64 frames)
+      this.load.spritesheet('chest1_loot', '/assets/projectiles/shared/chest1.png', { frameWidth: 64, frameHeight: 64 });
+      this.load.spritesheet('chest2_loot', '/assets/projectiles/shared/chest2.png', { frameWidth: 64, frameHeight: 64 });
+      this.load.spritesheet('chest3_loot', '/assets/projectiles/shared/chest3.png', { frameWidth: 64, frameHeight: 64 });
+      this.load.spritesheet('chest4_loot', '/assets/projectiles/shared/chest4.png', { frameWidth: 64, frameHeight: 64 });
+      this.load.spritesheet('chest5_loot', '/assets/projectiles/shared/chest5.png', { frameWidth: 64, frameHeight: 64 });
+      this.load.spritesheet('chest_effects', '/assets/fx/chest2.png', { frameWidth: 64, frameHeight: 64 });
 
     } else if (this.chapterId === 2) {
       // ===== CHAPTER 2: BUNGISNGIS ASSETS =====
@@ -146,6 +155,15 @@ export class GameScene extends Phaser.Scene {
       // Loot and FX
       this.load.image('ruby_loot', '/assets/projectiles/shared/ruby.png');
       this.load.image('diamond_loot', '/assets/projectiles/shared/diamond.png');
+      this.load.image('bawang_loot', '/assets/projectiles/shared/bawang.png');
+      this.load.spritesheet('bawang_effects', '/assets/fx/bawang_effects.png', { frameWidth: 64, frameHeight: 64 });
+      // Chest loot - 5 different chest variations (4 rows each, 64x64 frames)
+      this.load.spritesheet('chest1_loot', '/assets/projectiles/shared/chest1.png', { frameWidth: 64, frameHeight: 64 });
+      this.load.spritesheet('chest2_loot', '/assets/projectiles/shared/chest2.png', { frameWidth: 64, frameHeight: 64 });
+      this.load.spritesheet('chest3_loot', '/assets/projectiles/shared/chest3.png', { frameWidth: 64, frameHeight: 64 });
+      this.load.spritesheet('chest4_loot', '/assets/projectiles/shared/chest4.png', { frameWidth: 64, frameHeight: 64 });
+      this.load.spritesheet('chest5_loot', '/assets/projectiles/shared/chest5.png', { frameWidth: 64, frameHeight: 64 });
+      this.load.spritesheet('chest_effects', '/assets/fx/chest2.png', { frameWidth: 64, frameHeight: 64 });
 
     } else if (this.chapterId === 3) {
       // ===== CHAPTER 3: KATAW ASSETS =====
@@ -286,8 +304,8 @@ export class GameScene extends Phaser.Scene {
     this.load.spritesheet('chest3', '/assets/fx/chest3.png', { frameWidth: 100, frameHeight: 100 });
     this.load.spritesheet('chest4', '/assets/fx/chest4.png', { frameWidth: 100, frameHeight: 100 });
     this.load.spritesheet('lives_decreased', '/assets/fx/lives_decreased.png', { frameWidth: 64, frameHeight: 64 });
-    // lives_up: 2944x128 = 46 frames of 64x128
-    this.load.spritesheet('lives_up', '/assets/fx/lives_up.png', { frameWidth: 64, frameHeight: 128 });
+    // lives_up: 1472x64 = 23 frames of 64x64 (single row)
+    this.load.spritesheet('lives_up', '/assets/fx/lives_up.png', { frameWidth: 64, frameHeight: 64 });
     // frozen: 1536x128 = 12 frames of 128x128
     this.load.spritesheet('frozen', '/assets/fx/frozen.png', { frameWidth: 128, frameHeight: 128 });
 
@@ -305,6 +323,9 @@ export class GameScene extends Phaser.Scene {
 
     // Load chapter-specific SFX via AudioManager
     audioManager.loadChapterSFX(this, this.chapterId);
+
+    // Load player voice overs based on character gender
+    audioManager.loadPlayerVO(this, this.character);
   }
 
   create() {
@@ -312,13 +333,39 @@ export class GameScene extends Phaser.Scene {
 
     // Initialize AudioManager with this scene
     audioManager.init(this);
-    
+
     // Play background music (loaded based on chapterId in preload)
     audioManager.playMusic('bg_music');
+
+    // Play initial random player VO after 3 seconds (game start)
+    this.time.delayedCall(3000, () => {
+      audioManager.playRandomPlayerVO(this.chapterId, { volume: 0.9 });
+    });
+
+    // Set up periodic random VO every 25-40 seconds
+    this.voTimer = this.time.addEvent({
+      delay: Phaser.Math.Between(25000, 40000),
+      callback: () => {
+        if (!this.isGameOver && this.player && this.player.hp > 0) {
+          audioManager.playRandomPlayerVO(this.chapterId, { volume: 0.85 });
+        }
+        // Randomize next delay
+        if (this.voTimer) {
+          this.voTimer.delay = Phaser.Math.Between(25000, 40000);
+        }
+      },
+      callbackScope: this,
+      loop: true
+    });
     
     // Ensure music stops when scene shuts down (quit or game over)
     this.events.once('shutdown', () => {
       audioManager.stopMusic();
+      // Clean up VO timer
+      if (this.voTimer) {
+        this.voTimer.remove();
+        this.voTimer = null;
+      }
     });
 
     // Endless mode: treat like chapter 1 grid (legacy, isInfMode uses actual chapterId)
@@ -376,10 +423,12 @@ export class GameScene extends Phaser.Scene {
       this.anims.create({ key: 'anim_chest3', frames: this.anims.generateFrameNumbers('chest3', { start: 0, end: 79 }), frameRate: 28, repeat: 0 });
       this.anims.create({ key: 'anim_chest4', frames: this.anims.generateFrameNumbers('chest4', { start: 0, end: 79 }), frameRate: 28, repeat: 0 });
       this.anims.create({ key: 'anim_villain_hp_up', frames: this.anims.generateFrameNumbers('villain_hp_up', { start: 0, end: 11 }), frameRate: 15, repeat: 0 });
-      this.anims.create({ key: 'anim_lives_up', frames: this.anims.generateFrameNumbers('lives_up', { start: 0, end: 45 }), frameRate: 20, repeat: 0 });
+      this.anims.create({ key: 'anim_lives_up', frames: this.anims.generateFrameNumbers('lives_up', { start: 0, end: 22 }), frameRate: 20, repeat: 0 });
       this.anims.create({ key: 'anim_lives_decreased', frames: this.anims.generateFrameNumbers('lives_decreased', { start: 105, end: 119 }), frameRate: 30, repeat: 0 });
       this.anims.create({ key: 'anim_frozen', frames: this.anims.generateFrameNumbers('frozen', { start: 0, end: 11 }), frameRate: 15, repeat: 0 });
-      
+      this.anims.create({ key: 'anim_bawang_effects', frames: this.anims.generateFrameNumbers('bawang_effects', { start: 0, end: 15 }), frameRate: 20, repeat: 0 });
+      this.anims.create({ key: 'anim_chest_effects', frames: this.anims.generateFrameNumbers('chest_effects', { start: 0, end: 15 }), frameRate: 20, repeat: 0 });
+
       if (this.chapterId === 1) {
         this.anims.create({ key: 'anim_moving_hit', frames: this.anims.generateFrameNumbers('moving_hit', { start: 0, end: 43 }), frameRate: 30, repeat: 0 });
         this.anims.create({ key: 'anim_ch1_eye', frames: this.anims.generateFrameNumbers('ch1_eye'), frameRate: 10, repeat: -1 });
@@ -574,6 +623,7 @@ export class GameScene extends Phaser.Scene {
       const pos = this.grid.getPixelPosition(col, row);
 
       // 1. Play smoke intro (1050ms total at 20fps × 21 frames)
+      if (this.chapterId === 1) audioManager.play('sfx_smoke');
       const smoke = this.add.sprite(pos.x, pos.y, 'smoke_up')
         .setDisplaySize(this.grid.tileSize * 1.4, this.grid.tileSize * 1.4)
         .setDepth(16)
@@ -675,6 +725,70 @@ export class GameScene extends Phaser.Scene {
         this.grid.removeDiamondAt(col, row);
         this.events.emit('diamond:collected');
       }
+
+      // Check for bawang collision (lives up)
+      if (this.grid.hasBawangAt(col, row)) {
+        this.grid.removeBawangAt(col, row);
+        this.events.emit('bawang:collected');
+      }
+
+      // Check for chest collision (power-ups)
+      if (this.grid.hasChestAt(col, row)) {
+        this.grid.removeChestAt(col, row);
+        this.events.emit('chest:collected');
+      }
+    });
+
+    this.events.on('chest:collected', () => {
+      // Random power-up (1-5)
+      const powerUp = Phaser.Math.Between(1, 5);
+      const px = this.player.sprite.x;
+      const py = this.player.sprite.y;
+
+      switch (powerUp) {
+        case 1: // TIME FREEZE - Everything stops for 3 seconds
+          this._activateTimeFreeze();
+          this._showPowerUpText(px, py, 'TIME FREEZE!', '#00ffff');
+          break;
+        case 2: // INVISIBILITY - Player becomes invisible for 3 seconds
+          this._activateInvisibility();
+          this._showPowerUpText(px, py, 'INVISIBILITY!', '#ff00ff');
+          break;
+        case 3: // SPEED BOOST - Player moves 2x faster for 5 seconds
+          this._activateSpeedBoost();
+          this._showPowerUpText(px, py, 'SPEED BOOST!', '#ffff00');
+          break;
+        case 4: // SHIELD - Invincibility for 5 seconds
+          this._activateShield();
+          this._showPowerUpText(px, py, 'SHIELD UP!', '#00ff00');
+          break;
+        case 5: // REVERSE DAMAGE - Boss takes damage for 3 seconds
+          this._activateReverseDamage();
+          this._showPowerUpText(px, py, 'REVENGE!', '#ff4444');
+          break;
+      }
+    });
+
+    this.events.on('bawang:collected', () => {
+      // Heal one full heart (+2 HP since max is 6 and there are 3 hearts)
+      if (this.player.hp < this.player.maxHp) {
+        this.player.hp = Math.min(this.player.hp + 2, this.player.maxHp);
+        this.events.emit('player:health_changed', this.player.hp);
+      }
+
+      const px = this.player.sprite.x;
+      const py = this.player.sprite.y;
+
+      // Show lives up effect
+      const fx = this.add.sprite(px, py - 40, 'lives_up').play('anim_lives_up').setDepth(300);
+      fx.setScale(1.3);
+      fx.once('animationcomplete', () => fx.destroy());
+
+      // Show healing text
+      const txt = this.add.text(px, py - 60, '+1 HEART!', {
+        fontFamily: 'VCR', fontSize: '22px', color: '#ff4444', stroke: '#000000', strokeThickness: 5
+      }).setOrigin(0.5).setDepth(300);
+      this.tweens.add({ targets: txt, y: txt.y - 50, alpha: 0, duration: 1500, onComplete: () => txt.destroy() });
     });
 
     this.events.on('diamond:collected', () => {
@@ -848,6 +962,11 @@ export class GameScene extends Phaser.Scene {
       const hud = this.scene.get('HUDScene');
       if (hud && hud.playBossAttack) hud.playBossAttack();
 
+      // 20% chance to play player VO on boss attack (reaction line)
+      if (Math.random() < 0.2) {
+        audioManager.playRandomPlayerVO(this.chapterId, { volume: 0.8, forceGeneric: true });
+      }
+
       // Spawn alert over player
       if (this.player && this.player.sprite) {
         const alertSpr = this.add.sprite(this.player.sprite.x, this.player.sprite.y - 60, 'symbol_alert');
@@ -999,6 +1118,9 @@ export class GameScene extends Phaser.Scene {
 
     const hud = this.scene.get('HUDScene');
     if (hud && hud.playBossUltAttack) hud.playBossUltAttack();
+
+    // Play Chapter 1 ultimate SFX
+    audioManager.play('ch1_ultimate', { volume: 0.9 });
 
     const { width, height } = this.scale;
     const leftWidth = Math.max(width < 768 ? 160 : 250, Math.min(450, width * 0.28));
@@ -1644,8 +1766,272 @@ export class GameScene extends Phaser.Scene {
             }
           });
         }
+
+        // Loot test mode: spawn items for testing
+        if (settings.mode === 'test_loot') {
+          this.time.delayedCall(3000, () => {
+            // Test chests (power-ups)
+            if (settings.testChests) {
+              // Spawn all 5 chest types near player
+              const playerCol = this.player.col;
+              const playerRow = this.player.row;
+              const offsets = [[0, -2], [1, -1], [2, 0], [1, 1], [0, 2]];
+              offsets.forEach((offset, i) => {
+                this.time.delayedCall(i * 500, () => {
+                  const c = Phaser.Math.Clamp(playerCol + offset[0], 0, this.grid.cols - 1);
+                  const r = Phaser.Math.Clamp(playerRow + offset[1], 0, this.grid.rows - 1);
+                  this.grid.spawnChest(c, r);
+                });
+              });
+            }
+
+            // Test bawang (lives up)
+            if (settings.testBawang) {
+              this.time.delayedCall(3500, () => {
+                const c = Phaser.Math.Clamp(this.player.col - 1, 0, this.grid.cols - 1);
+                const r = Phaser.Math.Clamp(this.player.row - 2, 0, this.grid.rows - 1);
+                this.grid.spawnBawang(c, r);
+              });
+            }
+
+            // Test lives up FX
+            if (settings.testLivesFx) {
+              this.time.delayedCall(4000, () => {
+                const px = this.player.sprite.x;
+                const py = this.player.sprite.y;
+                const fx = this.add.sprite(px, py - 40, 'lives_up').play('anim_lives_up').setDepth(300);
+                fx.setScale(1.5);
+                fx.once('animationcomplete', () => fx.destroy());
+              });
+            }
+          });
+        }
       })
       .catch(() => {});
+  }
+
+  /**
+   * Power-up: Show floating text effect
+   */
+  _showPowerUpText(x, y, text, color) {
+    const txt = this.add.text(x, y - 60, text, {
+      fontFamily: 'VCR', fontSize: '24px', color: color, stroke: '#000000', strokeThickness: 5
+    }).setOrigin(0.5).setDepth(300);
+    this.tweens.add({
+      targets: txt,
+      y: txt.y - 50,
+      alpha: 0,
+      duration: 2000,
+      onComplete: () => txt.destroy()
+    });
+  }
+
+  /**
+   * Power-up 1: Time Freeze - Stop all boss attacks for 3 seconds
+   */
+  _activateTimeFreeze() {
+    // Set global flag to freeze attacks
+    this._timeFreezeActive = true;
+
+    // Visual effect: Blue tint overlay
+    const freezeOverlay = this.add.rectangle(
+      this.scale.width / 2, this.scale.height / 2,
+      this.scale.width, this.scale.height,
+      0x00ffff, 0.2
+    ).setDepth(200).setOrigin(0.5);
+
+    // Countdown text
+    const countdown = this.add.text(
+      this.player.sprite.x, this.player.sprite.y - 100,
+      '3', { fontFamily: 'GigaSaturn', fontSize: '48px', color: '#00ffff', stroke: '#000', strokeThickness: 8 }
+    ).setOrigin(0.5).setDepth(201);
+
+    // Countdown animation
+    let timeLeft = 3;
+    const timer = this.time.addEvent({
+      delay: 1000,
+      repeat: 2,
+      callback: () => {
+        timeLeft--;
+        if (timeLeft > 0) {
+          countdown.setText(timeLeft.toString());
+          this.tweens.add({
+            targets: countdown,
+            scale: 1.5,
+            duration: 200,
+            yoyo: true
+          });
+        }
+      }
+    });
+
+    // End after 3 seconds
+    this.time.delayedCall(3000, () => {
+      this._timeFreezeActive = false;
+      freezeOverlay.destroy();
+      countdown.destroy();
+      timer.remove();
+    });
+  }
+
+  /**
+   * Power-up 2: Invisibility - Player becomes invisible for 3 seconds
+   */
+  _activateInvisibility() {
+    // Set player as invisible (no damage from attacks)
+    this.player.isInvisible = true;
+    this.player.sprite.setAlpha(0.4);
+
+    // Purple glow effect
+    const glow = this.add.ellipse(this.player.sprite.x, this.player.sprite.y, 40, 40, 0xff00ff, 0.3)
+      .setDepth(15);
+
+    // Update glow position
+    const glowUpdate = this.time.addEvent({
+      delay: 16,
+      repeat: 180, // ~3 seconds at 60fps
+      callback: () => {
+        if (glow.active) {
+          glow.setPosition(this.player.sprite.x, this.player.sprite.y);
+        }
+      }
+    });
+
+    // End after 3 seconds
+    this.time.delayedCall(3000, () => {
+      this.player.isInvisible = false;
+      this.player.sprite.setAlpha(1);
+      glow.destroy();
+      glowUpdate.remove();
+    });
+  }
+
+  /**
+   * Power-up 3: Speed Boost - Player moves 2x faster for 5 seconds
+   */
+  _activateSpeedBoost() {
+    // Double the movement speed
+    const originalSpeed = this.player.moveDelay || 150;
+    this.player.moveDelay = originalSpeed / 2;
+
+    // Yellow trail effect
+    this.player.sprite.setTint(0xffff00);
+
+    // Sparkle particles
+    const sparkles = this.time.addEvent({
+      delay: 100,
+      repeat: 49, // 5 seconds
+      callback: () => {
+        if (this.player.sprite.active) {
+          const sparkle = this.add.ellipse(
+            this.player.sprite.x + Phaser.Math.Between(-15, 15),
+            this.player.sprite.y + Phaser.Math.Between(-15, 15),
+            6, 6, 0xffff00
+          ).setDepth(14);
+          this.tweens.add({
+            targets: sparkle,
+            alpha: 0,
+            scale: 0,
+            duration: 400,
+            onComplete: () => sparkle.destroy()
+          });
+        }
+      }
+    });
+
+    // End after 5 seconds
+    this.time.delayedCall(5000, () => {
+      this.player.moveDelay = originalSpeed;
+      this.player.sprite.clearTint();
+      sparkles.remove();
+    });
+  }
+
+  /**
+   * Power-up 4: Shield - Invincibility for 5 seconds
+   */
+  _activateShield() {
+    // Make player invincible
+    this.player.isInvincible = true;
+
+    // Green shield bubble effect
+    const shield = this.add.ellipse(this.player.sprite.x, this.player.sprite.y, 50, 50, 0x00ff00, 0.2)
+      .setDepth(15).setStrokeStyle(3, 0x00ff00);
+
+    // Update shield position
+    const shieldUpdate = this.time.addEvent({
+      delay: 16,
+      repeat: 300, // ~5 seconds at 60fps
+      callback: () => {
+        if (shield.active) {
+          shield.setPosition(this.player.sprite.x, this.player.sprite.y);
+        }
+      }
+    });
+
+    // Pulsing animation
+    this.tweens.add({
+      targets: shield,
+      scaleX: 1.2,
+      scaleY: 1.2,
+      duration: 500,
+      yoyo: true,
+      repeat: 4
+    });
+
+    // End after 5 seconds
+    this.time.delayedCall(5000, () => {
+      this.player.isInvincible = false;
+      shield.destroy();
+      shieldUpdate.remove();
+    });
+  }
+
+  /**
+   * Power-up 5: Reverse Damage - Boss takes damage when trying to attack player
+   */
+  _activateReverseDamage() {
+    // Set flag for reverse damage
+    this._reverseDamageActive = true;
+
+    // Red aura around player
+    const aura = this.add.ellipse(this.player.sprite.x, this.player.sprite.y, 45, 45, 0xff0000, 0.25)
+      .setDepth(15).setStrokeStyle(2, 0xff4444);
+
+    // Update aura position
+    const auraUpdate = this.time.addEvent({
+      delay: 16,
+      repeat: 180, // ~3 seconds
+      callback: () => {
+        if (aura.active) {
+          aura.setPosition(this.player.sprite.x, this.player.sprite.y);
+        }
+      }
+    });
+
+    // Damage boss when player would take damage
+    const originalTakeDamage = this.player.takeDamage.bind(this.player);
+    this.player.takeDamage = () => {
+      if (this._reverseDamageActive && this.boss && this.boss.hp > 0) {
+        // Boss takes damage instead
+        this.boss.takeDamage();
+        // Show "REVENGE!" text
+        const txt = this.add.text(this.player.sprite.x, this.player.sprite.y - 50, 'REVENGE!', {
+          fontFamily: 'VCR', fontSize: '20px', color: '#ff4444', stroke: '#000', strokeThickness: 4
+        }).setOrigin(0.5).setDepth(300);
+        this.tweens.add({ targets: txt, y: txt.y - 30, alpha: 0, duration: 800, onComplete: () => txt.destroy() });
+        return false; // Player doesn't take damage
+      }
+      return originalTakeDamage();
+    };
+
+    // End after 3 seconds
+    this.time.delayedCall(3000, () => {
+      this._reverseDamageActive = false;
+      this.player.takeDamage = originalTakeDamage;
+      aura.destroy();
+      auraUpdate.remove();
+    });
   }
 
   shutdown() {

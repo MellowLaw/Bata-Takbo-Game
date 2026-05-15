@@ -199,9 +199,6 @@ export class Grid {
     }
   }
 
-  hasChestAt() { return false; }
-  removeChestAt() { return null; }
-
   /**
    * Ruby Logistics
    */
@@ -370,6 +367,244 @@ export class Grid {
               targets: data.sprite,
               alpha: 0,
               scale: 3,
+              duration: 200,
+              onComplete: () => data.sprite.destroy()
+          });
+          return true;
+      }
+      return false;
+  }
+
+  /**
+   * Bawang (Garlic/Lives Up) Logistics
+   */
+  spawnBawang(col, row) {
+     if (!this.bawangs) this.bawangs = {};
+     const key = `${col}_${row}`;
+     if (this.bawangs[key] || this.hasChestAt(col, row) || this.hasRubyAt(col, row) || this.hasDiamondAt(col, row)) return;
+
+     const pos = this.getPixelPosition(col, row);
+
+     // Play spawn sound effect
+     if (this.scene && this.scene.audioManager) {
+       this.scene.audioManager.play('bawang_spawn', { volume: 0.8 });
+     }
+
+     // Spawn effect animation (bawang_effects spritesheet)
+     const effect = this.scene.add.sprite(pos.x, pos.y, 'bawang_effects')
+       .setScale(1.5)
+       .setDepth(25)
+       .setAlpha(1);
+     effect.play('anim_bawang_effects');
+     effect.once('animationcomplete', () => effect.destroy());
+
+     const bawangSpr = this.scene.add.sprite(pos.x, pos.y, 'bawang_loot')
+       .setScale(0)
+       .setDepth(20);
+
+     const shadow = this.scene.add.ellipse(pos.x, pos.y + 16, 26, 12, 0x000000).setDepth(19).setAlpha(0);
+
+     // Pop in animation
+     this.scene.tweens.add({
+         targets: bawangSpr,
+         scale: 1.8,
+         duration: 300,
+         ease: 'Back.easeOut',
+         onComplete: () => {
+             if (!bawangSpr.active) return;
+             const floatTween = this.scene.tweens.add({
+                 targets: bawangSpr,
+                 y: bawangSpr.y - 12,
+                 duration: 700,
+                 ease: 'Sine.easeInOut',
+                 yoyo: true,
+                 repeat: -1
+             });
+             const shadowTween = this.scene.tweens.add({
+                 targets: shadow,
+                 scaleX: 0.6, scaleY: 0.6, alpha: 0.15,
+                 duration: 700, ease: 'Sine.easeInOut', yoyo: true, repeat: -1
+             });
+             if (this.bawangs && this.bawangs[key]) {
+                 this.bawangs[key].floatTween = floatTween;
+                 this.bawangs[key].shadowTween = shadowTween;
+             }
+         }
+     });
+     this.scene.tweens.add({ targets: shadow, alpha: 0.35, duration: 300 });
+
+     this.bawangs[key] = { sprite: bawangSpr, shadow: shadow, col: col, row: row };
+
+     // Despawn after 2.5 seconds (disappear if not picked up)
+     this.scene.time.delayedCall(2500, () => {
+         if (this.bawangs && this.bawangs[key]) {
+             const data = this.bawangs[key];
+             delete this.bawangs[key];
+             if (data.floatTween) data.floatTween.stop();
+             if (data.shadowTween) data.shadowTween.stop();
+             data.sprite.scene.tweens.add({
+                 targets: [data.sprite, data.shadow],
+                 alpha: 0, scale: 0, duration: 300,
+                 onComplete: () => { data.sprite.destroy(); data.shadow.destroy(); }
+             });
+         }
+     });
+  }
+
+  hasBawangAt(col, row) {
+      if (!this.bawangs) return false;
+      return !!this.bawangs[`${col}_${row}`];
+  }
+
+  removeBawangAt(col, row) {
+      const key = `${col}_${row}`;
+      if (this.bawangs && this.bawangs[key]) {
+          const data = this.bawangs[key];
+          delete this.bawangs[key];
+          if (data.floatTween) data.floatTween.stop();
+          if (data.shadowTween) data.shadowTween.stop();
+          data.shadow.destroy();
+          
+          // Play pickup sound effect
+          if (this.scene && this.scene.audioManager) {
+            this.scene.audioManager.play('bawang_pickup', { volume: 0.9 });
+          }
+
+          // Flash and scale up effect when picked up
+          data.sprite.scene.tweens.add({
+              targets: data.sprite,
+              alpha: 0,
+              scale: 2.5,
+              duration: 200,
+              onComplete: () => data.sprite.destroy()
+          });
+          return true;
+      }
+      return false;
+  }
+
+  /**
+   * Chest Loot (Power-ups) Logistics
+   * 5 different chest images: chest1_loot through chest5_loot
+   */
+  spawnChest(col, row) {
+     if (!this.chests) this.chests = {};
+     const key = `${col}_${row}`;
+     if (this.chests[key] || this.hasBawangAt(col, row) || this.hasRubyAt(col, row) || this.hasDiamondAt(col, row)) return;
+
+     const pos = this.getPixelPosition(col, row);
+
+     // Play spawn sound effect
+     if (this.scene && this.scene.audioManager) {
+       this.scene.audioManager.play('chest_spawn', { volume: 0.8 });
+     }
+
+     // Spawn effect animation (chest_effects spritesheet)
+     const effect = this.scene.add.sprite(pos.x, pos.y, 'chest_effects')
+       .setScale(1.5)
+       .setDepth(25)
+       .setAlpha(1);
+     effect.play('anim_chest_effects');
+     effect.once('animationcomplete', () => effect.destroy());
+
+     // Pick a random chest from 1-5
+     const chestNum = Phaser.Math.Between(1, 5);
+     const chestKey = `chest${chestNum}_loot`;
+
+     const chestSpr = this.scene.add.sprite(pos.x, pos.y, chestKey)
+       .setScale(0)
+       .setDepth(20);
+
+     const shadow = this.scene.add.ellipse(pos.x, pos.y + 16, 30, 14, 0x000000).setDepth(19).setAlpha(0);
+
+     // Pop in animation
+     this.scene.tweens.add({
+         targets: chestSpr,
+         scale: 1.5,
+         duration: 300,
+         ease: 'Back.easeOut',
+         onComplete: () => {
+             if (!chestSpr.active) return;
+             const floatTween = this.scene.tweens.add({
+                 targets: chestSpr,
+                 y: chestSpr.y - 10,
+                 duration: 800,
+                 ease: 'Sine.easeInOut',
+                 yoyo: true,
+                 repeat: -1
+             });
+             const shadowTween = this.scene.tweens.add({
+                 targets: shadow,
+                 scaleX: 0.6, scaleY: 0.6, alpha: 0.15,
+                 duration: 800, ease: 'Sine.easeInOut', yoyo: true, repeat: -1
+             });
+             if (this.chests && this.chests[key]) {
+                 this.chests[key].floatTween = floatTween;
+                 this.chests[key].shadowTween = shadowTween;
+             }
+         }
+     });
+     this.scene.tweens.add({ targets: shadow, alpha: 0.35, duration: 300 });
+
+     this.chests[key] = { sprite: chestSpr, shadow: shadow, col: col, row: row, chestType: chestNum };
+
+     // Animate through the 4 rows of the chest spritesheet (idle/glow animation)
+     // Assuming 4 rows x N columns, we'll cycle through frames 0-3 (first frame of each row)
+     let currentFrame = 0;
+     const frameAnim = this.scene.time.addEvent({
+         delay: 200,
+         repeat: -1,
+         callback: () => {
+             if (!chestSpr.active) return;
+             // Cycle through row start frames (0, 1, 2, 3 for 4 rows)
+             chestSpr.setFrame(currentFrame);
+             currentFrame = (currentFrame + 1) % 4;
+         }
+     });
+     this.chests[key].frameAnim = frameAnim;
+
+     // Despawn after 4 seconds (disappear if not picked up)
+     this.scene.time.delayedCall(4000, () => {
+         if (this.chests && this.chests[key]) {
+             const data = this.chests[key];
+             delete this.chests[key];
+             if (data.floatTween) data.floatTween.stop();
+             if (data.shadowTween) data.shadowTween.stop();
+             if (data.frameAnim) data.frameAnim.remove();
+             data.sprite.scene.tweens.add({
+                 targets: [data.sprite, data.shadow],
+                 alpha: 0, scale: 0, duration: 300,
+                 onComplete: () => { data.sprite.destroy(); data.shadow.destroy(); }
+             });
+         }
+     });
+  }
+
+  hasChestAt(col, row) {
+      if (!this.chests) return false;
+      return !!this.chests[`${col}_${row}`];
+  }
+
+  removeChestAt(col, row) {
+      const key = `${col}_${row}`;
+      if (this.chests && this.chests[key]) {
+          const data = this.chests[key];
+          delete this.chests[key];
+          if (data.floatTween) data.floatTween.stop();
+          if (data.shadowTween) data.shadowTween.stop();
+          if (data.frameAnim) data.frameAnim.remove();
+          data.shadow.destroy();
+
+          // Play pickup sound effect
+          if (this.scene && this.scene.audioManager) {
+            this.scene.audioManager.play('chest_pickup', { volume: 0.9 });
+          }
+
+          // Flash and scale up effect when picked up
+          data.sprite.scene.tweens.add({
+              targets: data.sprite,
+              alpha: 0,
+              scale: 2,
               duration: 200,
               onComplete: () => data.sprite.destroy()
           });
