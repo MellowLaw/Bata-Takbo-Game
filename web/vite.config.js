@@ -12,7 +12,7 @@ export default defineConfig({
   server: {
     host: true,
     port: 5173,
-    allowedHosts: ['all', 'proofs-bunkbed-dandelion.ngrok-free.dev'],
+    allowedHosts: ['all', 'proofs-bunkbed-dandelion.ngrok-free.dev', 'wpjgg-180-195-68-59.run.pinggy-free.link'],
     open: true,
     proxy: {
       '/auth': 'http://localhost:3001',
