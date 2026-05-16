@@ -10,9 +10,11 @@ import nodemailer from 'nodemailer';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
 import path from 'path';
 
-const __envPath = path.join(path.dirname(fileURLToPath(import.meta.url)), '.env');
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __envPath = path.join(__dirname, '.env');
 dotenv.config({ path: __envPath });
 
 const app = express();
@@ -173,7 +175,9 @@ app.post('/auth/check-username', async (req, res) => {
 app.post('/auth/register', async (req, res) => {
   try {
     const { username, email, password } = req.body;
-    if (!username || !email || !password) return res.status(400).json({ error: 'Missing registration details' });
+    if (!username || typeof username !== 'string' || !email || typeof email !== 'string' || !password || typeof password !== 'string') {
+      return res.status(400).json({ error: 'Missing or invalid registration details' });
+    }
 
     if (!isValidUsername(username)) {
       return res.status(400).json({ error: 'Invalid username' });
@@ -235,8 +239,8 @@ app.post('/auth/register', async (req, res) => {
 
     // Insert user safely mapped into the database using param queries
     const result = await db.run(
-      'INSERT INTO users (username, email, password_hash, encrypted_data) VALUES (?, ?, ?, ?)',
-      [sanitizedUsername, sanitizedEmail, passwordHash, dbEncryptedString]
+      'INSERT INTO users (username, email, password_hash, encrypted_data, created_at) VALUES (?, ?, ?, ?, ?)',
+      [sanitizedUsername, sanitizedEmail, passwordHash, dbEncryptedString, Date.now()]
     );
 
     // After success, instantly log them in using identically constructed JWT token logic 
@@ -263,7 +267,9 @@ app.post('/auth/register', async (req, res) => {
 app.post('/auth/login', loginLimiter, async (req, res) => {
   try {
     const { username, password } = req.body;
-    if (!username || !password) return res.status(400).json({ error: 'Missing credentials' });
+    if (!username || typeof username !== 'string' || !password || typeof password !== 'string') {
+      return res.status(400).json({ error: 'Missing or invalid credentials' });
+    }
     
     const sanitizedUsername = username.trim();
     const user = await db.get('SELECT * FROM users WHERE username = ? COLLATE NOCASE OR email = ? COLLATE NOCASE', [sanitizedUsername, sanitizedUsername]);
@@ -351,7 +357,8 @@ app.get('/auth/profile', authMiddleware, async (req, res) => {
       username: user.username,
       email: user.email || null,
       accountType: 'Registered',
-      registeredAt: registeredAt
+      registeredAt: registeredAt,
+      avatar_url: user.avatar_url || null
     });
   } catch (err) {
     console.error('Profile error:', err);
@@ -428,8 +435,8 @@ app.post('/auth/change-password', authMiddleware, async (req, res) => {
     const userId = req.user.id;
     const { currentPassword, newPassword } = req.body;
     
-    if (!currentPassword || !newPassword) {
-      return res.status(400).json({ error: 'Missing required fields' });
+    if (!currentPassword || typeof currentPassword !== 'string' || !newPassword || typeof newPassword !== 'string') {
+      return res.status(400).json({ error: 'Missing or invalid required fields' });
     }
 
     if (newPassword.length < 8 || newPassword.length > 50) {
@@ -477,11 +484,10 @@ app.post('/auth/change-password', authMiddleware, async (req, res) => {
     return res.status(500).json({ error: 'Internal server error' });
   }
 });
-
 app.post('/auth/change-username', authMiddleware, async (req, res) => {
   try {
     const { newUsername } = req.body;
-    if (!newUsername) return res.status(400).json({ error: 'New username is required' });
+    if (!newUsername || typeof newUsername !== 'string') return res.status(400).json({ error: 'New username is required and must be a string' });
 
     if (!isValidUsername(newUsername)) {
       return res.status(400).json({ error: 'Username must be 3-20 characters and contain only letters, numbers, underscores, or hyphens' });
@@ -504,7 +510,16 @@ app.post('/auth/change-username', authMiddleware, async (req, res) => {
       }
     }
 
-    await db.run('UPDATE users SET username = ?, username_changed_at = ? WHERE id = ?', [trimmed, Date.now(), req.user.id]);
+    await db.exec('BEGIN TRANSACTION');
+    try {
+      await db.run('UPDATE users SET username = ?, username_changed_at = ? WHERE id = ?', [trimmed, Date.now(), req.user.id]);
+      await db.run('UPDATE endless_scores SET username = ? WHERE user_id = ?', [trimmed, req.user.id]);
+      await db.run('UPDATE inf_scores SET username = ? WHERE user_id = ?', [trimmed, req.user.id]);
+      await db.exec('COMMIT');
+    } catch (e) {
+      await db.exec('ROLLBACK');
+      throw e;
+    }
 
     const newToken = jwt.sign({ id: req.user.id, username: trimmed }, JWT_SECRET, { expiresIn: '30d' });
     res.cookie('jwt', newToken, {
@@ -521,13 +536,34 @@ app.post('/auth/change-username', authMiddleware, async (req, res) => {
   }
 });
 
+// --- Change Avatar Endpoint ---
+app.post('/auth/change-avatar', authMiddleware, async (req, res) => {
+  try {
+    const { avatarUrl } = req.body;
+    if (avatarUrl !== null && typeof avatarUrl !== 'string') {
+      return res.status(400).json({ error: 'Invalid URL data type' });
+    }
+    
+    if (avatarUrl) {
+      try { new URL(avatarUrl); } catch(e) { return res.status(400).json({ error: 'Must be a valid URL starting with http:// or https://' }); }
+    }
+
+    await db.run('UPDATE users SET avatar_url = ? WHERE id = ?', [avatarUrl || null, req.user.id]);
+    res.json({ success: true, avatarUrl: avatarUrl || null });
+  } catch (error) {
+    console.error('Change avatar error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 app.post('/auth/change-email', authMiddleware, async (req, res) => {
   try {
     const { newEmail, password } = req.body;
-    if (!newEmail || !password) return res.status(400).json({ error: 'Email and password are required' });
+    if (!newEmail || typeof newEmail !== 'string' || !password || typeof password !== 'string') {
+      return res.status(400).json({ error: 'Email and password are required and must be text' });
+    }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(newEmail.trim()) || newEmail.length > 255) {
+    if (!isValidEmail(newEmail)) {
       return res.status(400).json({ error: 'Invalid email address' });
     }
 
@@ -574,7 +610,7 @@ app.post('/auth/logout', authMiddleware, (req, res) => {
 app.delete('/auth/delete-account', authMiddleware, async (req, res) => {
   try {
     const { password } = req.body;
-    if (!password) return res.status(400).json({ error: 'Password is required to delete your account' });
+    if (!password || typeof password !== 'string') return res.status(400).json({ error: 'A valid password is required to delete your account' });
 
     const user = await db.get('SELECT * FROM users WHERE id = ?', [req.user.id]);
     if (!user) return res.status(404).json({ error: 'User not found' });
@@ -596,7 +632,7 @@ app.delete('/auth/delete-account', authMiddleware, async (req, res) => {
   }
 });
 
-app.delete('/admin/delete-user', adminMiddleware, async (req, res) => {
+app.delete('/admin/delete-user', authMiddleware, adminMiddleware, async (req, res) => {
   try {
     const { userId } = req.body;
     if (!userId) return res.status(400).json({ error: 'userId is required' });
@@ -794,15 +830,54 @@ app.get('/admin/check', authMiddleware, async (req, res) => {
 app.get('/admin/users', authMiddleware, adminMiddleware, async (req, res) => {
   try {
     const users = await db.all(`
-      SELECT id, username, email, is_admin, banned, ban_reason, cheat_score, last_login,
-             CASE WHEN game_data IS NOT NULL THEN 1 ELSE 0 END as has_game_data
-      FROM users
-      ORDER BY id DESC
+      SELECT u.id, u.username, u.email, u.is_admin, u.banned, u.ban_reason, u.cheat_score, u.last_login, u.created_at,
+             CASE WHEN u.game_data IS NOT NULL THEN 1 ELSE 0 END as has_game_data,
+             (SELECT COUNT(*) FROM inf_scores WHERE user_id = u.id) + (SELECT COUNT(*) FROM endless_scores WHERE user_id = u.id) as games_played,
+             (SELECT COALESCE(SUM(score), 0) FROM inf_scores WHERE user_id = u.id) as total_score
+      FROM users u
+      ORDER BY u.id DESC
     `);
     return res.status(200).json({ users });
   } catch (err) {
     console.error('Admin get users error:', err);
     return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.get('/admin/stats', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const totalUsers = (await db.get('SELECT COUNT(*) as c FROM users')).c;
+    const totalInfGames = (await db.get('SELECT COUNT(*) as c FROM inf_scores')).c;
+    const totalEndlessGames = (await db.get('SELECT COUNT(*) as c FROM endless_scores')).c;
+    const dbSize = fs.statSync(path.join(__dirname, 'database.sqlite')).size;
+    const uptime = process.uptime();
+    
+    const recentScores = await db.all("SELECT username, 'Chapter ' || chapter_id as action, created_at as time, score as value FROM inf_scores ORDER BY created_at DESC LIMIT 20");
+    const recentLogins = await db.all("SELECT username, 'Login' as action, last_login as time, 0 as value FROM users WHERE last_login IS NOT NULL ORDER BY last_login DESC LIMIT 20");
+    const recentRegs = await db.all("SELECT username, 'Registered' as action, created_at as time, 0 as value FROM users WHERE created_at IS NOT NULL ORDER BY created_at DESC LIMIT 20");
+    
+    let activity = [...recentScores, ...recentLogins, ...recentRegs]
+      .sort((a,b) => b.time - a.time)
+      .slice(0, 20);
+      
+    return res.status(200).json({
+      stats: { totalUsers, totalGamesPlayed: totalInfGames + totalEndlessGames, totalInfGames, totalEndlessGames, dbSize, uptime },
+      activity
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Failed to load stats' });
+  }
+});
+
+app.post('/admin/force-logout', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const { userId } = req.body;
+    if (!userId) return res.status(400).json({ error: 'User ID required' });
+    await db.run('UPDATE users SET invalidate_before = ? WHERE id = ?', [Date.now(), userId]);
+    return res.status(200).json({ success: true, message: 'User forced to logout on next request' });
+  } catch (err) {
+    return res.status(500).json({ error: 'Server error' });
   }
 });
 
@@ -870,48 +945,37 @@ app.post('/admin/reset-progress', authMiddleware, adminMiddleware, async (req, r
 // Get leaderboard with cheat scores (admin only)
 app.get('/admin/leaderboard', authMiddleware, adminMiddleware, async (req, res) => {
   try {
-    const users = await db.all(`
-      SELECT id, username, email, cheat_score, banned, ban_reason, game_data
-      FROM users
-      ORDER BY id ASC
-    `);
-
-    // Parse scores and detect anomalies
-    const leaderboard = users.map(u => {
-      let scores = [];
-      let totalScore = 0;
-      try {
-        const data = JSON.parse(u.game_data || '{}');
-        if (data.chapterProgress?.bestScores) {
-          scores = Object.entries(data.chapterProgress.bestScores).map(([ch, score]) => ({
-            chapter: ch,
-            score: score
-          }));
-          totalScore = scores.reduce((sum, s) => sum + (s.score || 0), 0);
-        }
-      } catch (e) {}
-
-      const suspicious = u.cheat_score > 50 || scores.some(s => s.score > 100000);
-
-      return {
-        id: u.id,
-        username: u.username,
-        email: u.email || null,
-        cheatScore: u.cheat_score,
-        banned: u.banned,
-        banReason: u.ban_reason,
-        scores,
-        totalScore,
-        suspicious
-      };
-    })
-    .filter(u => u.scores.length > 0)
-    .sort((a, b) => b.totalScore - a.totalScore);
-
-    return res.status(200).json({ leaderboard });
+    const infScores = await db.all('SELECT s.id, s.user_id, s.username, s.chapter_id, s.score, s.waves_survived, s.survival_seconds, s.control_type, s.created_at, u.banned, u.cheat_score FROM inf_scores s JOIN users u ON s.user_id = u.id ORDER BY s.score DESC');
+    const endlessScores = await db.all('SELECT s.id, s.user_id, s.username, s.survival_seconds, s.control_type, s.created_at, u.banned, u.cheat_score FROM endless_scores s JOIN users u ON s.user_id = u.id ORDER BY s.survival_seconds DESC');
+    
+    const flaggedInf = infScores.map(s => {
+      let suspicious = s.cheat_score > 50;
+      if (s.score > 5000 && s.survival_seconds < 30) suspicious = true;
+      if (s.score > 25000) suspicious = true;
+      return { ...s, type: 'inf', suspicious };
+    });
+    
+    const flaggedEndless = endlessScores.map(s => {
+      let suspicious = s.cheat_score > 50;
+      if (s.survival_seconds > 3600) suspicious = true; // Over 1 hour endless
+      return { ...s, type: 'endless', suspicious };
+    });
+    
+    return res.status(200).json({ leaderboard: { inf: flaggedInf, endless: flaggedEndless } });
   } catch (err) {
     console.error('Admin leaderboard error:', err);
     return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.delete('/admin/delete-score', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const { id, type } = req.body;
+    if (type === 'inf') await db.run('DELETE FROM inf_scores WHERE id = ?', [id]);
+    else if (type === 'endless') await db.run('DELETE FROM endless_scores WHERE id = ?', [id]);
+    return res.status(200).json({ success: true, message: 'Score deleted' });
+  } catch (err) {
+    return res.status(500).json({ error: 'Server error' });
   }
 });
 

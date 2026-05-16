@@ -77,7 +77,36 @@ export async function initDb() {
   try { await db.exec('ALTER TABLE users ADD COLUMN reset_token TEXT'); } catch(e) {}
   try { await db.exec('ALTER TABLE users ADD COLUMN reset_token_expiry INTEGER'); } catch(e) {}
   try { await db.exec('ALTER TABLE users ADD COLUMN username_changed_at INTEGER'); } catch(e) {}
-  try { await db.exec('ALTER TABLE users ADD COLUMN invalidate_before INTEGER'); } catch(e) {}
+  
+  // Add invalidate_before column if missing
+  try {
+    const tableInfo = await db.all("PRAGMA table_info(users)");
+    const hasInvalidate = tableInfo.some(c => c.name === 'invalidate_before');
+    if (!hasInvalidate) {
+      await db.exec(`ALTER TABLE users ADD COLUMN invalidate_before INTEGER`);
+      console.log('Migration: Added invalidate_before to users table');
+    }
+  } catch(e) {}
+
+  // Add created_at column if missing
+  try {
+    const tableInfo = await db.all("PRAGMA table_info(users)");
+    const hasCreatedAt = tableInfo.some(c => c.name === 'created_at');
+    if (!hasCreatedAt) {
+      await db.exec(`ALTER TABLE users ADD COLUMN created_at INTEGER`);
+      console.log('Migration: Added created_at to users table');
+    }
+  } catch(e) {}
+
+  // Add avatar_url column if missing
+  try {
+    const tableInfo = await db.all("PRAGMA table_info(users)");
+    const hasAvatar = tableInfo.some(c => c.name === 'avatar_url');
+    if (!hasAvatar) {
+      await db.exec(`ALTER TABLE users ADD COLUMN avatar_url TEXT`);
+      console.log('Migration: Added avatar_url to users table');
+    }
+  } catch(e) {}
 
   // Seed data for testing (password is 'password' for all)
   try {

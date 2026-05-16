@@ -1,5 +1,5 @@
 /**
- * ModeSelect — Choose between Normal and INF mode for a chapter.
+ * ModeSelect — Choose between Normal and Normal Mode (wave replay) for a chapter.
  * Uses the same flip-card mechanic as ChapterSelect.
  * Flow: ChapterSelect → ModeSelect → CharacterSelect
  */
@@ -37,15 +37,15 @@ export const ModeSelect = {
             </div>
           </div>
 
-          <!-- INF MODE CARD -->
+          <!-- NORMAL MODE WAVE CARD -->
           <div class="ch-flip-wrapper ${chapterCleared ? 'unlocked' : 'locked'}" id="ms-card-inf" style="animation-delay: 0.2s">
             <div class="ch-flip-inner">
               <div class="ch-face ch-face--back">
-                <img src="/assets/ui/chapter-selection/chapter-back.png" alt="INF" />
+                <img src="/assets/ui/chapter-selection/chapter-back.png" alt="Normal Mode" />
               </div>
               <div class="ch-face ch-face--front">
                 ${chapterCleared ? `
-                  <img src="/assets/ui/chapter-selection/endless_mode.png" alt="INF Mode" style="width: 100%; height: 100%; object-fit: cover; border-radius: 10px;" />
+                  <img src="/assets/ui/chapter-selection/endless_mode.png" alt="Normal Mode" style="width: 100%; height: 100%; object-fit: cover; border-radius: 10px;" />
                 ` : `
                   <div style="width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #0a0a1a; border-radius: 10px; gap: 10px;">
                     <div style="font-family:'GigaSaturn',sans-serif; font-size:clamp(1.5rem,3vw,2.5rem); color:rgba(255,255,255,0.3); line-height:1;">🔒</div>
@@ -91,7 +91,7 @@ export const ModeSelect = {
       }
     });
 
-    // INF card (only if unlocked)
+    // Normal Mode wave card (only if unlocked)
     const infCard = el.querySelector('#ms-card-inf');
     if (infCard.classList.contains('unlocked')) {
       infCard.addEventListener('click', () => {

@@ -1,5 +1,6 @@
 /**
  * AdminDashboard — Admin panel for user management, testing, and moderation
+ * Layout matches the Profile Screen's two-panel ID Card design.
  */
 import { state } from '../utils/StateManager.js';
 
@@ -7,20 +8,146 @@ export const AdminDashboard = {
   render() {
     return `
       <div class="settings-screen screen" id="admin-container">
-        <button class="back-btn" id="btn-admin-back">Back</button>
-        
-        <h1 class="screen-title" style="animation: fadeInUp 0.4s ease forwards;">
-          ADMIN PANEL
-        </h1>
+        <div class="settings-screen__content" id="profile-content-wrapper" style="background: transparent; border: none; box-shadow: none;">
+          
+          <!-- SIDEBAR NAVIGATION -->
+          <div class="profile-sidebar">
+            <button class="back-btn" id="btn-admin-back" style="margin-bottom: var(--space-md);">
+              <i class="fas fa-caret-left"></i> BACK TO MENU
+            </button>
+            <button class="profile-tab-btn active" data-target="panel-dashboard">DASHBOARD</button>
+            <button class="profile-tab-btn" data-target="panel-users">USERS</button>
+            <button class="profile-tab-btn" data-target="panel-leaderboard">LEADERBOARD</button>
+            <button class="profile-tab-btn" data-target="panel-tests">DEBUG & TESTS</button>
+          </div>
 
-        <div class="admin-tabs" style="display: flex; gap: var(--space-sm); margin-bottom: var(--space-md); padding: 0 var(--space-md);">
-          <button class="admin-tab active" data-tab="users" id="tab-users">Users</button>
-          <button class="admin-tab" data-tab="test" id="tab-test">Test Features</button>
-          <button class="admin-tab" data-tab="leaderboard" id="tab-leaderboard">Leaderboard</button>
-        </div>
-        
-        <div class="settings-screen__content scrollable" id="admin-content" style="padding: 0 var(--space-md);">
-          <!-- Content loaded dynamically -->
+          <!-- MAIN CONTENT AREA -->
+          <div class="profile-content-area scrollable">
+          
+            <!-- DASHBOARD PANEL -->
+            <div id="panel-dashboard" class="profile-panel active">
+              <h2 style="font-family:'VCR',sans-serif; color:#111; text-transform:uppercase; margin:0 0 var(--space-md) 0; font-size:var(--text-xl); border-bottom:2px solid #111; padding-bottom:8px;">Server Overview</h2>
+
+              <!-- Stat Cards -->
+              <div id="admin-stats-container" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-md); margin-bottom: var(--space-lg);">
+                <div class="profile-stat-box">
+                  <i class="fas fa-users" style="font-size:28px;color:#e67e22;width:36px;text-align:center;flex-shrink:0;"></i>
+                  <div><div class="profile-stat-label">Total Users</div><div class="profile-stat-value" id="stat-users">...</div></div>
+                </div>
+                <div class="profile-stat-box">
+                  <i class="fas fa-gamepad" style="font-size:28px;color:#3498db;width:36px;text-align:center;flex-shrink:0;"></i>
+                  <div><div class="profile-stat-label">Total Games Played</div><div class="profile-stat-value" id="stat-games">...</div></div>
+                </div>
+                <div class="profile-stat-box">
+                  <i class="fas fa-database" style="font-size:28px;color:#9b59b6;width:36px;text-align:center;flex-shrink:0;"></i>
+                  <div><div class="profile-stat-label">Database Size</div><div class="profile-stat-value" id="stat-db">...</div></div>
+                </div>
+                <div class="profile-stat-box">
+                  <i class="fas fa-server" style="font-size:28px;color:#27ae60;width:36px;text-align:center;flex-shrink:0;"></i>
+                  <div><div class="profile-stat-label">Server Uptime</div><div class="profile-stat-value" id="stat-uptime">...</div></div>
+                </div>
+              </div>
+
+              <!-- Charts Row -->
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:var(--space-md); margin-bottom:var(--space-lg);">
+                <div class="profile-stat-box" style="flex-direction:column;align-items:center;">
+                  <div style="font-family:'VCR',sans-serif;font-size:var(--text-xs);color:#555;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Games by Type</div>
+                  <canvas id="chart-games" width="160" height="160" style="max-width:160px;"></canvas>
+                </div>
+                <div class="profile-stat-box" style="flex-direction:column;align-items:stretch;">
+                  <div style="font-family:'VCR',sans-serif;font-size:var(--text-xs);color:#555;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Recent Logins (last 7 days)</div>
+                  <canvas id="chart-logins" height="150"></canvas>
+                </div>
+              </div>
+
+              <!-- Activity Log -->
+              <h3 style="font-family:'VCR',sans-serif; color:#111; text-transform:uppercase; margin:0 0 var(--space-sm) 0; border-bottom:2px solid #111; padding-bottom:4px;">Recent Activity Log</h3>
+              <div class="inf-stats-container" style="max-height: 300px; overflow-y: auto;">
+                <div class="inf-stats-header" style="grid-template-columns: 2fr 1.5fr 2fr 1fr;">
+                  <div>USERNAME</div>
+                  <div>ACTION</div>
+                  <div>TIME</div>
+                  <div>VALUE</div>
+                </div>
+                <div id="admin-activity-log">
+                  <div style="padding:var(--space-sm);text-align:center;">Loading activity...</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- USERS PANEL -->
+            <div id="panel-users" class="profile-panel">
+              <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:var(--space-md); border-bottom:2px solid #111; padding-bottom:4px;">
+                <h2 style="font-family:'VCR',sans-serif; color:#111; text-transform:uppercase; margin:0; font-size:var(--text-xl);">User Management</h2>
+                <button id="btn-refresh-users" title="Refresh" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:15px;color:#111;border:2px solid #111;background:transparent;cursor:pointer;flex-shrink:0;"><i class="fas fa-sync-alt"></i></button>
+              </div>
+              <style>#user-search::placeholder { color: rgba(0,0,0,0.6); }</style>
+              <input id="user-search" type="text" placeholder="Search by username..." class="login-card__input" style="width:100%; margin-bottom:var(--space-md); background: rgba(0,0,0,0.05); color:#111; border-color:#111;" />
+              
+              <div class="inf-stats-container">
+                <div class="inf-stats-header" style="grid-template-columns: 2fr 3fr 1fr 1fr 2.5fr;">
+                  <div>USER</div>
+                  <div>EMAIL</div>
+                  <div>JOINED</div>
+                  <div>GAMES</div>
+                  <div>ACTIONS</div>
+                </div>
+                <div id="users-list">
+                  <div style="padding:var(--space-sm);text-align:center;">Loading users...</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- LEADERBOARD PANEL -->
+            <div id="panel-leaderboard" class="profile-panel">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:var(--space-md); border-bottom:2px solid #111; padding-bottom:4px;">
+                <h2 style="font-family:'VCR',sans-serif; color:#111; text-transform:uppercase; margin:0; font-size:var(--text-xl);">Endless Battle</h2>
+                <button id="btn-refresh-lb" title="Refresh" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:15px;color:#111;border:2px solid #111;background:transparent;cursor:pointer;flex-shrink:0;"><i class="fas fa-sync-alt"></i></button>
+              </div>
+
+              <div style="display:flex; gap:8px; margin-bottom:var(--space-md);">
+                <button id="lb-tab-keyboard" class="lb-ctrl-tab active" style="flex:1; padding:8px; font-family:'VCR',sans-serif; font-size:var(--text-sm); border:2px solid #111; background:#111; color:#f5e6cc; cursor:pointer;"><i class="fas fa-keyboard" style="margin-right:6px;"></i>D-PAD</button>
+                <button id="lb-tab-gesture" class="lb-ctrl-tab" style="flex:1; padding:8px; font-family:'VCR',sans-serif; font-size:var(--text-sm); border:2px solid #111; background:transparent; color:#111; cursor:pointer;"><i class="fas fa-hand-paper" style="margin-right:6px;"></i>GESTURE</button>
+              </div>
+
+              <div class="inf-stats-container">
+                <div class="inf-stats-header" style="grid-template-columns: 1fr 3fr 3fr 2fr;">
+                  <div>#</div>
+                  <div>USER</div>
+                  <div>SURVIVAL TIME</div>
+                  <div>ACTIONS</div>
+                </div>
+                <div id="lb-endless-list">
+                  <div style="padding:var(--space-sm);text-align:center;">Loading...</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- TESTS PANEL -->
+            <div id="panel-tests" class="profile-panel">
+              <h2 style="font-family:'VCR',sans-serif; color:#111; text-transform:uppercase; margin:0 0 var(--space-md) 0; font-size:var(--text-xl); border-bottom:2px solid #111; padding-bottom:4px;">Debug & Tests</h2>
+              <p style="color:#555; font-size:var(--text-sm); margin-bottom:var(--space-md);">These actions affect your local browser session.</p>
+              
+              <h3 style="font-family:'VCR',sans-serif; color:#111; margin-bottom: var(--space-xs);">Chapter Unlocks</h3>
+              <div style="display: flex; flex-direction: column; gap: var(--space-sm); margin-bottom: var(--space-md);">
+                <button class="admin-action-btn" data-action="unlock-all" style="border: 2px solid #111; color: #111; background: #e67e22; text-align: left; padding: var(--space-sm); font-family: 'VCR', sans-serif; cursor:pointer;">Unlock ALL Chapters</button>
+                <button class="admin-action-btn" data-action="reset-chapters" style="border: 2px solid #111; color: #fff; background: #c0392b; text-align: left; padding: var(--space-sm); font-family: 'VCR', sans-serif; cursor:pointer;">Reset Chapter Progress</button>
+              </div>
+
+              <h3 style="font-family:'VCR',sans-serif; color:#111; margin-bottom: var(--space-xs);">Test Game Features</h3>
+              <div style="display: flex; flex-direction: column; gap: var(--space-sm); margin-bottom: var(--space-md);">
+                <button class="admin-action-btn" data-action="easy-win" style="border: 2px solid #111; color: #111; background: #2ecc71; text-align: left; padding: var(--space-sm); font-family: 'VCR', sans-serif; cursor:pointer;">Easy Win Mode (Invincible + One-Hit Kill)</button>
+                <button class="admin-action-btn" data-action="god-mode" style="border: 2px solid #111; color: #fff; background: #3498db; text-align: left; padding: var(--space-sm); font-family: 'VCR', sans-serif; cursor:pointer;">God Mode (Invincible Only)</button>
+              </div>
+
+              <h3 style="font-family:'VCR',sans-serif; color:#111; margin-bottom: var(--space-xs);">Debug Tools</h3>
+              <div style="display: flex; flex-direction: column; gap: var(--space-sm);">
+                <button class="admin-action-btn" data-action="export-state" style="border: 2px solid #111; color: #fff; background: #7f8c8d; text-align: left; padding: var(--space-sm); font-family: 'VCR', sans-serif; cursor:pointer;">Export State to Console</button>
+                <button class="admin-action-btn" data-action="clear-local" style="border: 2px solid #111; color: #fff; background: #c0392b; text-align: left; padding: var(--space-sm); font-family: 'VCR', sans-serif; cursor:pointer;">Clear Local Storage</button>
+              </div>
+            </div>
+
+          </div>
         </div>
       </div>
     `;
@@ -28,9 +155,8 @@ export const AdminDashboard = {
 
   async onEnter(el) {
     this.container = el;
-    this.currentTab = 'users';
     
-    // Check admin status
+    // Auth Check
     try {
       const res = await fetch('/admin/check', { credentials: 'include' });
       const data = await res.json();
@@ -43,650 +169,362 @@ export const AdminDashboard = {
       return;
     }
 
-    // Back button
+    // Back Button
     el.querySelector('#btn-admin-back').addEventListener('click', () => {
       window.__screenManager.back();
     });
 
-    // Tab switching
-    const tabs = el.querySelectorAll('.admin-tab');
-    tabs.forEach(tab => {
-      tab.addEventListener('click', () => {
-        tabs.forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
-        this.currentTab = tab.dataset.tab;
-        this.loadTabContent();
+    // Sidebar Tab Logic
+    const tabBtns = el.querySelectorAll('.profile-tab-btn');
+    const panels = el.querySelectorAll('.profile-panel');
+    tabBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        tabBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        panels.forEach(p => p.classList.remove('active'));
+        const target = el.querySelector('#' + btn.dataset.target);
+        if (target) {
+          target.classList.add('active');
+          if (btn.dataset.target === 'panel-dashboard') this.loadDashboard();
+          if (btn.dataset.target === 'panel-users') this.loadUsers();
+          if (btn.dataset.target === 'panel-leaderboard') this.loadLeaderboard();
+        }
       });
     });
 
-    // Initial load
-    this.loadTabContent();
+    // Test Actions Binding
+    el.querySelectorAll('.admin-action-btn').forEach(btn => {
+      if(btn.dataset.action) {
+        btn.addEventListener('click', (e) => this.handleTestAction(e.target.dataset.action));
+      }
+    });
+
+    el.querySelector('#btn-refresh-users').addEventListener('click', () => this.loadUsers());
+    el.querySelector('#btn-refresh-lb').addEventListener('click', () => this.loadLeaderboard(this._activeLbControl || 'keyboard'));
+
+    // Control type tab toggles for leaderboard
+    this._activeLbControl = 'keyboard';
+    const tabKeyboard = el.querySelector('#lb-tab-keyboard');
+    const tabGesture  = el.querySelector('#lb-tab-gesture');
+    const activateTab = (active, inactive, ctrl) => {
+      active.style.background = '#111';
+      active.style.color = '#f5e6cc';
+      inactive.style.background = 'transparent';
+      inactive.style.color = '#111';
+      this._activeLbControl = ctrl;
+      this.loadLeaderboard(ctrl);
+    };
+    tabKeyboard.addEventListener('click', () => activateTab(tabKeyboard, tabGesture, 'keyboard'));
+    tabGesture.addEventListener('click',  () => activateTab(tabGesture,  tabKeyboard, 'gesture'));
+
+    // Initial Load
+    this.loadDashboard();
   },
 
-  async loadTabContent() {
-    const content = this.container.querySelector('#admin-content');
-    content.innerHTML = '<div style="text-align: center; padding: var(--space-lg);">Loading...</div>';
-    
-    switch (this.currentTab) {
-      case 'users':
-        await this.loadUsersTab(content);
-        break;
-      case 'test':
-        this.loadTestTab(content);
-        break;
-      case 'leaderboard':
-        await this.loadLeaderboardTab(content);
-        break;
+  async loadDashboard() {
+    try {
+      const res = await fetch('/admin/stats', { credentials: 'include' });
+      const data = await res.json();
+      if (!res.ok) throw new Error();
+
+      this.container.querySelector('#stat-users').textContent = data.stats.totalUsers;
+      this.container.querySelector('#stat-games').textContent = data.stats.totalGamesPlayed;
+      this.container.querySelector('#stat-db').textContent = (data.stats.dbSize / 1024 / 1024).toFixed(2) + ' MB';
+      
+      const uptimeH = Math.floor(data.stats.uptime / 3600);
+      const uptimeM = Math.floor((data.stats.uptime % 3600) / 60);
+      this.container.querySelector('#stat-uptime').textContent = `${uptimeH}h ${uptimeM}m`;
+
+      const actHtml = data.activity.map(a => {
+        const timeStr = new Date(a.time).toLocaleString(undefined, { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' });
+        return `
+          <div class="inf-stat-row" style="grid-template-columns: 2fr 1.5fr 2fr 1fr;">
+            <div style="font-weight:bold;">${a.username}</div>
+            <div>${a.action}</div>
+            <div style="font-size:0.85em;">${timeStr}</div>
+            <div style="font-weight:bold;">${a.value !== 0 ? a.value : '-'}</div>
+          </div>
+        `;
+      }).join('');
+      
+      this.container.querySelector('#admin-activity-log').innerHTML = actHtml || '<div style="padding:8px;text-align:center;">No recent activity</div>';
+
+      // --- Chart: Games by Type (Doughnut) ---
+      const gamesCanvas = this.container.querySelector('#chart-games');
+      if (gamesCanvas && window.Chart) {
+        if (gamesCanvas._chartInstance) gamesCanvas._chartInstance.destroy();
+        const infCount  = data.stats.totalInfGames  ?? 0;
+        const endCount  = data.stats.totalEndlessGames ?? 0;
+        gamesCanvas._chartInstance = new Chart(gamesCanvas, {
+          type: 'doughnut',
+          data: {
+            labels: ['Normal Mode', 'Endless'],
+            datasets: [{ data: [infCount, endCount], backgroundColor: ['#3498db','#e67e22'], borderWidth: 2, borderColor: '#111' }]
+          },
+          options: {
+            responsive: false,
+            plugins: {
+              legend: { position: 'bottom', labels: { color: '#111', font: { family: "'VCR', monospace", size: 10 }, boxWidth: 12, padding: 8 } }
+            },
+            cutout: '60%'
+          }
+        });
+      }
+
+      // --- Chart: Logins per day (Bar) ---
+      const loginCanvas = this.container.querySelector('#chart-logins');
+      if (loginCanvas && window.Chart) {
+        if (loginCanvas._chartInstance) loginCanvas._chartInstance.destroy();
+        // Build last-7-days buckets from activity
+        const days = Array.from({ length: 7 }, (_, i) => {
+          const d = new Date(); d.setDate(d.getDate() - (6 - i));
+          return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        });
+        const counts = new Array(7).fill(0);
+        (data.activity || []).filter(a => a.action === 'Login').forEach(a => {
+          const d = new Date(a.time);
+          const label = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+          const idx = days.indexOf(label);
+          if (idx >= 0) counts[idx]++;
+        });
+        loginCanvas._chartInstance = new Chart(loginCanvas, {
+          type: 'bar',
+          data: {
+            labels: days,
+            datasets: [{ label: 'Logins', data: counts, backgroundColor: 'rgba(52,152,219,0.7)', borderColor: '#111', borderWidth: 1 }]
+          },
+          options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { ticks: { color: '#555', font: { family: "'VCR', monospace", size: 9 } }, grid: { display: false } },
+              y: { beginAtZero: true, ticks: { color: '#555', stepSize: 1, font: { family: "'VCR', monospace", size: 9 } }, grid: { color: 'rgba(0,0,0,0.07)' } }
+            }
+          }
+        });
+      }
+    } catch (e) {
+      console.error(e);
+      this.container.querySelector('#admin-activity-log').innerHTML = '<div style="padding:8px;text-align:center;color:red;">Error loading stats</div>';
     }
   },
 
-  _renderUserRow(u) {
-    const lastLoginStr = u.last_login
-      ? new Date(u.last_login).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
-      : 'Never';
-    return `
-      <div class="admin-user-row" data-username="${u.username.toLowerCase()}" data-banned="${u.banned ? '1' : '0'}" style="
-        display: grid;
-        grid-template-columns: 1fr auto auto auto;
-        gap: var(--space-sm);
-        align-items: center;
-        padding: var(--space-sm);
-        background: var(--bg-panel);
-        border-radius: 4px;
-        margin-bottom: var(--space-xs);
-        ${u.banned ? 'border: 1px solid var(--accent-red);' : ''}
-      ">
-        <div>
-          <div style="font-weight: bold; ${u.banned ? 'text-decoration: line-through; color: var(--accent-red);' : ''}">
-            ${u.username}
-            ${u.is_admin ? '<span style="color: var(--accent-gold); margin-left: var(--space-xs);">[ADMIN]</span>' : ''}
-          </div>
-          <div style="font-size: var(--text-xs); color: var(--text-dim);">
-            ID: ${u.id} | ${u.email || '<i>no email</i>'}
-          </div>
-          <div style="font-size: var(--text-xs); color: var(--text-dim);">
-            Last Login: ${lastLoginStr} | Cheat: ${u.cheat_score}
-            ${u.ban_reason ? '| Reason: ' + u.ban_reason : ''}
-          </div>
-        </div>
-        <div style="font-size: var(--text-xs); color: var(--text-dim);">
-          ${u.has_game_data ? 'Has Data' : 'No Data'}
-        </div>
-        <button class="admin-btn ${u.banned ? 'unban' : 'ban'}"
-                data-userid="${u.id}"
-                data-banned="${u.banned ? '1' : '0'}"
-                data-username="${u.username}"
-                ${u.is_admin ? 'disabled title="Cannot ban admin"' : ''}
-                style="padding: var(--space-xs) var(--space-sm); font-size: var(--text-sm); ${u.is_admin ? 'opacity:0.3;cursor:not-allowed;' : ''}">
-          ${u.banned ? 'Unban' : 'Ban'}
-        </button>
-        <button class="admin-btn reset"
-                data-userid="${u.id}"
-                data-username="${u.username}"
-                style="padding: var(--space-xs) var(--space-sm); font-size: var(--text-sm);">
-          Reset
-        </button>
-        <button class="admin-btn delete"
-                data-userid="${u.id}"
-                data-username="${u.username}"
-                ${u.is_admin ? 'disabled title="Cannot delete admin"' : ''}
-                style="padding: var(--space-xs) var(--space-sm); font-size: var(--text-sm); ${u.is_admin ? 'opacity:0.3;cursor:not-allowed;' : ''}">
-          Delete
-        </button>
-      </div>
-    `;
-  },
-
-  async loadUsersTab(content) {
+  async loadUsers() {
     try {
       const res = await fetch('/admin/users', { credentials: 'include' });
       const data = await res.json();
+      if (!res.ok) throw new Error();
 
-      if (!data.users) {
-        content.innerHTML = '<div class="text-red">Failed to load users</div>';
-        return;
-      }
-
-      const activeUsers = data.users.filter(u => !u.banned);
-      const bannedUsers = data.users.filter(u => u.banned);
-
-      const renderGroup = (users) => users.map(u => this._renderUserRow(u)).join('');
-
-      content.innerHTML = `
-        <div class="settings-group" style="animation: fadeInUp 0.3s ease forwards;">
-          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: var(--space-md);">
-            <h3 style="color: var(--accent-orange); margin:0;">User Management (${data.users.length} total)</h3>
-            <button id="btn-refresh-users" class="admin-btn" style="padding: var(--space-xs) var(--space-sm); font-size: var(--text-xs);">↺ Refresh</button>
+      let html = '';
+      data.users.forEach(u => {
+        const joinDate = u.created_at ? new Date(u.created_at).toLocaleDateString() : 'Unknown';
+        const bannedStyle = u.banned ? 'text-decoration:line-through;color:#e74c3c;' : '';
+        html += `
+          <div class="inf-stat-row admin-user-row" data-username="${u.username.toLowerCase()}" style="grid-template-columns: 2fr 3fr 1fr 1fr 2.5fr; background:${u.banned?'rgba(231,76,60,0.1)':'transparent'}">
+            <div style="font-weight:bold;${bannedStyle}">${u.username} ${u.is_admin ? '<span style="color:#f39c12">*</span>' : ''}</div>
+            <div style="font-size:0.85em;word-break:break-all;">${u.email || '-'}</div>
+            <div style="font-size:0.85em;">${joinDate}</div>
+            <div style="font-weight:bold;">${u.games_played || 0}</div>
+            <div style="display:flex;gap:4px;align-items:center;">
+              <button class="admin-btn ${u.banned?'unban':'ban'}" data-id="${u.id}" data-banned="${u.banned?'1':'0'}" ${u.is_admin?'disabled':''} style="font-size:14px;padding:4px 8px;background:${u.banned?'#27ae60':'#e67e22'};color:#fff;border:1px solid #111;cursor:pointer;" title="${u.banned?'Unban User':'Ban User'}"><i class="fas ${u.banned?'fa-unlock':'fa-ban'}"></i></button>
+              <button class="admin-btn delete" data-id="${u.id}" ${u.is_admin?'disabled':''} style="font-size:14px;padding:4px 8px;background:#c0392b;color:#fff;border:1px solid #111;cursor:pointer;" title="Delete User"><i class="fas fa-trash"></i></button>
+              <button class="admin-btn logout" data-id="${u.id}" style="font-size:14px;padding:4px 8px;background:#7f8c8d;color:#fff;border:1px solid #111;cursor:pointer;" title="Force Logout"><i class="fas fa-sign-out-alt"></i></button>
+            </div>
           </div>
-          <input id="user-search" type="text" placeholder="Search by username..." style="width:100%; padding: var(--space-sm); background:var(--bg-panel); border:1px solid var(--accent-orange); color:var(--text-primary); font-family:var(--font-display); font-size:var(--text-sm); border-radius:4px; margin-bottom:var(--space-md); box-sizing:border-box;" />
-          <div style="display:flex; gap:var(--space-sm); margin-bottom:var(--space-sm);">
-            <button class="admin-filter-btn active" data-filter="all" style="font-size:var(--text-xs); padding:2px var(--space-sm);">All (${data.users.length})</button>
-            <button class="admin-filter-btn" data-filter="active" style="font-size:var(--text-xs); padding:2px var(--space-sm);">Active (${activeUsers.length})</button>
-            <button class="admin-filter-btn" data-filter="banned" style="font-size:var(--text-xs); padding:2px var(--space-sm); color:var(--accent-red);">Banned (${bannedUsers.length})</button>
-          </div>
-          <div id="users-list">
-            ${renderGroup(activeUsers)}
-            ${bannedUsers.length ? `<div style="font-size:var(--text-xs);color:var(--accent-red);margin: var(--space-sm) 0 var(--space-xs);">— BANNED —</div>${renderGroup(bannedUsers)}` : ''}
-          </div>
-        </div>
-      `;
+        `;
+      });
+      
+      this.container.querySelector('#users-list').innerHTML = html;
 
-      // Refresh button
-      content.querySelector('#btn-refresh-users').addEventListener('click', () => this.loadUsersTab(content));
+      // Event listeners for user actions
+      this.container.querySelectorAll('.admin-btn.ban, .admin-btn.unban').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          const userId = e.currentTarget.dataset.id;
+          const isBanned = e.currentTarget.dataset.banned === '1';
+          await fetch('/admin/ban', {
+            method:'POST', credentials:'include', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ userId, banned: !isBanned, reason: !isBanned ? 'Admin panel ban' : null })
+          });
+          this.loadUsers();
+        });
+      });
 
-      // Search
-      const searchInput = content.querySelector('#user-search');
+      this.container.querySelectorAll('.admin-btn.delete').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          const userId = e.currentTarget.dataset.id;
+          this._showAdminModal('DELETE USER', 'Permanently delete user? This cannot be undone.', async () => {
+            await fetch('/admin/delete-user', {
+              method:'DELETE', credentials:'include', headers:{'Content-Type':'application/json'},
+              body: JSON.stringify({ userId })
+            });
+            this.loadUsers();
+          });
+        });
+      });
+
+      this.container.querySelectorAll('.admin-btn.logout').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          const userId = e.currentTarget.dataset.id;
+          await fetch('/admin/force-logout', {
+            method:'POST', credentials:'include', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ userId })
+          });
+          this._showAdminModal('SUCCESS', 'User forced to logout on next request.');
+        });
+      });
+
+      // Search functionality
+      const searchInput = this.container.querySelector('#user-search');
       searchInput.addEventListener('input', () => {
         const q = searchInput.value.toLowerCase();
-        content.querySelectorAll('.admin-user-row').forEach(row => {
+        this.container.querySelectorAll('.admin-user-row').forEach(row => {
           row.style.display = row.dataset.username.includes(q) ? '' : 'none';
         });
       });
 
-      // Filter tabs
-      content.querySelectorAll('.admin-filter-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          content.querySelectorAll('.admin-filter-btn').forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-          const filter = btn.dataset.filter;
-          content.querySelectorAll('.admin-user-row').forEach(row => {
-            if (filter === 'all') row.style.display = '';
-            else if (filter === 'active') row.style.display = row.dataset.banned === '0' ? '' : 'none';
-            else if (filter === 'banned') row.style.display = row.dataset.banned === '1' ? '' : 'none';
-          });
-        });
-      });
-
-      // Ban/unban buttons
-      content.querySelectorAll('.admin-btn.ban, .admin-btn.unban').forEach(btn => {
-        if (btn.disabled) return;
-        btn.addEventListener('click', async (e) => {
-          const userId = e.target.dataset.userid;
-          const username = e.target.dataset.username;
-          const currentlyBanned = e.target.dataset.banned === '1';
-
-          if (currentlyBanned) {
-            this.showConfirmModal(`Unban <b>${username}</b>?`, 'UNBAN', async () => {
-              try {
-                const res = await fetch('/admin/ban', {
-                  method: 'POST', credentials: 'include',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ userId, banned: false })
-                });
-                const d = await res.json();
-                if (res.ok) { this.showToast(`${username} unbanned`); this.loadUsersTab(content); }
-                else this.showToast(d.error || 'Failed to unban', true);
-              } catch (e) { this.showToast('Failed to unban user', true); }
-            });
-          } else {
-            this.showInputModal(`Ban <b>${username}</b>`, 'Enter reason (optional):', 'BAN', async (reason) => {
-              try {
-                const res = await fetch('/admin/ban', {
-                  method: 'POST', credentials: 'include',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ userId, banned: true, reason })
-                });
-                const d = await res.json();
-                if (res.ok) { this.showToast(`${username} banned`); this.loadUsersTab(content); }
-                else this.showToast(d.error || 'Failed to ban', true);
-              } catch (e) { this.showToast('Failed to ban user', true); }
-            });
-          }
-        });
-      });
-
-      // Reset buttons
-      content.querySelectorAll('.admin-btn.reset').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-          const userId = e.target.dataset.userid;
-          const username = e.target.dataset.username;
-          this.showConfirmModal(`Reset ALL progress for <b>${username}</b>?<br><span style="color:var(--accent-red);font-size:var(--text-xs);">This cannot be undone.</span>`, 'RESET', async () => {
-            try {
-              const res = await fetch('/admin/reset-progress', {
-                method: 'POST', credentials: 'include',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId })
-              });
-              const d = await res.json();
-              if (res.ok) { this.showToast(`Progress reset for ${username}`); this.loadUsersTab(content); }
-              else this.showToast(d.error || 'Failed to reset', true);
-            } catch (e) { this.showToast('Failed to reset progress', true); }
-          });
-        });
-      });
-
-      // Delete buttons
-      content.querySelectorAll('.admin-btn.delete').forEach(btn => {
-        if (btn.disabled) return;
-        btn.addEventListener('click', async (e) => {
-          const userId = e.target.dataset.userid;
-          const username = e.target.dataset.username;
-          this.showConfirmModal(
-            `Permanently delete <b>${username}</b>?<br><span style="color:var(--accent-red);font-size:var(--text-xs);">This cannot be undone. All their data will be erased.</span>`,
-            'DELETE',
-            async () => {
-              try {
-                const res = await fetch('/admin/delete-user', {
-                  method: 'DELETE', credentials: 'include',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ userId })
-                });
-                const d = await res.json();
-                if (res.ok) { this.showToast(`${username} deleted`); this.loadUsersTab(content); }
-                else this.showToast(d.error || 'Failed to delete', true);
-              } catch (e) { this.showToast('Failed to delete user', true); }
-            }
-          );
-        });
-      });
-
     } catch (e) {
-      console.error('Load users error:', e);
-      content.innerHTML = '<div class="text-red">Error loading users</div>';
+      this.container.querySelector('#users-list').innerHTML = '<div style="padding:8px;text-align:center;color:red;">Error loading users</div>';
     }
   },
 
-  loadTestTab(content) {
-    content.innerHTML = `
-      <div class="settings-group" style="animation: fadeInUp 0.3s ease forwards;">
-        <h3 style="color: var(--accent-orange); margin-bottom: var(--space-xs);">Chapter Unlocks</h3>
-        <p style="color:var(--text-dim);font-size:var(--text-xs);margin-bottom:var(--space-md);">Affects your own session only.</p>
-        <div style="display: flex; flex-direction: column; gap: var(--space-sm);">
-          <button class="admin-action-btn" data-action="unlock-ch1">Unlock Chapter 1</button>
-          <button class="admin-action-btn" data-action="unlock-ch2">Unlock Chapter 2</button>
-          <button class="admin-action-btn" data-action="unlock-ch3">Unlock Chapter 3</button>
-          <button class="admin-action-btn" data-action="unlock-all" style="border-color: var(--accent-gold); color: var(--accent-gold);">Unlock ALL Chapters</button>
-          <button class="admin-action-btn" data-action="reset-chapters" style="border-color: rgba(230,57,70,0.5); color: var(--accent-red);">Reset Chapter Progress</button>
-        </div>
-      </div>
-
-      <div class="settings-group" style="animation: fadeInUp 0.3s ease 0.1s forwards; margin-top: var(--space-md); opacity: 0;">
-        <h3 style="color: var(--accent-orange); margin-bottom: var(--space-xs);">Test Game Features</h3>
-        <p style="color:var(--text-dim);font-size:var(--text-xs);margin-bottom:var(--space-md);">Launches game in test mode for your account only.</p>
-        <div style="display: flex; flex-direction: column; gap: var(--space-sm);">
-          <button class="admin-action-btn" data-action="test-attack">Launch Test Attack Mode</button>
-          <button class="admin-action-btn" data-action="easy-win" style="border-color: rgba(46,204,113,0.5); color: var(--accent-green);">Easy Win Mode (Invincible + One-Hit Kill)</button>
-          <button class="admin-action-btn" data-action="god-mode">God Mode (Invincible Only)</button>
-        </div>
-      </div>
-
-      <div class="settings-group" style="animation: fadeInUp 0.3s ease 0.12s forwards; margin-top: var(--space-md); opacity: 0;">
-        <h3 style="color: var(--accent-orange); margin-bottom: var(--space-xs);">Test Loot Items</h3>
-        <p style="color:var(--text-dim);font-size:var(--text-xs);margin-bottom:var(--space-md);">Test chests, power-ups, and healing items.</p>
-        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-sm);">
-          <button class="admin-action-btn" data-action="test-chests" style="border-color: #ffaa00; color: #ffaa00;">Test Chests (Power-ups)</button>
-          <button class="admin-action-btn" data-action="test-bawang" style="border-color: #ff4444; color: #ff4444;">Test Bawang (Lives Up)</button>
-          <button class="admin-action-btn" data-action="test-lives-fx" style="border-color: #00ff00; color: #00ff00;">Test Lives Up FX</button>
-          <button class="admin-action-btn" data-action="test-all-loot" style="border-color: var(--accent-gold); color: var(--accent-gold);">Test ALL Loot</button>
-        </div>
-      </div>
-
-      <div class="settings-group" style="animation: fadeInUp 0.3s ease 0.15s forwards; margin-top: var(--space-md); opacity: 0;">
-        <h3 style="color: var(--accent-orange); margin-bottom: var(--space-xs);">Chapter 3 Attack Testing</h3>
-        <p style="color:var(--text-dim);font-size:var(--text-xs);margin-bottom:var(--space-md);">Test individual attacks for polishing. Launches Chapter 3 in test mode.</p>
-        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-sm);">
-          <button class="admin-action-btn" data-action="test-ch3-0">#0 Kataw Explosion</button>
-          <button class="admin-action-btn" data-action="test-ch3-1">#1 Fish King Spell</button>
-          <button class="admin-action-btn" data-action="test-ch3-2">#2 Shark Lanes</button>
-          <button class="admin-action-btn" data-action="test-ch3-3">#3 Bat Dive Bomb</button>
-          <button class="admin-action-btn" data-action="test-ch3-4">#4 Sirens Lure</button>
-          <button class="admin-action-btn" data-action="test-ch3-5">#5 Diamond Storm</button>
-          <button class="admin-action-btn" data-action="test-ch3-6" style="border-color: var(--accent-gold); color: var(--accent-gold);">#6 Monster Ambush</button>
-          <button class="admin-action-btn" data-action="test-ch3-7" style="border-color: #ff00ff; color: #ff00ff;">#7 Abyssal Spiral</button>
-          <button class="admin-action-btn" data-action="test-ch3-ult" style="grid-column: span 2; border-color: #ff0000; color: #ff0000; font-weight: bold;">ULTIMATE: Rotating Barrage</button>
-        </div>
-      </div>
-
-      <div class="settings-group" style="animation: fadeInUp 0.3s ease 0.2s forwards; margin-top: var(--space-md); opacity: 0;">
-        <h3 style="color: var(--accent-orange); margin-bottom: var(--space-xs);">Debug Tools</h3>
-        <p style="color:var(--text-dim);font-size:var(--text-xs);margin-bottom:var(--space-md);">Affects your local browser storage only.</p>
-        <div style="display: flex; flex-direction: column; gap: var(--space-sm);">
-          <button class="admin-action-btn" data-action="export-state">Export Game State to Console</button>
-          <button class="admin-action-btn" data-action="clear-local" style="border-color: rgba(230,57,70,0.5); color: var(--accent-red);">Clear Local Storage</button>
-        </div>
-      </div>
-    `;
-
-    // Bind action buttons
-    content.querySelectorAll('.admin-action-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => this.handleTestAction(e.target.dataset.action));
-    });
-  },
-
-  async loadLeaderboardTab(content) {
+  async loadLeaderboard(controlType = 'keyboard') {
     try {
       const res = await fetch('/admin/leaderboard', { credentials: 'include' });
       const data = await res.json();
+      if (!res.ok) throw new Error();
 
-      if (!data.leaderboard) {
-        content.innerHTML = '<div class="text-red">Failed to load leaderboard</div>';
-        return;
-      }
+      // Filter endless scores by active control type
+      const filtered = data.leaderboard.endless.filter(s => s.control_type === controlType);
 
-      const suspiciousCount = data.leaderboard.filter(e => e.suspicious).length;
-      const bannedCount = data.leaderboard.filter(e => e.banned).length;
-
-      const entriesHtml = data.leaderboard.map((entry, i) => `
-        <div class="leaderboard-admin-row" style="
-          display: grid;
-          grid-template-columns: auto 1fr auto auto auto auto;
-          gap: var(--space-sm);
-          align-items: center;
-          padding: var(--space-sm);
-          background: ${entry.suspicious ? 'rgba(255,0,0,0.1)' : 'var(--bg-panel)'};
-          border: ${entry.suspicious ? '1px solid var(--accent-red)' : 'none'};
-          border-radius: 4px;
-          margin-bottom: var(--space-xs);
-        ">
-          <span style="font-weight: bold; color: var(--text-dim);">#${i + 1}</span>
-          <div>
-            <div style="font-weight: bold; ${entry.banned ? 'text-decoration: line-through; color: var(--accent-red);' : ''}">
-              ${entry.username}
-              ${entry.suspicious ? '<span style="color: var(--accent-red); margin-left: var(--space-xs);">⚠️ SUSPICIOUS</span>' : ''}
-            </div>
-            <div style="font-size: var(--text-xs); color: var(--text-dim);">
-              ${entry.email || '<i>no email</i>'} | Cheat: ${entry.cheatScore} | Total: ${entry.totalScore.toLocaleString()}
-              ${entry.banReason ? '| ' + entry.banReason : ''}
-            </div>
-            <div style="font-size: var(--text-xs); color: var(--text-dim);">
-              ${entry.scores.map(s => `Ch${s.chapter}: ${s.score.toLocaleString()}`).join(' | ')}
-            </div>
+      let endHtml = '';
+      filtered.forEach((s, i) => {
+        endHtml += `
+          <div class="inf-stat-row ${s.suspicious ? 'suspicious' : ''}" style="grid-template-columns: 1fr 3fr 3fr 2fr; ${s.suspicious?'background:rgba(231,76,60,0.1);border:1px solid #e74c3c;':''}">
+            <div style="font-weight:bold;color:#888;">${i+1}</div>
+            <div style="font-weight:bold;">${s.username} ${s.suspicious?'<span style="color:#e74c3c;font-size:10px;">⚠️</span>':''}</div>
+            <div>${Math.floor(s.survival_seconds/60)}m ${String(s.survival_seconds%60).padStart(2,'0')}s</div>
+            <div><button class="admin-btn del-score" data-id="${s.id}" data-type="endless" style="font-size:14px;padding:4px 8px;background:#c0392b;color:#fff;border:1px solid #111;cursor:pointer;" title="Delete Score"><i class="fas fa-trash"></i></button></div>
           </div>
-          <button class="admin-btn mark-cheat"
-                  data-userid="${entry.id}" data-username="${entry.username}"
-                  style="padding: var(--space-xs) var(--space-sm); font-size: var(--text-sm);">
-            +Cheat
-          </button>
-          <button class="admin-btn clear-cheat"
-                  data-userid="${entry.id}" data-username="${entry.username}"
-                  style="padding: var(--space-xs) var(--space-sm); font-size: var(--text-sm); ${entry.cheatScore === 0 ? 'opacity:0.3;cursor:not-allowed;' : ''}">
-            Clear
-          </button>
-          <button class="admin-btn ${entry.banned ? 'unban' : 'ban'}"
-                  data-userid="${entry.id}" data-banned="${entry.banned ? '1' : '0'}" data-username="${entry.username}"
-                  style="padding: var(--space-xs) var(--space-sm); font-size: var(--text-sm);">
-            ${entry.banned ? 'Unban' : 'Ban'}
-          </button>
-        </div>
-      `).join('');
+        `;
+      });
+      this.container.querySelector('#lb-endless-list').innerHTML = endHtml || '<div style="padding:8px;text-align:center;">No records</div>';
 
-      content.innerHTML = `
-        <div class="settings-group" style="animation: fadeInUp 0.3s ease forwards;">
-          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: var(--space-sm);">
-            <h3 style="color: var(--accent-orange); margin:0;">Leaderboard Monitoring</h3>
-            <button id="btn-refresh-lb" class="admin-btn" style="padding: var(--space-xs) var(--space-sm); font-size: var(--text-xs);">↺ Refresh</button>
-          </div>
-          <div style="display: flex; gap: var(--space-md); margin-bottom: var(--space-md); font-size: var(--text-sm);">
-            <span style="color: var(--text-dim);">Total: ${data.leaderboard.length}</span>
-            <span style="color: var(--accent-red);">Suspicious: ${suspiciousCount}</span>
-            <span style="color: var(--accent-red);">Banned: ${bannedCount}</span>
-          </div>
-          <div id="leaderboard-list">${entriesHtml}</div>
-        </div>
-      `;
-
-      content.querySelector('#btn-refresh-lb').addEventListener('click', () => this.loadLeaderboardTab(content));
-
-      // Mark cheat buttons
-      content.querySelectorAll('.admin-btn.mark-cheat').forEach(btn => {
+      this.container.querySelectorAll('.del-score').forEach(btn => {
         btn.addEventListener('click', async (e) => {
-          const userId = e.target.dataset.userid;
-          const username = e.target.dataset.username;
-          this.showInputModal(`Mark <b>${username}</b> as cheater`, 'Enter reason:', '+CHEAT', async (reason) => {
-            try {
-              const res = await fetch('/admin/mark-cheat', {
-                method: 'POST', credentials: 'include',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId, cheatScore: 100, reason })
-              });
-              if (res.ok) { this.showToast(`${username} marked as cheater`); this.loadLeaderboardTab(content); }
-            } catch (e) { this.showToast('Failed to mark user', true); }
+          const target = e.target.closest('button');
+          this._showAdminModal('DELETE SCORE', 'Delete this score entry? This cannot be undone.', async () => {
+            const id = target.dataset.id;
+            const type = target.dataset.type;
+            await fetch('/admin/delete-score', {
+              method:'DELETE', credentials:'include', headers:{'Content-Type':'application/json'},
+              body: JSON.stringify({ id, type })
+            });
+            this.loadLeaderboard(this._activeLbControl || 'keyboard');
           });
         });
       });
-
-      // Clear cheat buttons
-      content.querySelectorAll('.admin-btn.clear-cheat').forEach(btn => {
-        if (btn.style.cursor === 'not-allowed') return;
-        btn.addEventListener('click', async (e) => {
-          const userId = e.target.dataset.userid;
-          const username = e.target.dataset.username;
-          this.showConfirmModal(`Clear cheat score for <b>${username}</b>?`, 'CLEAR', async () => {
-            try {
-              const res = await fetch('/admin/reset-cheat', {
-                method: 'POST', credentials: 'include',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId })
-              });
-              if (res.ok) { this.showToast(`Cheat score cleared for ${username}`); this.loadLeaderboardTab(content); }
-            } catch (e) { this.showToast('Failed to clear cheat score', true); }
-          });
-        });
-      });
-
-      // Ban/unban buttons
-      content.querySelectorAll('.admin-btn.ban, .admin-btn.unban').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-          const userId = e.target.dataset.userid;
-          const username = e.target.dataset.username;
-          const currentlyBanned = e.target.dataset.banned === '1';
-
-          if (currentlyBanned) {
-            this.showConfirmModal(`Unban <b>${username}</b>?`, 'UNBAN', async () => {
-              try {
-                const res = await fetch('/admin/ban', {
-                  method: 'POST', credentials: 'include',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ userId, banned: false })
-                });
-                const d = await res.json();
-                if (res.ok) { this.showToast(`${username} unbanned`); this.loadLeaderboardTab(content); }
-                else this.showToast(d.error || 'Failed to unban', true);
-              } catch (e) { this.showToast('Failed to unban user', true); }
-            });
-          } else {
-            this.showInputModal(`Ban <b>${username}</b>`, 'Enter reason (optional):', 'BAN', async (reason) => {
-              try {
-                const res = await fetch('/admin/ban', {
-                  method: 'POST', credentials: 'include',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ userId, banned: true, reason })
-                });
-                const d = await res.json();
-                if (res.ok) { this.showToast(`${username} banned`); this.loadLeaderboardTab(content); }
-                else this.showToast(d.error || 'Failed to ban', true);
-              } catch (e) { this.showToast('Failed to ban user', true); }
-            });
-          }
-        });
-      });
-
     } catch (e) {
-      console.error('Load leaderboard error:', e);
-      content.innerHTML = '<div class="text-red">Error loading leaderboard</div>';
+      this.container.querySelector('#lb-endless-list').innerHTML = '<div style="padding:8px;text-align:center;color:red;">Error loading</div>';
     }
   },
 
   async _launchTestMode(settings) {
     try {
       const res = await fetch('/admin/test-token', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(settings)
       });
-      if (!res.ok) {
-        this.showToast('Failed to get test token — are you still logged in as admin?', true);
-        return;
-      }
+      if (!res.ok) { this._showAdminModal('ERROR', 'Failed to get test token.'); return; }
       const { token } = await res.json();
       sessionStorage.setItem('admin_test_token', token);
       window.__screenManager.navigate('game-screen');
     } catch (e) {
-      this.showToast('Network error — could not launch test mode', true);
+      this._showAdminModal('ERROR', 'Network error occurred.');
+    }
+  },
+
+  _showAdminModal(title, msg, onConfirm) {
+    const overlay = document.createElement('div');
+    overlay.className = 'profile-modal-overlay';
+    overlay.style.position = 'fixed';
+    overlay.style.top = '0';
+    overlay.style.left = '0';
+    overlay.style.right = '0';
+    overlay.style.bottom = '0';
+    overlay.style.backgroundColor = 'rgba(0,0,0,0.85)';
+    overlay.style.display = 'flex';
+    overlay.style.justifyContent = 'center';
+    overlay.style.alignItems = 'center';
+    overlay.style.zIndex = '9999';
+
+    const isConfirm = typeof onConfirm === 'function';
+
+    overlay.innerHTML = `
+      <div class="profile-modal-box" style="background:#130f04; border:2px solid #555; padding:var(--space-lg); max-width:400px; width:90%; font-family:'VCR',sans-serif;">
+        <h3 style="color:var(--accent-orange, #e74c3c);font-size:var(--text-lg);text-transform:uppercase;margin:0 0 var(--space-sm);text-align:center;">${title}</h3>
+        <p style="color:#f0e6d3;font-size:var(--text-md);text-align:center;margin:0 0 var(--space-md);">${msg}</p>
+        <div style="display:flex;gap:var(--space-sm);">
+          ${isConfirm ? `<button id="admin-modal-cancel" style="flex:1;background:transparent;border:2px solid #555; color:#fff; font-family:'VCR',sans-serif; padding:8px; cursor:pointer;">CANCEL</button>` : ''}
+          <button id="admin-modal-confirm" style="flex:1;background:var(--accent-orange, #f39c12);border:2px solid #111; color:#111; font-family:'VCR',sans-serif; font-weight:bold; padding:8px; cursor:pointer;">${isConfirm ? 'CONFIRM' : 'OK'}</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    const close = () => overlay.remove();
+    
+    overlay.querySelector('#admin-modal-confirm').addEventListener('click', () => {
+      close();
+      if (isConfirm) onConfirm();
+    });
+
+    if (isConfirm) {
+      overlay.querySelector('#admin-modal-cancel').addEventListener('click', close);
     }
   },
 
   handleTestAction(action) {
     switch (action) {
-      case 'unlock-ch1':
-        this.unlockChapter(1);
+      case 'unlock-all': {
+        const progress = state.get('chapterProgress');
+        progress.chaptersUnlocked = [1, 2, 3];
+        state.set('chapterProgress', progress);
+        state.saveChapterProgress();
+        this._showAdminModal('SUCCESS', 'All chapters unlocked!');
         break;
-      case 'unlock-ch2':
-        this.unlockChapter(2);
-        break;
-      case 'unlock-ch3':
-        this.unlockChapter(3);
-        break;
-      case 'unlock-all':
-        [1, 2, 3].forEach(ch => this.unlockChapter(ch));
-        this.showToast('All chapters unlocked!');
-        break;
-      case 'reset-chapters':
-        this.showConfirmModal('Reset chapter progress?<br><span style="color:var(--accent-red);font-size:var(--text-xs);">This cannot be undone.</span>', 'RESET', () => {
+      }
+      case 'reset-chapters': {
+        this._showAdminModal('RESET PROGRESS', 'Are you sure you want to reset all chapter progress?', () => {
           state.set('chapterProgress', { chaptersUnlocked: [1], chaptersCompleted: [], bestScores: {} });
           state.saveChapterProgress();
-          this.showToast('Chapter progress reset!');
+          this._showAdminModal('SUCCESS', 'Chapter progress reset!');
         });
         break;
-      case 'test-attack':
-        this._launchTestMode({ mode: 'test_attack', chapterId: 1, invincible: false });
-        break;
-      case 'easy-win':
+      }
+      case 'easy-win': {
         this._launchTestMode({ mode: 'easy_win', chapterId: 1, invincible: true, oneHitKill: true });
         break;
-      case 'god-mode':
+      }
+      case 'god-mode': {
         this._launchTestMode({ mode: 'god_mode', chapterId: 1, invincible: true });
         break;
-      case 'test-chests':
-        this._launchTestMode({ mode: 'test_loot', chapterId: 1, invincible: true, testChests: true });
-        break;
-      case 'test-bawang':
-        this._launchTestMode({ mode: 'test_loot', chapterId: 1, invincible: true, testBawang: true });
-        break;
-      case 'test-lives-fx':
-        this._launchTestMode({ mode: 'test_loot', chapterId: 1, invincible: true, testLivesFx: true });
-        break;
-      case 'test-all-loot':
-        this._launchTestMode({ mode: 'test_loot', chapterId: 1, invincible: true, testChests: true, testBawang: true, testLivesFx: true });
-        break;
-      case 'test-ch3-0':
-        this._launchTestMode({ mode: 'test_attack', chapterId: 3, attackId: 0, invincible: true });
-        break;
-      case 'test-ch3-1':
-        this._launchTestMode({ mode: 'test_attack', chapterId: 3, attackId: 1, invincible: true });
-        break;
-      case 'test-ch3-2':
-        this._launchTestMode({ mode: 'test_attack', chapterId: 3, attackId: 2, invincible: true });
-        break;
-      case 'test-ch3-3':
-        this._launchTestMode({ mode: 'test_attack', chapterId: 3, attackId: 3, invincible: true });
-        break;
-      case 'test-ch3-4':
-        this._launchTestMode({ mode: 'test_attack', chapterId: 3, attackId: 4, invincible: true });
-        break;
-      case 'test-ch3-5':
-        this._launchTestMode({ mode: 'test_attack', chapterId: 3, attackId: 5, invincible: true });
-        break;
-      case 'test-ch3-6':
-        this._launchTestMode({ mode: 'test_attack', chapterId: 3, attackId: 6, invincible: true });
-        break;
-      case 'test-ch3-7':
-        this._launchTestMode({ mode: 'test_attack', chapterId: 3, attackId: 7, invincible: true });
-        break;
-      case 'test-ch3-ult':
-        this._launchTestMode({ mode: 'test_ultimate', chapterId: 3, invincible: true });
-        break;
-      case 'export-state':
+      }
+      case 'export-state': {
         console.log('=== GAME STATE ===');
         console.log('Settings:', state.get('settings'));
         console.log('Chapter Progress:', state.get('chapterProgress'));
-        console.log('Tutorial Complete:', state.get('tutorialComplete'));
-        console.log('Bestiary:', state.get('bestiary'));
-        console.log('==================');
-        this.showToast('Game state exported to console (F12)');
+        this._showAdminModal('EXPORTED', 'Game state exported to browser console (F12).');
         break;
-      case 'clear-local':
-        this.showConfirmModal('Clear all local storage?<br><span style="color:var(--accent-red);font-size:var(--text-xs);">This will reset local progress.</span>', 'CLEAR', () => {
+      }
+      case 'clear-local': {
+        this._showAdminModal('CLEAR DATA', 'Clear all local storage? This will log you out locally.', () => {
           localStorage.clear();
-          sessionStorage.removeItem('guest_session');
-          this.showToast('Local storage cleared. Refresh the page.');
+          sessionStorage.clear();
+          this._showAdminModal('CLEARED', 'Local storage cleared. Please refresh the page.');
         });
         break;
+      }
     }
-  },
-
-  unlockChapter(chapterNum) {
-    const progress = state.get('chapterProgress');
-    if (!progress.chaptersUnlocked.includes(chapterNum)) {
-      progress.chaptersUnlocked.push(chapterNum);
-      state.set('chapterProgress', progress);
-      state.saveChapterProgress();
-    }
-  },
-
-  showConfirmModal(message, confirmLabel, onConfirm) {
-    this._removeModal();
-    const overlay = document.createElement('div');
-    overlay.id = 'admin-modal-overlay';
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:9999;';
-    overlay.innerHTML = `
-      <div style="background:var(--bg-panel);border:1px solid var(--accent-orange);border-radius:8px;padding:var(--space-lg);min-width:280px;max-width:400px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,0.8);animation:fadeInUp 0.2s ease forwards;">
-        <p style="color:var(--text-primary);font-size:var(--text-sm);margin-bottom:var(--space-lg);line-height:1.5;text-align:center;">${message}</p>
-        <div style="display:flex;gap:var(--space-sm);">
-          <button id="admin-modal-cancel" class="login-card__join-btn" style="flex:1;padding:var(--space-sm);font-size:var(--text-sm);">CANCEL</button>
-          <button id="admin-modal-confirm" class="login-card__join-btn" style="flex:1;padding:var(--space-sm);font-size:var(--text-sm);background:var(--accent-orange);">${confirmLabel}</button>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(overlay);
-    overlay.querySelector('#admin-modal-cancel').addEventListener('click', () => this._removeModal());
-    overlay.querySelector('#admin-modal-confirm').addEventListener('click', () => { this._removeModal(); onConfirm(); });
-    overlay.addEventListener('click', (e) => { if (e.target === overlay) this._removeModal(); });
-  },
-
-  showInputModal(title, placeholder, confirmLabel, onConfirm) {
-    this._removeModal();
-    const overlay = document.createElement('div');
-    overlay.id = 'admin-modal-overlay';
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:9999;';
-    overlay.innerHTML = `
-      <div style="background:var(--bg-panel);border:1px solid var(--accent-orange);border-radius:8px;padding:var(--space-lg);min-width:280px;max-width:400px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,0.8);animation:fadeInUp 0.2s ease forwards;">
-        <h3 style="color:var(--accent-orange);font-family:var(--font-display);font-size:var(--text-base);text-transform:uppercase;margin-bottom:var(--space-md);text-align:center;">${title}</h3>
-        <input id="admin-modal-input" class="login-card__input" type="text" placeholder="${placeholder}" style="width:100%;font-size:var(--text-sm);padding:var(--space-sm);margin-bottom:var(--space-md);box-sizing:border-box;" />
-        <div style="display:flex;gap:var(--space-sm);">
-          <button id="admin-modal-cancel" class="login-card__join-btn" style="flex:1;padding:var(--space-sm);font-size:var(--text-sm);">CANCEL</button>
-          <button id="admin-modal-confirm" class="login-card__join-btn" style="flex:1;padding:var(--space-sm);font-size:var(--text-sm);background:var(--accent-orange);">${confirmLabel}</button>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(overlay);
-    const input = overlay.querySelector('#admin-modal-input');
-    setTimeout(() => input.focus(), 50);
-    const submit = () => { this._removeModal(); onConfirm(input.value.trim()); };
-    overlay.querySelector('#admin-modal-cancel').addEventListener('click', () => this._removeModal());
-    overlay.querySelector('#admin-modal-confirm').addEventListener('click', submit);
-    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') this._removeModal(); });
-    overlay.addEventListener('click', (e) => { if (e.target === overlay) this._removeModal(); });
-  },
-
-  showToast(message, isError = false) {
-    const existing = document.getElementById('admin-toast');
-    if (existing) existing.remove();
-    const toast = document.createElement('div');
-    toast.id = 'admin-toast';
-    toast.textContent = message;
-    toast.style.cssText = `position:fixed;bottom:var(--space-lg);left:50%;transform:translateX(-50%);background:${isError ? 'var(--accent-red)' : 'var(--accent-green)'};color:#111;padding:var(--space-sm) var(--space-md);border-radius:6px;font-family:var(--font-display);font-size:var(--text-sm);font-weight:bold;z-index:10000;animation:fadeInUp 0.2s ease forwards;pointer-events:none;`;
-    document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 3000);
-  },
-
-  _removeModal() {
-    const el = document.getElementById('admin-modal-overlay');
-    if (el) el.remove();
-  },
-
-  onLeave() {
-    this._removeModal();
   }
 };

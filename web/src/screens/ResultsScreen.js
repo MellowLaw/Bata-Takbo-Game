@@ -36,7 +36,7 @@ export const ResultsScreen = {
             padding: clamp(16px,4vw,40px) clamp(16px,3vw,40px) clamp(16px,4vw,40px) clamp(20px,8vw,100px);
           ">
             <div style="font-family:'GigaSaturn',sans-serif; font-size:clamp(2.5rem,8vw,5rem); color:#00cfff; line-height:1; letter-spacing:2px; margin-bottom:4px;">∞</div>
-            <h1 style="font-family:'GigaSaturn',sans-serif; font-size:clamp(1.4rem,4vw,3rem); color:#00cfff; margin:0 0 clamp(12px,2vh,28px) 0; line-height:1; letter-spacing:2px;">${chapterLabel} INF MODE</h1>
+            <h1 style="font-family:'GigaSaturn',sans-serif; font-size:clamp(1.4rem,4vw,3rem); color:#00cfff; margin:0 0 clamp(12px,2vh,28px) 0; line-height:1; letter-spacing:2px;">${chapterLabel} NORMAL MODE</h1>
             <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:clamp(12px,2vh,24px);">
               <div style="display:flex; align-items:baseline; gap:0; flex-wrap:wrap;">
                 <span style="font-family:'GigaSaturn',sans-serif; font-size:clamp(0.75rem,1.8vw,1.4rem); color:rgba(255,255,255,0.9); min-width:clamp(120px,18vw,200px); letter-spacing:1px;">WAVES:</span>
@@ -442,7 +442,7 @@ export const ResultsScreen = {
   async _submitInfScore(el, result) {
     const statusEl = el.querySelector('#inf-lb-status');
     if (!state.get('isAuthenticated')) {
-      if (statusEl) statusEl.textContent = 'Sign in to submit your score to the INF leaderboard!';
+      if (statusEl) statusEl.textContent = 'Sign in to submit your score to the Normal Mode leaderboard!';
       return;
     }
     if (statusEl) statusEl.textContent = 'Submitting score...';
@@ -461,7 +461,7 @@ export const ResultsScreen = {
         })
       });
       if (res.ok) {
-        if (statusEl) statusEl.textContent = '✓ Score submitted to INF leaderboard!';
+        if (statusEl) statusEl.textContent = '✓ Score submitted to Normal Mode leaderboard!';
       } else {
         if (statusEl) statusEl.textContent = 'Could not submit score.';
       }
