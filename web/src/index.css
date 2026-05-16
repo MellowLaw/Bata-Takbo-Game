@@ -1384,13 +1384,17 @@ a {
   transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Default: back face shown */
+/* Default: back face shown (for locked cards) */
 .ch-flip-wrapper .ch-flip-inner {
   transform: rotateY(0deg);
 }
 
-/* Hover: flip to front (both unlocked and locked) */
-.ch-flip-wrapper.unlocked:hover .ch-flip-inner,
+/* Unlocked cards ALWAYS show the front face (no flip animation on hover) */
+.ch-flip-wrapper.unlocked .ch-flip-inner {
+  transform: rotateY(180deg);
+}
+
+/* Hover: flip to front (only for locked cards to peek, or mobile tapped cards) */
 .ch-flip-wrapper.locked:hover .ch-flip-inner,
 .ch-flip-wrapper.flipped .ch-flip-inner {
   transform: rotateY(180deg);
@@ -1465,6 +1469,16 @@ a {
 .ch-flip-wrapper.unlocked:hover .ch-front-idle-canvas,
 .ch-flip-wrapper.unlocked.flipped .ch-front-idle-canvas {
   opacity: 1;
+}
+
+/* On touch devices, automatically show canvas so sprite animation is visible */
+@media (hover: none) {
+  .ch-flip-wrapper.unlocked .ch-front-static {
+    opacity: 0;
+  }
+  .ch-flip-wrapper.unlocked .ch-front-idle-canvas {
+    opacity: 1;
+  }
 }
 
 /* Hover/flipped glow */
@@ -1609,18 +1623,51 @@ a {
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  padding: var(--space-xl);
-  padding-top: calc(var(--space-2xl) + var(--space-xl));
+  padding: 0;
+  overflow: hidden;
 }
 
 .settings-screen__content {
   width: 100%;
-  max-width: 600px;
+  max-width: 1100px;
+  height: 100%;
   flex: 1;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  padding: var(--space-md);
+  display: flex;
+  flex-direction: row;
+  gap: var(--space-lg);
+  padding: var(--space-lg);
+  overflow: hidden;
+  margin: 0 auto;
 }
+
+/* Camera quality pill buttons */
+.settings-quality-btn {
+  background: rgba(0,0,0,0.15);
+  color: #555;
+  border: 2px solid #999;
+  border-radius: 4px;
+  font-family: 'VCR', monospace;
+  font-size: var(--text-sm);
+  padding: var(--space-sm);
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all 0.2s ease;
+}
+
+.settings-quality-btn:hover {
+  border-color: #333;
+  color: #111;
+  background: rgba(0,0,0,0.08);
+}
+
+.settings-quality-btn.active {
+  background: #111;
+  color: #f0e6d3;
+  border-color: #111;
+  font-weight: bold;
+}
+
 
 .settings-group {
   margin-bottom: var(--space-xl);
@@ -2200,11 +2247,30 @@ a {
   min-height: 0;
 }
 
+@media (min-width: 768px) {
+  .gesture-screen__layout {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-xl);
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+}
+
 .gesture-screen__left {
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+}
+
+@media (min-width: 768px) {
+  .gesture-screen__left {
+    flex: 1;
+    align-items: center;
+    max-width: 50%;
+  }
 }
 
 .gesture-screen__right {
@@ -2216,6 +2282,15 @@ a {
   width: 100%;
 }
 
+@media (min-width: 768px) {
+  .gesture-screen__right {
+    flex: 1;
+    max-width: 50%;
+    align-items: flex-start;
+    padding-top: var(--space-md);
+  }
+}
+
 /* Actions row (test/export/import/reset) */
 .gesture-screen__actions {
   display: flex;
@@ -2223,6 +2298,12 @@ a {
   margin-top: var(--space-sm);
   flex-wrap: wrap;
   justify-content: center;
+}
+
+@media (min-width: 768px) {
+  .gesture-screen__actions {
+    justify-content: flex-start;
+  }
 }
 
 .gesture-screen__camera {
@@ -2233,7 +2314,15 @@ a {
   border-radius: var(--radius-lg);
   overflow: hidden;
   position: relative;
-  margin-bottom: var(--space-md);
+  margin: 0 auto var(--space-md) auto;
+}
+
+@media (min-width: 768px) {
+  .gesture-screen__camera {
+    width: 100%;
+    max-width: 640px;
+    margin: 0 auto;
+  }
 }
 
 /* ── 50/50 split on short landscape (phones in landscape) ── */
@@ -2289,7 +2378,13 @@ a {
   }
 
   .gesture-screen__hint {
-    display: none;
+    font-size: 0.65rem !important;
+    line-height: 1.2;
+    margin-top: var(--space-xs) !important;
+  }
+  
+  .gesture-screen__hint br {
+    display: none; /* Keep it compact by removing line breaks */
   }
 
   .gesture-directions {
@@ -2410,7 +2505,7 @@ a {
 /* Progress bar */
 .progress-bar {
   width: 100%;
-  max-width: 300px;
+  max-width: none;
   height: 8px;
   background: var(--bg-secondary);
   border-radius: 4px;
@@ -3298,6 +3393,19 @@ a {
   50% { filter: grayscale(0) drop-shadow(0 0 30px rgba(228, 207, 192, 0.6)) drop-shadow(0 0 60px rgba(255, 107, 26, 0.4)); }
 }
 
+/* ── Auto-play colors and glow on touch devices (no hover) ── */
+@media (hover: none) {
+  .cs-portrait, .cs-ctrl-icon {
+    filter: grayscale(0) drop-shadow(0 0 20px rgba(228, 207, 192, 0.4)) drop-shadow(0 0 40px rgba(255, 107, 26, 0.2));
+  }
+  .cs-portrait {
+    animation: portraitPulse 1.5s ease-in-out infinite;
+  }
+  .cs-ctrl-icon {
+    animation: ctrlIconPulse 1.5s ease-in-out infinite;
+  }
+}
+
 /* ── Labels ── */
 .cs-name {
   font-family: var(--font-display);
@@ -3639,15 +3747,15 @@ a {
   width: 100%;
   margin-bottom: var(--space-lg);
   background: transparent;
-  color: var(--accent-orange);
-  border: 2px solid var(--accent-orange);
+  color: #e4cfc0;
+  border: 2px solid #e4cfc0;
   box-shadow: none;
   text-align: center;
   border-radius: 4px;
 }
 
 .profile-sidebar .back-btn:hover {
-  background: var(--accent-orange);
+  background: #e4cfc0;
   color: #111;
 }
 

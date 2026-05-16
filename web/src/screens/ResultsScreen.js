@@ -505,7 +505,10 @@ export const ResultsScreen = {
     const bgImg = el.querySelector('#kill-cam-bg');
     const dlBtn = el.querySelector('#btn-download-killcam');
 
-    if (imagesSrc.length === 0) return;
+    if (imagesSrc.length === 0) {
+      if (bgImg) bgImg.src = '/assets/ui/backgrounds/login_background.png';
+      return;
+    }
 
     const loadPromises = imagesSrc.map(src => {
       return new Promise((resolve) => {

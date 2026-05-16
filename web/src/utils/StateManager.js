@@ -93,6 +93,8 @@ class StateManager {
         privacyMode: false,
         position: 'bottom-left',
         showSkeleton: true,
+        quality: 'medium',
+        deviceId: '',
       },
       audio: {
         master: 0.8,

@@ -427,7 +427,7 @@ export class GameScene extends Phaser.Scene {
       this.anims.create({ key: 'anim_lives_up', frames: this.anims.generateFrameNumbers('lives_up', { start: 0, end: 22 }), frameRate: 18, repeat: 0 });
       this.anims.create({ key: 'anim_lives_decreased', frames: this.anims.generateFrameNumbers('lives_decreased', { start: 105, end: 119 }), frameRate: 30, repeat: 0 });
       this.anims.create({ key: 'anim_frozen', frames: this.anims.generateFrameNumbers('frozen', { start: 0, end: 11 }), frameRate: 15, repeat: 0 });
-      this.anims.create({ key: 'anim_bawang_effects', frames: this.anims.generateFrameNumbers('bawang_effects', { start: 0, end: 15 }), frameRate: 20, repeat: 0 });
+      this.anims.create({ key: 'anim_bawang_effects', frames: this.anims.generateFrameNumbers('bawang_effects', { start: 0, end: 13 }), frameRate: 20, repeat: 0 });
       this.anims.create({ key: 'anim_chest_effects', frames: this.anims.generateFrameNumbers('chest_effects', { start: 0, end: 15 }), frameRate: 20, repeat: 0 });
 
       if (this.chapterId === 1) {
@@ -711,8 +711,9 @@ export class GameScene extends Phaser.Scene {
           if (hud && hud.updateScore) hud.updateScore(this.chapterScore);
         }
 
-        // Fire golden particles from the tile toward the boss
+        // Fire chapter-colored particles from the tile toward the boss
         const hitPos = this.grid.getPixelPosition(col, row);
+        this._spawnPickupBurst(hitPos.x, hitPos.y);
         this.launchAttackParticles(hitPos.x, hitPos.y);
         this.goldenTile = null;
         this.grid.render();
@@ -1041,17 +1042,21 @@ export class GameScene extends Phaser.Scene {
       });
     }
 
-    // ─── Helper: Generate the particle texture once ───────────────────────────
-    if (!this.textures.exists('attack_particle')) {
+    // ─── Helper: Generate the particle texture (chapter-colored) ────────────────
+    // Chapter 1 = red, Chapter 2 = gold, Chapter 3 = blue
+    const chapterParticleColor = this.chapterId === 1 ? 0xFF2200 : this.chapterId === 3 ? 0x22AAFF : 0xFFD700;
+    const chapterParticleKey = `attack_particle_ch${this.chapterId}`;
+    if (!this.textures.exists(chapterParticleKey)) {
       const g = this.make.graphics({ x: 0, y: 0, add: false });
-      // Simple pixel square for a retro look
-      g.fillStyle(0xFFD700, 1);
+      g.fillStyle(chapterParticleColor, 1);
       g.fillRect(0, 0, 8, 8);
       g.fillStyle(0xFFFFFF, 0.8);
       g.fillRect(2, 2, 4, 4); // inner highlight
-      g.generateTexture('attack_particle', 8, 8);
+      g.generateTexture(chapterParticleKey, 8, 8);
       g.destroy();
     }
+    this._chapterParticleKey = chapterParticleKey;
+    this._chapterParticleColor = chapterParticleColor;
 
     // Launch HUD
     this.scene.launch('HUDScene', { chapterId: this.chapterId, character: this.character, control: this.control, isPracticeTutorial: this.isPracticeTutorial, isInfMode: this.isInfMode });
@@ -1588,7 +1593,32 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  /** Fire golden particles from a tile position to the boss sprite */
+  /** Burst of chapter-colored circle particles at the pickup location */
+  _spawnPickupBurst(x, y) {
+    const color = this._chapterParticleColor ?? 0xFFD700;
+    const COUNT = 22;
+    for (let i = 0; i < COUNT; i++) {
+      const angle = (i / COUNT) * Math.PI * 2 + Math.random() * 0.3;
+      const speed = Phaser.Math.Between(70, 180);
+      const prt = this.add.graphics().setDepth(250);
+      prt.fillStyle(color, 1);
+      prt.fillCircle(0, 0, Phaser.Math.Between(3, 7));
+      prt.x = x; prt.y = y;
+      this.tweens.add({
+        targets: prt,
+        x: x + Math.cos(angle) * speed,
+        y: y + Math.sin(angle) * speed,
+        alpha: 0,
+        scaleX: 0.2,
+        scaleY: 0.2,
+        duration: Phaser.Math.Between(500, 800),
+        ease: 'Cubic.easeOut',
+        onComplete: () => prt.destroy()
+      });
+    }
+  }
+
+  /** Fire chapter-colored pixels from a tile position to the boss sprite */
   launchAttackParticles(fromX, fromY) {
     const { width, height } = this.scale;
     const leftWidth = Math.floor(width * 0.28);
@@ -1596,11 +1626,14 @@ export class GameScene extends Phaser.Scene {
     const bossX = leftWidth / 2;
     const bossY = 155 + bossBoxH / 2;
 
+    // Use chapter-specific particle texture
+    const particleKey = this._chapterParticleKey ?? 'attack_particle';
+
     const COUNT = 15;
     for (let i = 0; i < COUNT; i++) {
       if (this.isGameOver) return;
 
-      const particle = this.add.image(fromX, fromY, 'attack_particle')
+      const particle = this.add.image(fromX, fromY, particleKey)
         .setDepth(60)
         .setScale(Phaser.Math.FloatBetween(1, 1.5));
 
@@ -1628,8 +1661,8 @@ export class GameScene extends Phaser.Scene {
             y: bossY + Phaser.Math.Between(-20, 20),
             scale: 0.5,
             duration: Phaser.Math.Between(300, 500),
-            ease: 'Back.easeIn', // pull back slightly then shoot forward
-            delay: Phaser.Math.Between(0, 150), // Random pause before zipping
+            ease: 'Back.easeIn',
+            delay: Phaser.Math.Between(0, 150),
             onComplete: () => particle.destroy()
           });
         }

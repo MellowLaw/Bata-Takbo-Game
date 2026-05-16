@@ -98,6 +98,16 @@ export async function initDb() {
     }
   } catch(e) {}
 
+  // Add ban_appeal column if missing
+  try {
+    const tableInfo = await db.all("PRAGMA table_info(users)");
+    const hasBanAppeal = tableInfo.some(c => c.name === 'ban_appeal');
+    if (!hasBanAppeal) {
+      await db.exec(`ALTER TABLE users ADD COLUMN ban_appeal TEXT`);
+      console.log('Migration: Added ban_appeal to users table');
+    }
+  } catch(e) {}
+
   // Add avatar_url column if missing
   try {
     const tableInfo = await db.all("PRAGMA table_info(users)");
@@ -108,40 +118,77 @@ export async function initDb() {
     }
   } catch(e) {}
 
-  // Seed data for testing (password is 'password' for all)
+  // ─── Seed admin accounts from .env ───────────────────────────────────────
+  // Reads ADMIN_SEED_1/2/3 variables. Creates accounts only if the username
+  // doesn't exist yet. Set ADMIN_SEED_FORCE=true to also update existing
+  // accounts' email/password (useful when you change credentials in .env).
   try {
-    const salt = bcrypt.genSaltSync(10);
-    const hash = bcrypt.hashSync('password', salt);
-    await db.run('INSERT OR IGNORE INTO users (username, password_hash, encrypted_data, is_admin) VALUES (?, ?, ?, ?)', ['ADMIN', hash, null, 1]);
-    await db.run('INSERT OR IGNORE INTO users (username, password_hash, encrypted_data) VALUES (?, ?, ?)', ['PLAYER1', hash, null]);
-    await db.run('INSERT OR IGNORE INTO users (username, password_hash, encrypted_data) VALUES (?, ?, ?)', ['TESTER', hash, null]);
-    // Update existing ADMIN to have is_admin=1
-    await db.run('UPDATE users SET is_admin = 1 WHERE username = ?', ['ADMIN']);
+    const forceReseed = process.env.ADMIN_SEED_FORCE === 'true';
+    if (forceReseed) {
+      console.warn('[SEED] ⚠️  ADMIN_SEED_FORCE=true — will update existing admin credentials.');
+      console.warn('[SEED]     Remember to set ADMIN_SEED_FORCE=false after restarting!');
+    }
 
-    // Ensure ADMIN always has all chapters unlocked for testing purposes
-    const adminRow = await db.get('SELECT game_data FROM users WHERE username = ?', ['ADMIN']);
-    if (adminRow) {
-      let adminData = {};
-      try {
-        if (adminRow.game_data) adminData = JSON.parse(adminRow.game_data);
-      } catch (e) { /* ignore parse errors */ }
+    // Remove legacy test accounts (ADMIN/PLAYER1/TESTER) if still present.
+    for (const legacyUser of ['ADMIN', 'PLAYER1', 'TESTER']) {
+      const legacy = await db.get('SELECT id FROM users WHERE username = ? COLLATE NOCASE', [legacyUser]);
+      if (legacy) {
+        await db.run('DELETE FROM users WHERE id = ?', [legacy.id]);
+        console.log(`[SEED] Removed legacy account: ${legacyUser}`);
+      }
+    }
 
-      adminData.tutorialComplete = true;
-      adminData.gestureSetupComplete = true;
-      const existingCompleted = adminData.chapterProgress?.chaptersCompleted || [];
-      const allCompleted = [1, 2, 3].reduce((arr, id) => arr.includes(id) ? arr : [...arr, id], existingCompleted);
-      adminData.chapterProgress = {
-        ...(adminData.chapterProgress || {}),
+    const fullUnlockData = JSON.stringify({
+      tutorialComplete: true,
+      gestureSetupComplete: true,
+      chapterProgress: {
         chaptersUnlocked: [1, 2, 3],
-        chaptersCompleted: allCompleted,
-        bestScores: adminData.chapterProgress?.bestScores || {}
-      };
+        chaptersCompleted: [1, 2, 3],
+        bestScores: {}
+      }
+    });
 
-      await db.run('UPDATE users SET game_data = ? WHERE username = ?', [JSON.stringify(adminData), 'ADMIN']);
+    for (let i = 1; i <= 3; i++) {
+      const username = process.env[`ADMIN_SEED_${i}_USERNAME`];
+      const email    = process.env[`ADMIN_SEED_${i}_EMAIL`];
+      const password = process.env[`ADMIN_SEED_${i}_PASSWORD`];
+
+      if (!username || !password) continue; // slot not configured
+
+      const existing = await db.get('SELECT id, is_admin FROM users WHERE username = ? COLLATE NOCASE', [username]);
+
+      if (!existing) {
+        // Account doesn't exist — create it fresh
+        const hash = await bcrypt.hash(password, 12);
+        await db.run(
+          'INSERT INTO users (username, email, password_hash, is_admin, game_data) VALUES (?, ?, ?, 1, ?)',
+          [username, email || null, hash, fullUnlockData]
+        );
+        console.log(`[SEED] ✅ Created admin account: ${username}`);
+
+      } else if (forceReseed) {
+        // Force mode — update email and rehash password
+        const hash = await bcrypt.hash(password, 12);
+        await db.run(
+          'UPDATE users SET email = ?, password_hash = ?, is_admin = 1 WHERE id = ?',
+          [email || null, hash, existing.id]
+        );
+        console.log(`[SEED] 🔄 Updated admin credentials: ${username}`);
+
+      } else if (!existing.is_admin) {
+        // Exists but not admin — promote
+        await db.run('UPDATE users SET is_admin = 1 WHERE id = ?', [existing.id]);
+        console.log(`[SEED] ⬆️  Promoted to admin: ${username}`);
+
+      } else {
+        console.log(`[SEED] ✓ Admin already exists (skipped): ${username}`);
+      }
     }
   } catch (e) {
-    console.error('Error seeding data:', e);
+    console.error('[SEED] Error seeding admin accounts:', e);
   }
+
+
 
   // Database Privileges Emulation via strict permissions
   try {

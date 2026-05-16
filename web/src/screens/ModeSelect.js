@@ -47,9 +47,9 @@ export const ModeSelect = {
                 ${chapterCleared ? `
                   <img src="/assets/ui/chapter-selection/endless_mode.png" alt="Normal Mode" style="width: 100%; height: 100%; object-fit: cover; border-radius: 10px;" />
                 ` : `
-                  <div style="width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #0a0a1a; border-radius: 10px; gap: 10px;">
-                    <div style="font-family:'GigaSaturn',sans-serif; font-size:clamp(1.5rem,3vw,2.5rem); color:rgba(255,255,255,0.3); line-height:1;">🔒</div>
-                    <div style="font-family:'VCR',monospace; font-size:clamp(0.55rem,1.2vw,0.8rem); color:rgba(255,255,255,0.35); text-align:center; padding: 0 8px;">
+                  <div style="width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--bg-secondary); border: 2px solid var(--text-primary); border-radius: 10px; gap: 10px; box-sizing: border-box;">
+                    <div style="font-size:clamp(1.5rem,3vw,2.5rem); color:var(--text-secondary); line-height:1;"><i class="fas fa-lock"></i></div>
+                    <div style="font-family:'VCR',monospace; font-size:clamp(0.55rem,1.2vw,0.8rem); color:var(--text-secondary); text-align:center; padding: 0 8px;">
                       I-clear muna ang chapter<br>para ma-unlock
                     </div>
                   </div>
@@ -80,30 +80,14 @@ export const ModeSelect = {
     // Normal card
     const normalCard = el.querySelector('#ms-card-normal');
     normalCard.addEventListener('click', () => {
-      if (isTouchDevice()) {
-        if (!normalCard.classList.contains('flipped')) {
-          normalCard.classList.add('flipped');
-        } else {
-          navigate(false);
-        }
-      } else {
-        navigate(false);
-      }
+      navigate(false);
     });
 
-    // Normal Mode wave card (only if unlocked)
+    // Endless Mode wave card (only if unlocked)
     const infCard = el.querySelector('#ms-card-inf');
     if (infCard.classList.contains('unlocked')) {
       infCard.addEventListener('click', () => {
-        if (isTouchDevice()) {
-          if (!infCard.classList.contains('flipped')) {
-            infCard.classList.add('flipped');
-          } else {
-            navigate(true);
-          }
-        } else {
-          navigate(true);
-        }
+        navigate(true);
       });
     }
   },

@@ -18,9 +18,12 @@ export const ChapterSelect = {
     const cardsHtml = chapters.map((ch, i) => {
       const isUnlocked = unlocked.includes(ch.id);
       const isCompleted = completed.includes(ch.id);
-      const frontImg = isUnlocked ? ch.img : '/assets/ui/chapter-selection/chapter-front.png';
+      let frontImg = '/assets/ui/chapter-selection/chapter-front.png';
+      if (isCompleted) frontImg = ch.cover;
+      else if (isUnlocked) frontImg = ch.img;
+      
       const idleImg = isUnlocked ? ch.idle : null;
-      const backImg = isCompleted ? ch.cover : '/assets/ui/chapter-selection/chapter-back.png';
+      const backImg = '/assets/ui/chapter-selection/chapter-back.png';
 
       return `
         <div class="ch-flip-wrapper ${isUnlocked ? 'unlocked' : 'locked'} ${isCompleted ? 'completed' : ''}"
@@ -94,6 +97,13 @@ export const ChapterSelect = {
           canvas.height = frameHeight;
           // Pre-render first frame
           drawFrame(0);
+
+          // Auto-play on touch devices
+          if (window.matchMedia('(hover: none)').matches && this._rafIds) {
+            lastFrameTime = 0;
+            animationId = requestAnimationFrame(animate);
+            this._rafIds.push(animationId);
+          }
         };
 
         drawFrame = (idx) => {
@@ -121,16 +131,13 @@ export const ChapterSelect = {
           animationId = requestAnimationFrame(animate);
         };
 
-        // Start animation on hover (after flip completes), stop on leave
+        // Start animation on hover immediately, stop on leave
         card.addEventListener('mouseenter', () => {
           if (img.complete) {
-            // Wait for flip to complete (600ms), then start animating
-            setTimeout(() => {
-              if (!this._rafIds) return;
-              lastFrameTime = 0;
-              animationId = requestAnimationFrame(animate);
-              this._rafIds.push(animationId);
-            }, 600);
+            if (!this._rafIds) return;
+            lastFrameTime = 0;
+            animationId = requestAnimationFrame(animate);
+            this._rafIds.push(animationId);
           }
         });
 
@@ -150,29 +157,9 @@ export const ChapterSelect = {
       card.addEventListener('click', () => {
         const chapterId = parseInt(card.dataset.chapter);
 
-        if (isTouchDevice()) {
-          // Mobile: first tap flips, second tap navigates
-          if (!card.classList.contains('flipped')) {
-            card.classList.add('flipped');
-            // Hide hint once any card is flipped
-            const hint = document.getElementById('ch-tap-hint');
-            if (hint) hint.style.opacity = '0';
-            // Start idle animation after flip completes
-            if (canvas && img && img.complete && animate) {
-              setTimeout(() => {
-                if (!this._rafIds) return;
-                lastFrameTime = 0;
-                animationId = requestAnimationFrame(animate);
-                this._rafIds.push(animationId);
-              }, 650);
-            }
-          } else {
-            window.__screenManager.navigate('mode-select', { chapterId });
-          }
-        } else {
-          // Desktop: hover flips, click navigates immediately
-          window.__screenManager.navigate('mode-select', { chapterId });
-        }
+        // Since unlocked cards are already face-up, any click (mobile or desktop) 
+        // navigates immediately.
+        window.__screenManager.navigate('mode-select', { chapterId });
       });
     });
 

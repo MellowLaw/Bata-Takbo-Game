@@ -1,5 +1,6 @@
 /**
  * Settings — Camera, Audio, Gesture, and Display settings
+ * Redesigned to match the Profile screen two-panel layout.
  */
 import { state } from '../utils/StateManager.js';
 import { audioManager } from '../game/AudioManager.js';
@@ -9,151 +10,234 @@ export const Settings = {
     const s = state.get('settings');
 
     return `
-      <div class="settings-screen screen">
-        <button class="back-btn" id="btn-settings-back">Back</button>
-        
-        <h1 class="screen-title" style="animation: fadeInUp 0.4s ease forwards;">
-          Settings
-        </h1>
-        
-        <div class="settings-screen__content scrollable">
-          <!-- Camera & Privacy -->
-          <div class="settings-group" style="animation: fadeInUp 0.4s ease forwards; animation-delay: 0.1s; opacity: 0;">
-            <div class="settings-group__title"> Camera & Privacy</div>
-            
-            <div class="setting-row">
-              <span class="setting-row__label">Privacy Mode</span>
-              <div class="toggle ${s.camera.privacyMode ? 'active' : ''}" 
-                   id="toggle-privacy" data-key="camera.privacyMode">
-                <div class="toggle__knob"></div>
-              </div>
-            </div>
-            
-            <div class="setting-row">
-              <span class="setting-row__label">Show Hand Skeleton</span>
-              <div class="toggle ${s.camera.showSkeleton ? 'active' : ''}" 
-                   id="toggle-skeleton" data-key="camera.showSkeleton">
-                <div class="toggle__knob"></div>
-              </div>
-            </div>
+      <div class="settings-screen screen" id="settings-container">
+        <div class="settings-screen__content" id="settings-content-wrapper" style="background: transparent; border: none; box-shadow: none;">
+
+          <!-- SIDEBAR NAVIGATION -->
+          <div class="profile-sidebar">
+            <button class="back-btn" id="btn-settings-back">
+              BACK TO MENU
+            </button>
+            <button class="profile-tab-btn active" data-target="settings-panel-camera">CAMERA &amp; PRIVACY</button>
+            <button class="profile-tab-btn" data-target="settings-panel-audio">AUDIO</button>
+            <button class="profile-tab-btn" data-target="settings-panel-gesture">GESTURE</button>
+            <button class="profile-tab-btn" data-target="settings-panel-display">DISPLAY</button>
+            <button class="profile-tab-btn" data-target="settings-panel-other">OTHER</button>
           </div>
 
-          <!-- Audio -->
-          <div class="settings-group" style="animation: fadeInUp 0.4s ease forwards; animation-delay: 0.2s; opacity: 0;">
-            <div class="settings-group__title">Audio</div>
-            
-            <div class="setting-row">
-              <span class="setting-row__label">Master</span>
-              <div class="slider-container">
-                <input type="range" class="slider" id="slider-master" 
-                       min="0" max="100" value="${Math.round(s.audio.master * 100)}"
-                       data-key="audio.master" />
-                <span class="slider-value" id="val-master">${Math.round(s.audio.master * 100)}%</span>
-              </div>
-            </div>
-            
-            <div class="setting-row">
-              <span class="setting-row__label">Music</span>
-              <div class="slider-container">
-                <input type="range" class="slider" id="slider-music" 
-                       min="0" max="100" value="${Math.round(s.audio.music * 100)}"
-                       data-key="audio.music" />
-                <span class="slider-value" id="val-music">${Math.round(s.audio.music * 100)}%</span>
-              </div>
-            </div>
-            
-            <div class="setting-row">
-              <span class="setting-row__label">SFX</span>
-              <div class="slider-container">
-                <input type="range" class="slider" id="slider-sfx" 
-                       min="0" max="100" value="${Math.round(s.audio.sfx * 100)}"
-                       data-key="audio.sfx" />
-                <span class="slider-value" id="val-sfx">${Math.round(s.audio.sfx * 100)}%</span>
-              </div>
-            </div>
-            
-            <div class="setting-row">
-              <span class="setting-row__label">Mute All</span>
-              <div class="toggle ${s.audio.muted ? 'active' : ''}" 
-                   id="toggle-mute" data-key="audio.muted">
-                <div class="toggle__knob"></div>
-              </div>
-            </div>
-          </div>
+          <!-- MAIN CONTENT AREA -->
+          <div class="profile-content-area scrollable">
 
-          <!-- Gesture -->
-          <div class="settings-group" style="animation: fadeInUp 0.4s ease forwards; animation-delay: 0.3s; opacity: 0;">
-            <div class="settings-group__title">Gesture Control</div>
-            
-            <div class="setting-row">
-              <span class="setting-row__label">Sensitivity</span>
-              <div class="slider-container">
-                <input type="range" class="slider" id="slider-sensitivity" 
-                       min="50" max="95" value="${Math.round(s.gesture.sensitivity * 100)}"
-                       data-key="gesture.sensitivity" />
-                <span class="slider-value" id="val-sensitivity">${Math.round(s.gesture.sensitivity * 100)}%</span>
-              </div>
-            </div>
-            
-            <div class="setting-row">
-              <span class="setting-row__label">Move Debounce</span>
-              <div class="slider-container">
-                <input type="range" class="slider" id="slider-debounce" 
-                       min="100" max="300" step="25" value="${s.gesture.debounce}"
-                       data-key="gesture.debounce" />
-                <span class="slider-value" id="val-debounce">${s.gesture.debounce}ms</span>
-              </div>
-            </div>
-          </div>
+            <!-- CAMERA & PRIVACY PANEL -->
+            <div id="settings-panel-camera" class="profile-panel active">
+              <h2 style="font-family:var(--font-display); color:#111; margin-bottom:var(--space-md); border-bottom:3px solid #111; padding-bottom:8px; letter-spacing:2px;">Camera &amp; Privacy</h2>
 
-          <!-- Display -->
-          <div class="settings-group" style="animation: fadeInUp 0.4s ease forwards; animation-delay: 0.4s; opacity: 0;">
-            <div class="settings-group__title">Display</div>
-            
-            <div class="setting-row">
-              <span class="setting-row__label">Screen Shake</span>
-              <div class="toggle ${s.display.screenShake ? 'active' : ''}" 
-                   id="toggle-shake" data-key="display.screenShake">
-                <div class="toggle__knob"></div>
-              </div>
-            </div>
-            
-            <div class="setting-row">
-              <span class="setting-row__label">Particle Effects</span>
-              <div class="toggle ${s.display.particles ? 'active' : ''}" 
-                   id="toggle-particles" data-key="display.particles">
-                <div class="toggle__knob"></div>
+              <div class="profile-card" style="flex-direction: column; align-items: stretch; gap: var(--space-md);">
+
+                <div class="setting-row" style="color:#111;">
+                  <div>
+                    <h3 style="color:#111; font-family:'VCR',monospace; font-size:var(--text-sm); text-transform:uppercase; letter-spacing:1px;">Privacy Mode</h3>
+                    <p style="font-family:'VCR',monospace; font-size:11px; margin-top:4px; color:#444;">Hides the webcam feed during gameplay</p>
+                  </div>
+                  <div class="toggle ${s.camera.privacyMode ? 'active' : ''}" id="toggle-privacy" data-key="camera.privacyMode">
+                    <div class="toggle__knob"></div>
+                  </div>
+                </div>
+
+                <div class="setting-row" style="color:#111;">
+                  <div>
+                    <h3 style="color:#111; font-family:'VCR',monospace; font-size:var(--text-sm); text-transform:uppercase; letter-spacing:1px;">Show Hand Skeleton</h3>
+                    <p style="font-family:'VCR',monospace; font-size:11px; margin-top:4px; color:#444;">Overlays joint tracking on the camera feed</p>
+                  </div>
+                  <div class="toggle ${s.camera.showSkeleton ? 'active' : ''}" id="toggle-skeleton" data-key="camera.showSkeleton">
+                    <div class="toggle__knob"></div>
+                  </div>
+                </div>
+
+                <div class="setting-row" style="color:#111; flex-direction: column; align-items: stretch; gap: var(--space-sm);">
+                  <div>
+                    <h3 style="color:#111; font-family:'VCR',monospace; font-size:var(--text-sm); text-transform:uppercase; letter-spacing:1px;">Camera Device</h3>
+                    <p style="font-family:'VCR',monospace; font-size:11px; margin-top:4px; color:#444;">Select your active webcam from connected devices</p>
+                  </div>
+                  <select id="select-camera-device" style="
+                    width: 100%;
+                    background: #111;
+                    color: #f0e6d3;
+                    font-family: 'VCR', monospace;
+                    font-size: var(--text-sm);
+                    padding: var(--space-sm) var(--space-md);
+                    border: 2px solid #444;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    outline: none;
+                    appearance: none;
+                    -webkit-appearance: none;
+                  ">
+                    <option value="">Loading cameras...</option>
+                  </select>
+                </div>
+
+                <div class="setting-row" style="color:#111; flex-direction: column; align-items: stretch; gap: var(--space-sm);">
+                  <div>
+                    <h3 style="color:#111; font-family:'VCR',monospace; font-size:var(--text-sm); text-transform:uppercase; letter-spacing:1px;">Camera Quality</h3>
+                    <p style="font-family:'VCR',monospace; font-size:11px; margin-top:4px; color:#444;">Lower quality reduces lag on weaker devices</p>
+                  </div>
+                  <div style="display:flex; gap: var(--space-sm);">
+                    <button class="settings-quality-btn ${(s.camera.quality || 'medium') === 'low' ? 'active' : ''}" data-quality="low" style="flex:1;">LOW</button>
+                    <button class="settings-quality-btn ${(s.camera.quality || 'medium') === 'medium' ? 'active' : ''}" data-quality="medium" style="flex:1;">MEDIUM</button>
+                    <button class="settings-quality-btn ${(s.camera.quality || 'medium') === 'high' ? 'active' : ''}" data-quality="high" style="flex:1;">HIGH</button>
+                  </div>
+                </div>
+
               </div>
             </div>
 
-            <div class="setting-row">
-              <span class="setting-row__label">Show FPS</span>
-              <div class="toggle ${s.display.showFps ? 'active' : ''}" 
-                   id="toggle-fps" data-key="display.showFps">
-                <div class="toggle__knob"></div>
+            <!-- AUDIO PANEL -->
+            <div id="settings-panel-audio" class="profile-panel">
+              <h2 style="font-family:var(--font-display); color:#111; margin-bottom:var(--space-md); border-bottom:3px solid #111; padding-bottom:8px; letter-spacing:2px;">Audio</h2>
+
+              <div class="profile-card" style="flex-direction: column; align-items: stretch; gap: var(--space-md);">
+
+                <div class="setting-row" style="color:#111;">
+                  <div style="min-width:80px;">
+                    <h3 style="color:#111; font-family:'VCR',monospace; font-size:var(--text-sm); text-transform:uppercase; letter-spacing:1px;">Master</h3>
+                  </div>
+                  <div class="slider-container" style="flex:1; display:flex; align-items:center; gap:var(--space-sm);">
+                    <input type="range" class="slider" id="slider-master"
+                           min="0" max="100" value="${Math.round(s.audio.master * 100)}"
+                           data-key="audio.master" style="flex:1;" />
+                    <span class="slider-value" id="val-master" style="min-width:40px; text-align:right; color:#111; font-family:'VCR',monospace;">${Math.round(s.audio.master * 100)}%</span>
+                  </div>
+                </div>
+
+                <div class="setting-row" style="color:#111;">
+                  <div style="min-width:80px;">
+                    <h3 style="color:#111; font-family:'VCR',monospace; font-size:var(--text-sm); text-transform:uppercase; letter-spacing:1px;">Music</h3>
+                  </div>
+                  <div class="slider-container" style="flex:1; display:flex; align-items:center; gap:var(--space-sm);">
+                    <input type="range" class="slider" id="slider-music"
+                           min="0" max="100" value="${Math.round(s.audio.music * 100)}"
+                           data-key="audio.music" style="flex:1;" />
+                    <span class="slider-value" id="val-music" style="min-width:40px; text-align:right; color:#111; font-family:'VCR',monospace;">${Math.round(s.audio.music * 100)}%</span>
+                  </div>
+                </div>
+
+                <div class="setting-row" style="color:#111;">
+                  <div style="min-width:80px;">
+                    <h3 style="color:#111; font-family:'VCR',monospace; font-size:var(--text-sm); text-transform:uppercase; letter-spacing:1px;">SFX</h3>
+                  </div>
+                  <div class="slider-container" style="flex:1; display:flex; align-items:center; gap:var(--space-sm);">
+                    <input type="range" class="slider" id="slider-sfx"
+                           min="0" max="100" value="${Math.round(s.audio.sfx * 100)}"
+                           data-key="audio.sfx" style="flex:1;" />
+                    <span class="slider-value" id="val-sfx" style="min-width:40px; text-align:right; color:#111; font-family:'VCR',monospace;">${Math.round(s.audio.sfx * 100)}%</span>
+                  </div>
+                </div>
+
+                <div class="setting-row" style="color:#111;">
+                  <div>
+                    <h3 style="color:#111; font-family:'VCR',monospace; font-size:var(--text-sm); text-transform:uppercase; letter-spacing:1px;">Mute All</h3>
+                    <p style="font-family:'VCR',monospace; font-size:11px; margin-top:4px; color:#444;">Silences all game audio instantly</p>
+                  </div>
+                  <div class="toggle ${s.audio.muted ? 'active' : ''}" id="toggle-mute" data-key="audio.muted">
+                    <div class="toggle__knob"></div>
+                  </div>
+                </div>
+
               </div>
             </div>
-          </div>
 
-          <!-- Reset Tutorial -->
-          <div class="settings-group" style="animation: fadeInUp 0.4s ease forwards; animation-delay: 0.5s; opacity: 0;">
-            <div class="settings-group__title">Other</div>
-            <div class="setting-row">
-              <span class="setting-row__label">Reset Tutorial</span>
-              <button class="menu-btn" id="btn-reset-tutorial" style="font-size: var(--text-sm); padding: var(--space-xs) var(--space-md);">
-                 Reset
-              </button>
+            <!-- GESTURE PANEL -->
+            <div id="settings-panel-gesture" class="profile-panel">
+              <h2 style="font-family:var(--font-display); color:#111; margin-bottom:var(--space-md); border-bottom:3px solid #111; padding-bottom:8px; letter-spacing:2px;">Gesture Control</h2>
+
+              <div class="profile-card" style="flex-direction: column; align-items: stretch; gap: var(--space-md);">
+
+                <div class="setting-row" style="color:#111;">
+                  <div style="min-width:120px;">
+                    <h3 style="color:#111; font-family:'VCR',monospace; font-size:var(--text-sm); text-transform:uppercase; letter-spacing:1px;">Sensitivity</h3>
+                    <p style="font-family:'VCR',monospace; font-size:11px; margin-top:4px; color:#444;">Higher = triggers on less confident gesture reads</p>
+                  </div>
+                  <div class="slider-container" style="flex:1; display:flex; align-items:center; gap:var(--space-sm);">
+                    <input type="range" class="slider" id="slider-sensitivity"
+                           min="50" max="95" value="${Math.round(s.gesture.sensitivity * 100)}"
+                           data-key="gesture.sensitivity" style="flex:1;" />
+                    <span class="slider-value" id="val-sensitivity" style="min-width:40px; text-align:right; color:#111; font-family:'VCR',monospace;">${Math.round(s.gesture.sensitivity * 100)}%</span>
+                  </div>
+                </div>
+
+              </div>
             </div>
-          </div>
-        </div>
+
+            <!-- DISPLAY PANEL -->
+            <div id="settings-panel-display" class="profile-panel">
+              <h2 style="font-family:var(--font-display); color:#111; margin-bottom:var(--space-md); border-bottom:3px solid #111; padding-bottom:8px; letter-spacing:2px;">Display</h2>
+
+              <div class="profile-card" style="flex-direction: column; align-items: stretch; gap: var(--space-md);">
+
+                <div class="setting-row" style="color:#111;">
+                  <div>
+                    <h3 style="color:#111; font-family:'VCR',monospace; font-size:var(--text-sm); text-transform:uppercase; letter-spacing:1px;">Screen Shake</h3>
+                    <p style="font-family:'VCR',monospace; font-size:11px; margin-top:4px; color:#444;">Camera shake on boss attacks and impacts</p>
+                  </div>
+                  <div class="toggle ${s.display.screenShake ? 'active' : ''}" id="toggle-shake" data-key="display.screenShake">
+                    <div class="toggle__knob"></div>
+                  </div>
+                </div>
+
+                <div class="setting-row" style="color:#111;">
+                  <div>
+                    <h3 style="color:#111; font-family:'VCR',monospace; font-size:var(--text-sm); text-transform:uppercase; letter-spacing:1px;">Particle Effects</h3>
+                    <p style="font-family:'VCR',monospace; font-size:11px; margin-top:4px; color:#444;">Colored particle bursts on pickups and hits</p>
+                  </div>
+                  <div class="toggle ${s.display.particles ? 'active' : ''}" id="toggle-particles" data-key="display.particles">
+                    <div class="toggle__knob"></div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- OTHER PANEL -->
+            <div id="settings-panel-other" class="profile-panel">
+              <h2 style="font-family:var(--font-display); color:#111; margin-bottom:var(--space-md); border-bottom:3px solid #111; padding-bottom:8px; letter-spacing:2px;">Other</h2>
+
+              <div class="profile-card" style="flex-direction: column; align-items: stretch; gap: var(--space-md);">
+                <div>
+                  <h3 style="color:#111; font-family:'VCR',monospace; font-size:var(--text-sm); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">Reset Tutorial</h3>
+                  <p style="font-family:'VCR',monospace; font-size:11px; color:#444; margin-bottom:var(--space-md);">The tutorial will play again the next time you click Play. Your gesture setup will not be affected.</p>
+                  <button class="menu-btn" id="btn-reset-tutorial" style="font-size: var(--text-sm); padding: var(--space-sm) var(--space-md);">
+                    Reset Tutorial
+                  </button>
+                </div>
+              </div>
+            </div>
+
+          </div> <!-- end profile-content-area -->
+        </div> <!-- end settings-content-wrapper -->
       </div>
     `;
   },
 
-  onEnter(el) {
+  async onEnter(el) {
     // Back button
     el.querySelector('#btn-settings-back').addEventListener('click', () => {
       window.__screenManager.back();
+    });
+
+    // Tab navigation — same logic as Profile screen
+    const tabBtns = el.querySelectorAll('.profile-tab-btn');
+    const panels = el.querySelectorAll('.profile-panel');
+    tabBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const target = btn.dataset.target;
+        if (!target) return;
+        tabBtns.forEach(b => b.classList.remove('active'));
+        panels.forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        const panel = el.querySelector(`#${target}`);
+        if (panel) panel.classList.add('active');
+      });
     });
 
     // Toggle switches
@@ -171,35 +255,66 @@ export const Settings = {
       slider.addEventListener('input', (e) => {
         const key = slider.dataset.key;
         const raw = parseInt(e.target.value);
-        
-        // Update display value
         const valEl = slider.parentElement.querySelector('.slider-value');
-        if (key === 'gesture.debounce') {
-          valEl.textContent = `${raw}ms`;
-          this._updateSetting(key, raw);
-        } else {
-          valEl.textContent = `${raw}%`;
-          this._updateSetting(key, raw / 100);
-        }
+        valEl.textContent = `${raw}%`;
+        this._updateSetting(key, raw / 100);
       });
     });
 
-    // Reset tutorial - custom in-screen modal
+    // Camera Quality buttons
+    el.querySelectorAll('.settings-quality-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        el.querySelectorAll('.settings-quality-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        this._updateSetting('camera.quality', btn.dataset.quality);
+      });
+    });
+
+    // Reset tutorial
     el.querySelector('#btn-reset-tutorial').addEventListener('click', () => {
       this._showResetConfirmModal(el);
     });
+
+    // Populate camera device dropdown
+    await this._populateCameraDevices(el);
+  },
+
+  async _populateCameraDevices(el) {
+    const select = el.querySelector('#select-camera-device');
+    if (!select) return;
+
+    try {
+      // Request permission first so labels are available
+      await navigator.mediaDevices.getUserMedia({ video: true }).then(s => s.getTracks().forEach(t => t.stop())).catch(() => {});
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter(d => d.kind === 'videoinput');
+
+      const s = state.get('settings');
+      const savedId = s.camera?.deviceId || '';
+
+      select.innerHTML = videoDevices.length
+        ? videoDevices.map((d, i) =>
+            `<option value="${d.deviceId}" ${d.deviceId === savedId ? 'selected' : ''}>
+              ${d.label || `Camera ${i + 1}`}
+            </option>`
+          ).join('')
+        : '<option value="">No cameras found</option>';
+
+      select.addEventListener('change', () => {
+        this._updateSetting('camera.deviceId', select.value);
+      });
+    } catch (err) {
+      select.innerHTML = '<option value="">Camera access denied</option>';
+    }
   },
 
   _showResetConfirmModal(el) {
-    // Create modal overlay
     const modal = document.createElement('div');
     modal.id = 'reset-tutorial-modal';
     modal.style.cssText = `
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
       background: rgba(0, 0, 0, 0.85);
       z-index: 10000;
       display: flex;
@@ -236,34 +351,18 @@ export const Settings = {
           font-size: clamp(0.8rem, 3vw, 1rem);
           line-height: 1.5;
           margin-bottom: clamp(1rem, 3vw, 1.5rem);
-          max-width: 100%;
         ">
           Are you sure you want to reset the tutorial? It will play again the next time you click Play. Your gesture setup will NOT be affected.
         </p>
-        <div id="reset-modal-buttons" style="
-          display: flex;
-          gap: clamp(0.5rem, 2vw, 1rem);
-          justify-content: center;
-          flex-wrap: wrap;
-        ">
-          <button id="modal-confirm-reset" class="menu-btn" style="
-            min-width: clamp(80px, 25vw, 120px);
-            padding: clamp(8px, 2vw, 12px) clamp(12px, 3vw, 20px);
-            font-size: clamp(0.75rem, 2.5vw, 1rem);
-          ">Yes, Reset</button>
-          <button id="modal-cancel-reset" class="menu-btn menu-btn--subtle" style="
-            min-width: clamp(80px, 25vw, 120px);
-            padding: clamp(8px, 2vw, 12px) clamp(12px, 3vw, 20px);
-            font-size: clamp(0.75rem, 2.5vw, 1rem);
-            opacity: 0.7;
-          ">Cancel</button>
+        <div style="display:flex; gap: clamp(0.5rem, 2vw, 1rem); justify-content: center; flex-wrap: wrap;">
+          <button id="modal-confirm-reset" class="menu-btn" style="min-width: 120px;">Yes, Reset</button>
+          <button id="modal-cancel-reset" class="menu-btn menu-btn--subtle" style="min-width: 120px; opacity: 0.7;">Cancel</button>
         </div>
       </div>
     `;
 
     el.appendChild(modal);
 
-    // Handle confirm
     modal.querySelector('#modal-confirm-reset').addEventListener('click', async () => {
       state.set('tutorialComplete', false);
       state.set('practiceTutorialComplete', false);
@@ -273,17 +372,8 @@ export const Settings = {
       this._showSuccessToast(el, 'Tutorial has been reset! Go back and click Play to replay it.');
     });
 
-    // Handle cancel
-    modal.querySelector('#modal-cancel-reset').addEventListener('click', () => {
-      modal.remove();
-    });
-
-    // Close on backdrop click
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) {
-        modal.remove();
-      }
-    });
+    modal.querySelector('#modal-cancel-reset').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
   },
 
   _showSuccessToast(el, message) {
@@ -304,14 +394,11 @@ export const Settings = {
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
       border: 1px solid rgba(255, 255, 255, 0.2);
       max-width: min(90vw, 400px);
-      width: max-content;
       text-align: center;
       line-height: 1.4;
     `;
     toast.textContent = message;
-
     el.appendChild(toast);
-
     setTimeout(() => {
       toast.style.animation = 'fadeOut 0.3s ease forwards';
       setTimeout(() => toast.remove(), 300);
@@ -323,13 +410,13 @@ export const Settings = {
     const keys = keyPath.split('.');
     let obj = settings;
     for (let i = 0; i < keys.length - 1; i++) {
+      if (!obj[keys[i]]) obj[keys[i]] = {};
       obj = obj[keys[i]];
     }
     obj[keys[keys.length - 1]] = value;
     state.set('settings', settings);
     state.saveSettings();
-    
-    // Update AudioManager if audio settings changed
+
     if (keyPath.startsWith('audio.')) {
       audioManager.updateVolume();
     }

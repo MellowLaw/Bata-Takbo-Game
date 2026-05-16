@@ -53,11 +53,23 @@ export const MainMenu = {
         <div class="main-menu__version">v0.1.0</div>
 
         <div class="main-menu__top-right">
-          <img 
-            src="/assets/ui/user_logo.png" 
-            alt="Profile" 
+          <div
             id="icon-profile"
-          />
+            title="Profile"
+            style="
+              width: clamp(44px,7vw,56px); height: clamp(44px,7vw,56px);
+              border-radius: 50%; border: 2px solid rgba(255,255,255,0.2);
+              cursor: pointer; overflow: hidden;
+              background: #111; color: #e4cfc0;
+              display: flex; align-items: center; justify-content: center;
+              font-family: 'VCR', monospace; font-size: clamp(16px,2.5vw,22px);
+              font-weight: bold; text-transform: uppercase;
+              transition: border-color 0.2s ease;
+            "
+          >
+            <img src="/assets/ui/user_logo.png" alt="Profile"
+              style="width:100%; height:100%; object-fit:cover; border-radius:50%;" />
+          </div>
         </div>
       </div>
     `;
@@ -108,6 +120,9 @@ export const MainMenu = {
       profileIcon.addEventListener('click', () => {
         window.__screenManager.navigate('profile-screen');
       });
+
+      // Populate the avatar asynchronously
+      this._loadProfileAvatar(profileIcon);
     }
 
     // Particles background effect
@@ -200,6 +215,28 @@ export const MainMenu = {
         if (onComplete) onComplete();
       }
     }, stepTime);
+  },
+
+  // Load avatar from /auth/profile and update the icon element
+  async _loadProfileAvatar(iconEl) {
+    try {
+      const res = await fetch('/auth/profile', { credentials: 'include' });
+      if (!res.ok) return; // guest or error — keep the default icon
+      const data = await res.json();
+
+      if (data.avatar_url) {
+        // Has a custom avatar image
+        iconEl.innerHTML = `<img src="${data.avatar_url}" alt="avatar"
+          style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`;
+      } else if (data.username) {
+        // No avatar — show initial letter like the ID card
+        iconEl.innerHTML = `<span>${data.username.charAt(0).toUpperCase()}</span>`;
+        iconEl.style.background = '#1a1510';
+        iconEl.style.border = '2px solid #e4cfc0';
+      }
+    } catch (e) {
+      // Network error or guest — keep the default user_logo image
+    }
   },
 
   _createParticles(container) {

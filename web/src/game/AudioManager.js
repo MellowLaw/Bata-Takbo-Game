@@ -196,10 +196,10 @@ class AudioManager {
     // Shared loot SFX (all chapters)
     // Bawang (Garlic/Lives Up) - magical buff sounds
     scene.load.audio('bawang_spawn', `${basePath}/MAGAngl_BUFF-Buff Drop_HY_PC-001.wav`);
-    scene.load.audio('bawang_pickup', `${basePath}/MAGAngl_BUFF-Buff Pickup_HY_PC-001.wav`);
+    scene.load.audio('bawang_pickup', `${basePath}/DSGNSynth_BUFF-Bubbly Buff_HY_PC-003.wav`);
     // Chest loot - treasure/power-up sounds
-    scene.load.audio('chest_spawn', `${basePath}/DSGNMisc_MOVEMENT-Treasure Appear_HY_PC-001.wav`);
-    scene.load.audio('chest_pickup', `${basePath}/DSGNMisc_INTERACTION-Treasure Open_HY_PC-001.wav`);
+    scene.load.audio('chest_spawn', `${basePath}/DSGNSynth_BUFF-Bonus Max Shield_HY_PC-001.wav`);
+    scene.load.audio('chest_pickup', `${basePath}/DSGNSynth_BUFF-Bonus Max Shield_HY_PC-003.wav`);
 
     // Chapter 1: Blood/Gore/Dark (Manananggal) — also chapter 4 (INF mode)
     if (chapterId === 1 || chapterId === 4) {

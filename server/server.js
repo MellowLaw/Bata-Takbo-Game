@@ -284,12 +284,17 @@ app.post('/auth/login', loginLimiter, async (req, res) => {
       return res.status(401).json({ error: 'Too many attempts. Try again later.' });
     }
 
-    if (user.banned) {
-      return res.status(403).json({ error: 'Your account has been banned.' + (user.ban_reason ? ' Reason: ' + user.ban_reason : '') });
-    }
-
     const isValid = await bcrypt.compare(password, user.password_hash);
     if (isValid) {
+      if (user.banned) {
+        return res.status(403).json({ 
+          error: 'BANNED', 
+          reason: user.ban_reason,
+          appeal_status: user.ban_appeal ? 'pending' : 'none',
+          username: user.username // pass back username so client can use it for appeal
+        });
+      }
+
       // Reset attempts and record last login
       await db.run('UPDATE users SET failed_attempts = 0, lockout_time = 0, last_login = ? WHERE id = ?', [Date.now(), user.id]);
       
@@ -329,6 +334,30 @@ app.post('/auth/login', loginLimiter, async (req, res) => {
     }
   } catch (err) {
     console.error('Login error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.post('/auth/appeal-ban', async (req, res) => {
+  try {
+    const { username, password, appeal } = req.body;
+    if (!username || !password || !appeal || appeal.trim() === '') {
+      return res.status(400).json({ error: 'Missing information' });
+    }
+
+    const sanitizedUsername = username.trim();
+    const user = await db.get('SELECT * FROM users WHERE username = ? COLLATE NOCASE', [sanitizedUsername]);
+    
+    if (!user) return res.status(401).json({ error: 'Authentication failed' });
+    if (!user.banned) return res.status(400).json({ error: 'User is not banned' });
+
+    const isValid = await bcrypt.compare(password, user.password_hash);
+    if (!isValid) return res.status(401).json({ error: 'Authentication failed' });
+
+    await db.run('UPDATE users SET ban_appeal = ? WHERE id = ?', [appeal.trim(), user.id]);
+    return res.status(200).json({ success: true, message: 'Appeal submitted successfully' });
+  } catch (err) {
+    console.error('Appeal error:', err);
     return res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -541,11 +570,21 @@ app.post('/auth/change-avatar', authMiddleware, async (req, res) => {
   try {
     const { avatarUrl } = req.body;
     if (avatarUrl !== null && typeof avatarUrl !== 'string') {
-      return res.status(400).json({ error: 'Invalid URL data type' });
+      return res.status(400).json({ error: 'Invalid avatar data type' });
     }
-    
+
     if (avatarUrl) {
-      try { new URL(avatarUrl); } catch(e) { return res.status(400).json({ error: 'Must be a valid URL starting with http:// or https://' }); }
+      const isDataUrl = avatarUrl.startsWith('data:image/');
+      const isHttpUrl = avatarUrl.startsWith('http://') || avatarUrl.startsWith('https://');
+
+      if (!isDataUrl && !isHttpUrl) {
+        return res.status(400).json({ error: 'Must be a valid image URL or uploaded image file' });
+      }
+
+      // Limit base64 size to ~2MB (base64 is ~1.37x the binary size)
+      if (isDataUrl && avatarUrl.length > 2 * 1024 * 1024 * 1.37) {
+        return res.status(413).json({ error: 'Image is too large. Please use an image under 2MB.' });
+      }
     }
 
     await db.run('UPDATE users SET avatar_url = ? WHERE id = ?', [avatarUrl || null, req.user.id]);
@@ -830,7 +869,7 @@ app.get('/admin/check', authMiddleware, async (req, res) => {
 app.get('/admin/users', authMiddleware, adminMiddleware, async (req, res) => {
   try {
     const users = await db.all(`
-      SELECT u.id, u.username, u.email, u.is_admin, u.banned, u.ban_reason, u.cheat_score, u.last_login, u.created_at,
+      SELECT u.id, u.username, u.email, u.is_admin, u.banned, u.ban_reason, u.ban_appeal, u.cheat_score, u.last_login, u.created_at,
              CASE WHEN u.game_data IS NOT NULL THEN 1 ELSE 0 END as has_game_data,
              (SELECT COUNT(*) FROM inf_scores WHERE user_id = u.id) + (SELECT COUNT(*) FROM endless_scores WHERE user_id = u.id) as games_played,
              (SELECT COALESCE(SUM(score), 0) FROM inf_scores WHERE user_id = u.id) as total_score
@@ -899,8 +938,8 @@ app.post('/admin/ban', authMiddleware, adminMiddleware, async (req, res) => {
     }
     
     await db.run(
-      'UPDATE users SET banned = ?, ban_reason = ? WHERE id = ?',
-      [banned ? 1 : 0, reason || null, userId]
+      'UPDATE users SET banned = ?, ban_reason = ?, ban_appeal = CASE WHEN ? = 0 THEN NULL ELSE ban_appeal END WHERE id = ?',
+      [banned ? 1 : 0, reason || null, banned ? 1 : 0, userId]
     );
     
     return res.status(200).json({ 

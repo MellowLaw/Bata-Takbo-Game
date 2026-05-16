@@ -469,6 +469,87 @@ export const LoginScreen = {
           if (window.__screenManager) {
             window.__screenManager.navigate('loading-screen', { target: 'main-menu' });
           }
+        } else if (res.status === 403 && data.error === 'BANNED') {
+          // BANNED OVERLAY
+          loginBtn.innerHTML = 'LOGIN';
+          loginBtn.disabled = false;
+          
+          const overlay = document.createElement('div');
+          overlay.style.cssText = 'position:fixed;inset:0;background:black;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:white;font-family:"VCR",sans-serif;text-align:center;padding:2rem;';
+          
+          const isPending = data.appeal_status === 'pending';
+          
+          overlay.innerHTML = `
+            <h1 style="font-family:'GigaSaturn',sans-serif;color:#ef4444;font-size:clamp(2rem,6vw,4rem);margin-bottom:1rem;letter-spacing:4px;">YOU ARE BANNED</h1>
+            <p style="font-size:1.2rem;margin-bottom:2rem;max-width:600px;line-height:1.5;">${data.reason ? 'Reason: ' + data.reason : 'Violation of Terms of Service'}</p>
+            
+            ${isPending ? `
+              <div style="background:rgba(255,255,255,0.1);padding:1.5rem;border-radius:8px;border:2px solid #fbbf24;max-width:500px;">
+                <h3 style="color:#fbbf24;margin-bottom:0.5rem;font-family:'GigaSaturn',sans-serif;">APPEAL PENDING</h3>
+                <p>Your appeal has been submitted and is currently being reviewed by an admin. Please check back later.</p>
+              </div>
+            ` : `
+              <div style="width:100%;max-width:500px;background:rgba(255,255,255,0.05);padding:1.5rem;border-radius:8px;border:1px solid rgba(255,255,255,0.2);">
+                <h3 style="margin-bottom:1rem;font-family:'GigaSaturn',sans-serif;font-size:1.2rem;">SUBMIT AN APPEAL</h3>
+                <textarea id="ban-appeal-text" placeholder="Explain why you should be unbanned..." style="width:100%;height:100px;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.3);color:white;padding:0.5rem;font-family:'VCR',sans-serif;margin-bottom:1rem;resize:none;"></textarea>
+                <button id="btn-submit-appeal" style="width:100%;padding:12px;background:#ef4444;color:white;border:none;font-family:'GigaSaturn',sans-serif;font-size:1.2rem;cursor:pointer;letter-spacing:2px;border-radius:4px;">SUBMIT APPEAL</button>
+                <p id="appeal-msg" style="margin-top:0.5rem;font-size:0.8rem;font-weight:bold;"></p>
+              </div>
+            `}
+            
+            <button id="btn-close-ban" style="margin-top:2rem;background:transparent;border:none;color:#a89b8c;font-family:'VCR',sans-serif;text-decoration:underline;cursor:pointer;">Return to Login</button>
+          `;
+          
+          document.body.appendChild(overlay);
+          
+          overlay.querySelector('#btn-close-ban').addEventListener('click', () => {
+            overlay.remove();
+          });
+          
+          if (!isPending) {
+            const submitBtn = overlay.querySelector('#btn-submit-appeal');
+            const msgEl = overlay.querySelector('#appeal-msg');
+            const textEl = overlay.querySelector('#ban-appeal-text');
+            
+            submitBtn.addEventListener('click', async () => {
+              const appeal = textEl.value.trim();
+              if (!appeal) {
+                msgEl.textContent = 'Please enter an appeal reason.';
+                msgEl.style.color = '#ef4444';
+                return;
+              }
+              
+              submitBtn.disabled = true;
+              submitBtn.textContent = 'SUBMITTING...';
+              
+              try {
+                const appealRes = await fetch('/auth/appeal-ban', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ username: data.username || username, password, appeal })
+                });
+                const appealData = await appealRes.json();
+                
+                if (appealRes.ok) {
+                  msgEl.textContent = 'Appeal submitted successfully.';
+                  msgEl.style.color = '#4ade80';
+                  submitBtn.style.display = 'none';
+                  textEl.style.display = 'none';
+                  setTimeout(() => overlay.remove(), 3000);
+                } else {
+                  msgEl.textContent = appealData.error || 'Failed to submit appeal.';
+                  msgEl.style.color = '#ef4444';
+                  submitBtn.disabled = false;
+                  submitBtn.textContent = 'SUBMIT APPEAL';
+                }
+              } catch (e) {
+                msgEl.textContent = 'Network error.';
+                msgEl.style.color = '#ef4444';
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'SUBMIT APPEAL';
+              }
+            });
+          }
         } else {
           errorMsg.textContent = data.error || 'Incorrect username or password.';
           errorMsg.classList.remove('hidden');
@@ -1117,8 +1198,11 @@ export const LoginScreen = {
         if (res.ok && data.success) {
           localStorage.removeItem('guest_session');
           localStorage.setItem('guest_session', JSON.stringify({ is_guest: false, username }));
-          state._resetAccountState();
+          
+          // DO NOT reset account state here!
+          // We want to keep the guest state currently in memory and sync it up to the new account.
           await state._syncToServer();
+          
           if (window.__screenManager) {
             window.__screenManager.navigate('loading-screen', { target: 'main-menu' });
           }

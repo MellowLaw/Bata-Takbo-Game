@@ -9,7 +9,7 @@ export const ProfileScreen = {
           <!-- SIDEBAR NAVIGATION -->
           <div class="profile-sidebar">
             <button class="back-btn" id="btn-profile-back">
-              <i class="fas fa-caret-left"></i> BACK TO MENU
+              BACK TO MENU
             </button>
             <button class="profile-tab-btn active" data-target="panel-stats">ID CARD / STATS</button>
             <button class="profile-tab-btn" data-target="panel-account" id="tab-btn-account">ACCOUNT SETTINGS</button>
@@ -697,51 +697,129 @@ export const ProfileScreen = {
   _showAvatarModal() {
     const overlay = this._createModalOverlay();
     overlay.innerHTML = `
-      <div class="profile-modal-box">
-        <h3 style="color:var(--accent-orange);font-family:'VCR',sans-serif;font-size:var(--text-lg);text-transform:uppercase;margin:0 0 var(--space-sm);text-align:center;">Profile Picture</h3>
-        <p style="color:var(--text-secondary);font-family:'VCR',sans-serif;font-size:var(--text-sm);text-align:center;margin-bottom:var(--space-sm);line-height:1.5;">Paste an image URL below. Leave blank to remove your current picture.</p>
-        <input id="modal-avatar-url" type="url" placeholder="https://example.com/image.png" class="login-card__input" style="margin-bottom:var(--space-xs); background: rgba(255,255,255,0.1); border-color: #555;" />
+      <div class="profile-modal-box" style="max-width: 360px;">
+        <h3 style="color:#e4cfc0;font-family:'VCR',sans-serif;font-size:var(--text-lg);text-transform:uppercase;margin:0 0 var(--space-sm);text-align:center;letter-spacing:2px;">Profile Picture</h3>
+        
+        <!-- Preview box -->
+        <div id="avatar-preview-box" style="
+          width: 100px; height: 100px;
+          margin: 0 auto var(--space-md);
+          border: 3px solid #e4cfc0;
+          border-radius: 8px;
+          background: #222;
+          display: flex; align-items: center; justify-content: center;
+          overflow: hidden; cursor: pointer;
+          font-size: 2.5rem; color: #e4cfc0;
+        ">?</div>
+
+        <!-- Hidden file input -->
+        <input id="modal-avatar-file" type="file" accept="image/*" style="display:none;" />
+
+        <!-- Upload button -->
+        <button id="modal-avatar-pick" style="
+          width: 100%; background: #333; border: 2px solid #e4cfc0;
+          color: #e4cfc0; font-family: 'VCR', sans-serif; font-size: var(--text-sm);
+          padding: var(--space-sm); cursor: pointer; border-radius: 4px;
+          text-transform: uppercase; letter-spacing: 1px; margin-bottom: var(--space-xs);
+          transition: all 0.2s ease;
+        ">📁 Choose Image</button>
+
+        <!-- Remove button -->
+        <button id="modal-avatar-remove" style="
+          width: 100%; background: transparent; border: 2px solid #555;
+          color: #888; font-family: 'VCR', sans-serif; font-size: var(--text-xs);
+          padding: var(--space-xs); cursor: pointer; border-radius: 4px;
+          text-transform: uppercase; letter-spacing: 1px; margin-bottom: var(--space-md);
+        ">✕ Remove Picture</button>
+
+        <p id="modal-avatar-hint" style="font-family:'VCR',sans-serif;font-size:10px;color:#666;text-align:center;margin-bottom:var(--space-sm);">Max 2MB · JPG, PNG, GIF, WEBP</p>
         <p id="modal-avatar-msg" style="font-family:'VCR',sans-serif;font-size:var(--text-sm);font-weight:bold;min-height:1.2em;text-align:center;margin:0 0 var(--space-sm);color:var(--accent-red);"></p>
+
         <div style="display:flex;gap:var(--space-sm);">
-          <button id="modal-avatar-cancel" style="flex:1;background:transparent;border:2px solid #555; color:#fff; font-family:'VCR',sans-serif; padding:8px; cursor:pointer;">CANCEL</button>
-          <button id="modal-avatar-confirm" style="flex:1;background:var(--accent-orange);border:2px solid #111; color:#111; font-family:'VCR',sans-serif; font-weight:bold; padding:8px; cursor:pointer;">SAVE</button>
+          <button id="modal-avatar-cancel" style="flex:1;background:transparent;border:2px solid #555;color:#aaa;font-family:'VCR',sans-serif;padding:8px;cursor:pointer;border-radius:4px;">CANCEL</button>
+          <button id="modal-avatar-confirm" style="flex:1;background:#e4cfc0;border:2px solid #111;color:#111;font-family:'VCR',sans-serif;font-weight:bold;padding:8px;cursor:pointer;border-radius:4px;" disabled>SAVE</button>
         </div>
       </div>
     `;
 
-    const input = overlay.querySelector('#modal-avatar-url');
+    const fileInput = overlay.querySelector('#modal-avatar-file');
+    const pickBtn = overlay.querySelector('#modal-avatar-pick');
+    const removeBtn = overlay.querySelector('#modal-avatar-remove');
+    const previewBox = overlay.querySelector('#avatar-preview-box');
     const msg = overlay.querySelector('#modal-avatar-msg');
     const confirmBtn = overlay.querySelector('#modal-avatar-confirm');
     const cancelBtn = overlay.querySelector('#modal-avatar-cancel');
 
-    setTimeout(() => input.focus(), 50);
+    let pendingDataUrl = undefined; // undefined = no change, null = remove, string = new image
+
+    // Load current avatar into preview
+    const currentAvatar = document.querySelector('#id-card-avatar');
+    if (currentAvatar) {
+      const img = currentAvatar.querySelector('img');
+      if (img) {
+        previewBox.innerHTML = `<img src="${img.src}" style="width:100%;height:100%;object-fit:cover;border-radius:4px;" />`;
+      } else {
+        previewBox.textContent = currentAvatar.textContent || '?';
+      }
+    }
+
+    // Click preview or button to open file picker
+    pickBtn.addEventListener('click', () => fileInput.click());
+    previewBox.addEventListener('click', () => fileInput.click());
+
+    // Remove picture
+    removeBtn.addEventListener('click', () => {
+      pendingDataUrl = null;
+      previewBox.textContent = '?';
+      previewBox.style.fontSize = '2.5rem';
+      confirmBtn.disabled = false;
+      msg.textContent = '';
+    });
+
+    // File selected
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+
+      if (file.size > 2 * 1024 * 1024) {
+        msg.textContent = 'Image too large (max 2MB).';
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        pendingDataUrl = e.target.result;
+        previewBox.innerHTML = `<img src="${pendingDataUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:4px;" />`;
+        confirmBtn.disabled = false;
+        msg.textContent = '';
+      };
+      reader.readAsDataURL(file);
+    });
+
     const closeModal = () => overlay.remove();
     cancelBtn.addEventListener('click', closeModal);
     overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
 
     const submit = async () => {
-      const url = input.value.trim();
-      if (url) {
-        try { new URL(url); } catch(e) {
-          msg.textContent = 'Please enter a valid URL.';
-          return;
-        }
-      }
+      if (pendingDataUrl === undefined) { closeModal(); return; }
       confirmBtn.textContent = 'SAVING...';
       confirmBtn.disabled = true;
+      msg.textContent = '';
+
       try {
         const res = await fetch('/auth/change-avatar', {
           method: 'POST',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ avatarUrl: url || null })
+          body: JSON.stringify({ avatarUrl: pendingDataUrl })
         });
         const data = await res.json();
         if (res.ok && data.success) {
+          // Update the ID card avatar live
           const pAvatar = document.querySelector('#id-card-avatar');
           if (pAvatar) {
-            if (url) {
-              pAvatar.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;border-radius:2px;" alt="avatar" />`;
+            if (pendingDataUrl) {
+              pAvatar.innerHTML = `<img src="${pendingDataUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:2px;" alt="avatar" />`;
             } else {
               const name = document.querySelector('#profile-username');
               pAvatar.textContent = (name?.textContent || '?').charAt(0).toUpperCase();
@@ -761,7 +839,6 @@ export const ProfileScreen = {
     };
 
     confirmBtn.addEventListener('click', submit);
-    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') closeModal(); });
   },
 
   onLeave() {

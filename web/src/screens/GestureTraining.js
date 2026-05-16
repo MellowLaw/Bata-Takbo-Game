@@ -29,80 +29,95 @@ export const GestureTraining = {
         <div class="gesture-screen__layout">
 
           <!-- LEFT: Camera -->
-          <div class="gesture-screen__left">
-            <div class="gesture-screen__camera" id="gesture-camera">
-              <video id="webcam-video" style="display: none;"></video>
-              <canvas id="webcam-canvas"></canvas>
-              <div id="camera-loading" class="placeholder-content" style="position: absolute; top:0; left:0; height: 100%; width: 100%; pointer-events:none;">
-                <div class="loading-spinner"></div>
-                <span class="placeholder-text" style="font-size: var(--text-xs);">Initializing Camera...</span>
+          <div class="gesture-screen__left" style="flex-direction: column; width: 100%;">
+            <div class="camera-wrapper" style="width: 100%; max-width: 640px; margin: 0 auto; display: flex; flex-direction: column; align-items: center;">
+              
+              <div class="gesture-screen__camera" id="gesture-camera" style="width: 100%;">
+                <video id="webcam-video" style="display: none;"></video>
+                <canvas id="webcam-canvas"></canvas>
+                <div id="camera-loading" class="placeholder-content" style="position: absolute; top:0; left:0; height: 100%; width: 100%; pointer-events:none; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                  <div class="loading-spinner"></div>
+                  <span class="placeholder-text" style="font-size: var(--text-xs); margin-top: 8px;">Initializing Camera...</span>
+                </div>
               </div>
+              
+              <div class="gesture-screen__hint text-center" style="width: 100%; margin-top: var(--space-sm); animation: fadeInUp 0.4s ease 0.1s forwards;">
+                <p style="font-size: clamp(0.75rem, 2vw, 0.95rem); color: white; margin-bottom: 6px; line-height: 1.3;">
+                  Train the game to recognize YOUR gestures!<br>
+                  Select a direction, make a pose, and hold Record.
+                </p>
+                <div style="color: var(--accent-gold); font-size: clamp(0.6rem, 1.5vw, 0.8rem); margin-bottom: 6px; display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 10px; line-height: 1.3;">
+                  <span>Min: 200</span> <span style="opacity: 0.5;">|</span>
+                  <span>Good: 500</span> <span style="opacity: 0.5;">|</span>
+                  <span>Best: 1000+</span>
+                </div>
+                <p style="color: #999; font-size: clamp(0.55rem, 1.2vw, 0.7rem); line-height: 1.3; max-width: 95%; margin: 0 auto;">
+                  Tip: Train both hands, use good lighting, and slightly move your hand while recording for best accuracy.
+                </p>
+              </div>
+
             </div>
           </div>
 
           <!-- RIGHT: Controls -->
           <div class="gesture-screen__right">
-            <p class="text-center gesture-screen__hint" style="font-size: var(--text-sm); color: white; margin-bottom: var(--space-md); max-width: 400px; animation: fadeInUp 0.4s ease 0.1s forwards;">
-              Train the game to recognize YOUR hand gestures!
-              Select a direction, make a gesture, and hold Record.<br>
-              <span style="color: var(--accent-gold); font-size: var(--text-xs);">Minimum: 200 &bull; Recommended: 500 &bull; Good: 1000+ &bull; The more, the better!</span><br>
-              <span style="color: #a89b8c; font-size: var(--text-xs);">Tip: Record with both hands if you want to switch hands while playing.</span><br>
-              <span style="color: #a89b8c; font-size: var(--text-xs);">Try different lighting conditions and slightly move/rotate your hand while recording for better real-world accuracy.</span>
-            </p>
+            <div class="controls-wrapper" style="width: 100%; max-width: 450px; display: flex; flex-direction: column; align-items: flex-start; margin: 0 auto;">
 
-            <div class="gesture-directions" style="animation: fadeInUp 0.4s ease 0.15s forwards;">
-              <button class="gesture-dir-btn active" data-dir="up" id="dir-up">
-                <span class="gesture-dir-btn__arrow">▲</span>
-                <span class="gesture-dir-btn__label">UP</span>
-                <span class="gesture-dir-btn__count">0</span>
-              </button>
-              <button class="gesture-dir-btn" data-dir="down" id="dir-down">
-                <span class="gesture-dir-btn__arrow">▼</span>
-                <span class="gesture-dir-btn__label">DOWN</span>
-                <span class="gesture-dir-btn__count">0</span>
-              </button>
-              <button class="gesture-dir-btn" data-dir="left" id="dir-left">
-                <span class="gesture-dir-btn__arrow">◄</span>
-                <span class="gesture-dir-btn__label">LEFT</span>
-                <span class="gesture-dir-btn__count">0</span>
-              </button>
-              <button class="gesture-dir-btn" data-dir="right" id="dir-right">
-                <span class="gesture-dir-btn__arrow">►</span>
-                <span class="gesture-dir-btn__label">RIGHT</span>
-                <span class="gesture-dir-btn__count">0</span>
-              </button>
-              <button class="gesture-dir-btn" data-dir="idle" id="dir-idle">
-                <span class="gesture-dir-btn__arrow"><img src="/assets/ui/hand.png" alt="Rest" class="gesture-dir-btn__icon" /></span>
-                <span class="gesture-dir-btn__label">REST</span>
-                <span class="gesture-dir-btn__count">0</span>
-              </button>
-            </div>
+              <div class="gesture-directions" style="width: 100%; justify-content: space-between; gap: var(--space-xs); animation: fadeInUp 0.4s ease 0.15s forwards;">
+                <button class="gesture-dir-btn active" data-dir="up" id="dir-up" style="flex: 1;">
+                  <span class="gesture-dir-btn__arrow">▲</span>
+                  <span class="gesture-dir-btn__label">UP</span>
+                  <span class="gesture-dir-btn__count">0</span>
+                </button>
+                <button class="gesture-dir-btn" data-dir="down" id="dir-down" style="flex: 1;">
+                  <span class="gesture-dir-btn__arrow">▼</span>
+                  <span class="gesture-dir-btn__label">DOWN</span>
+                  <span class="gesture-dir-btn__count">0</span>
+                </button>
+                <button class="gesture-dir-btn" data-dir="left" id="dir-left" style="flex: 1;">
+                  <span class="gesture-dir-btn__arrow">◄</span>
+                  <span class="gesture-dir-btn__label">LEFT</span>
+                  <span class="gesture-dir-btn__count">0</span>
+                </button>
+                <button class="gesture-dir-btn" data-dir="right" id="dir-right" style="flex: 1;">
+                  <span class="gesture-dir-btn__arrow">►</span>
+                  <span class="gesture-dir-btn__label">RIGHT</span>
+                  <span class="gesture-dir-btn__count">0</span>
+                </button>
+                <button class="gesture-dir-btn" data-dir="idle" id="dir-idle" style="flex: 1;">
+                  <span class="gesture-dir-btn__arrow"><img src="/assets/ui/hand.png" alt="Rest" class="gesture-dir-btn__icon" /></span>
+                  <span class="gesture-dir-btn__label">REST</span>
+                  <span class="gesture-dir-btn__count">0</span>
+                </button>
+              </div>
 
-            <div class="progress-bar" style="animation: fadeInUp 0.4s ease 0.2s forwards;">
-              <div class="progress-bar__fill" style="width: 0%;" id="gesture-progress"></div>
-            </div>
-            <p class="text-primary" style="font-size: var(--text-xs); margin-bottom: var(--space-md);">
-              <span id="progress-label">0 / 20</span> samples
-            </p>
+              <div class="progress-bar" style="width: 100%; animation: fadeInUp 0.4s ease 0.2s forwards;">
+                <div class="progress-bar__fill" style="width: 0%;" id="gesture-progress"></div>
+              </div>
+              <p class="text-primary" style="font-size: var(--text-xs); margin-bottom: var(--space-md); width: 100%; text-align: center;">
+                <span id="progress-label">0 / 20</span> &mdash; Minimum samples
+              </p>
 
-            <button class="gesture-record-btn" id="btn-record" style="animation: fadeInUp 0.4s ease 0.25s forwards;">
-              Hold to Record
-            </button>
+              <button class="gesture-record-btn" id="btn-record" style="width: 100%; animation: fadeInUp 0.4s ease 0.25s forwards;">
+                HOLD TO RECORD
+              </button>
 
-            <div class="gesture-screen__actions" style="animation: fadeInUp 0.4s ease 0.3s forwards;">
-              <button class="menu-btn" id="btn-test-gestures" style="font-size: var(--text-sm);">
-                Test My Gestures
-              </button>
-              <button class="menu-btn" id="btn-export-gestures" style="font-size: var(--text-sm);">
-                Export
-              </button>
-              <button class="menu-btn" id="btn-import-gestures" style="font-size: var(--text-sm);">
-                Import
-              </button>
-              <input type="file" id="import-file-input" accept=".json" style="display: none;" />
-              <button class="menu-btn text-red" id="btn-reset-gestures" style="font-size: var(--text-sm);">
-                Reset All
-              </button>
+              <div class="gesture-screen__actions" style="width: 100%; justify-content: space-between; animation: fadeInUp 0.4s ease 0.3s forwards;">
+                <button class="menu-btn" id="btn-test-gestures" style="font-size: var(--text-xs); padding: 0;">
+                  TEST MY GESTURES
+                </button>
+                <button class="menu-btn" id="btn-export-gestures" style="font-size: var(--text-xs); padding: 0;">
+                  EXPORT
+                </button>
+                <button class="menu-btn" id="btn-import-gestures" style="font-size: var(--text-xs); padding: 0;">
+                  IMPORT
+                </button>
+                <input type="file" id="import-file-input" accept=".json" style="display: none;" />
+                <button class="menu-btn text-red" id="btn-reset-gestures" style="font-size: var(--text-xs); padding: 0;">
+                  RESET ALL
+                </button>
+              </div>
+
             </div>
           </div>
 

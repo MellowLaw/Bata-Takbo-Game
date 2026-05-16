@@ -13,7 +13,7 @@ export const AdminDashboard = {
           <!-- SIDEBAR NAVIGATION -->
           <div class="profile-sidebar">
             <button class="back-btn" id="btn-admin-back" style="margin-bottom: var(--space-md);">
-              <i class="fas fa-caret-left"></i> BACK TO MENU
+              BACK TO MENU
             </button>
             <button class="profile-tab-btn active" data-target="panel-dashboard">DASHBOARD</button>
             <button class="profile-tab-btn" data-target="panel-users">USERS</button>
@@ -326,6 +326,7 @@ export const AdminDashboard = {
             <div style="font-size:0.85em;">${joinDate}</div>
             <div style="font-weight:bold;">${u.games_played || 0}</div>
             <div style="display:flex;gap:4px;align-items:center;">
+              ${u.ban_appeal ? `<button class="admin-btn appeal" data-id="${u.id}" data-appeal="${u.ban_appeal.replace(/"/g, '&quot;')}" style="font-size:14px;padding:4px 8px;background:#f39c12;color:#fff;border:1px solid #111;cursor:pointer;" title="View Appeal"><i class="fas fa-envelope-open-text"></i></button>` : ''}
               <button class="admin-btn ${u.banned?'unban':'ban'}" data-id="${u.id}" data-banned="${u.banned?'1':'0'}" ${u.is_admin?'disabled':''} style="font-size:14px;padding:4px 8px;background:${u.banned?'#27ae60':'#e67e22'};color:#fff;border:1px solid #111;cursor:pointer;" title="${u.banned?'Unban User':'Ban User'}"><i class="fas ${u.banned?'fa-unlock':'fa-ban'}"></i></button>
               <button class="admin-btn delete" data-id="${u.id}" ${u.is_admin?'disabled':''} style="font-size:14px;padding:4px 8px;background:#c0392b;color:#fff;border:1px solid #111;cursor:pointer;" title="Delete User"><i class="fas fa-trash"></i></button>
               <button class="admin-btn logout" data-id="${u.id}" style="font-size:14px;padding:4px 8px;background:#7f8c8d;color:#fff;border:1px solid #111;cursor:pointer;" title="Force Logout"><i class="fas fa-sign-out-alt"></i></button>
@@ -337,15 +338,35 @@ export const AdminDashboard = {
       this.container.querySelector('#users-list').innerHTML = html;
 
       // Event listeners for user actions
-      this.container.querySelectorAll('.admin-btn.ban, .admin-btn.unban').forEach(btn => {
+      this.container.querySelectorAll('.admin-btn.ban').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const userId = e.currentTarget.dataset.id;
+          this._showBanReasonModal(userId, () => this.loadUsers());
+        });
+      });
+
+      this.container.querySelectorAll('.admin-btn.unban').forEach(btn => {
         btn.addEventListener('click', async (e) => {
           const userId = e.currentTarget.dataset.id;
-          const isBanned = e.currentTarget.dataset.banned === '1';
           await fetch('/admin/ban', {
-            method:'POST', credentials:'include', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({ userId, banned: !isBanned, reason: !isBanned ? 'Admin panel ban' : null })
+            method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, banned: false, reason: null })
           });
           this.loadUsers();
+        });
+      });
+
+      this.container.querySelectorAll('.admin-btn.appeal').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          const userId = e.currentTarget.dataset.id;
+          const appealText = e.currentTarget.dataset.appeal;
+          this._showAdminModal('BAN APPEAL', `User wrote:<br><br><span style="color:#fff;background:rgba(255,255,255,0.1);padding:8px;display:block;border-radius:4px;">${appealText}</span><br>Do you want to unban this user?`, async () => {
+            await fetch('/admin/ban', {
+              method:'POST', credentials:'include', headers:{'Content-Type':'application/json'},
+              body: JSON.stringify({ userId, banned: false, reason: null })
+            });
+            this.loadUsers();
+          });
         });
       });
 
@@ -441,6 +462,118 @@ export const AdminDashboard = {
     } catch (e) {
       this._showAdminModal('ERROR', 'Network error occurred.');
     }
+  },
+
+  _showBanReasonModal(userId, onBanned) {
+    const PRESET_REASONS = [
+      'Cheating / Using hacks',
+      'Harassment or toxic behavior',
+      'Inappropriate username',
+      'Exploiting bugs / glitches',
+      'Spam or advertising',
+      'Suspicious score manipulation',
+      'Other (specify below)',
+    ];
+
+    const overlay = document.createElement('div');
+    overlay.className = 'profile-modal-overlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.88);display:flex;justify-content:center;align-items:center;z-index:9999;';
+
+    overlay.innerHTML = `
+      <div style="
+        background:#130f04; border:2px solid #e67e22;
+        padding:var(--space-lg); max-width:420px; width:90%;
+        font-family:'VCR',sans-serif; border-radius:8px;
+        box-shadow: 0 0 40px rgba(230,126,34,0.3);
+      ">
+        <h3 style="color:#e67e22;font-size:var(--text-lg);text-transform:uppercase;margin:0 0 4px;text-align:center;letter-spacing:2px;">Ban User</h3>
+        <p style="color:#888;font-size:11px;text-align:center;margin:0 0 var(--space-md);letter-spacing:1px;">SELECT A REASON FOR THE BAN</p>
+
+        <label style="color:#f0e6d3;font-size:var(--text-sm);display:block;margin-bottom:6px;">Reason</label>
+        <select id="ban-reason-select" style="
+          width:100%; background:#222; color:#f0e6d3;
+          font-family:'VCR',monospace; font-size:var(--text-sm);
+          padding:var(--space-sm); border:2px solid #555;
+          border-radius:4px; cursor:pointer; outline:none;
+          margin-bottom:var(--space-sm);
+        ">
+          ${PRESET_REASONS.map((r, i) => `<option value="${i === PRESET_REASONS.length - 1 ? 'other' : r}">${r}</option>`).join('')}
+        </select>
+
+        <div id="ban-other-wrap" style="display:none; margin-bottom:var(--space-sm);">
+          <label style="color:#f0e6d3;font-size:var(--text-sm);display:block;margin-bottom:6px;">Custom Reason</label>
+          <textarea id="ban-reason-custom" rows="3" placeholder="Describe the reason..." style="
+            width:100%; box-sizing:border-box;
+            background:#222; color:#f0e6d3;
+            font-family:'VCR',monospace; font-size:var(--text-sm);
+            padding:var(--space-sm); border:2px solid #555;
+            border-radius:4px; resize:vertical; outline:none;
+          "></textarea>
+        </div>
+
+        <p id="ban-modal-msg" style="color:#e74c3c;font-size:var(--text-sm);min-height:1.2em;text-align:center;margin:0 0 var(--space-sm);"></p>
+
+        <div style="display:flex;gap:var(--space-sm);">
+          <button id="ban-modal-cancel" style="flex:1;background:transparent;border:2px solid #555;color:#aaa;font-family:'VCR',sans-serif;padding:10px;cursor:pointer;border-radius:4px;">CANCEL</button>
+          <button id="ban-modal-confirm" style="flex:1;background:#e67e22;border:2px solid #111;color:#111;font-family:'VCR',sans-serif;font-weight:bold;padding:10px;cursor:pointer;border-radius:4px;">BAN USER</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    const select   = overlay.querySelector('#ban-reason-select');
+    const otherWrap = overlay.querySelector('#ban-other-wrap');
+    const customTA = overlay.querySelector('#ban-reason-custom');
+    const msgEl    = overlay.querySelector('#ban-modal-msg');
+    const confirmBtn = overlay.querySelector('#ban-modal-confirm');
+    const cancelBtn  = overlay.querySelector('#ban-modal-cancel');
+
+    // Show/hide custom text area when 'Other' is picked
+    select.addEventListener('change', () => {
+      const isOther = select.value === 'other';
+      otherWrap.style.display = isOther ? 'block' : 'none';
+      if (isOther) setTimeout(() => customTA.focus(), 50);
+    });
+
+    const close = () => overlay.remove();
+    cancelBtn.addEventListener('click', close);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+
+    confirmBtn.addEventListener('click', async () => {
+      const isOther = select.value === 'other';
+      const reason = isOther ? customTA.value.trim() : select.value;
+
+      if (!reason) {
+        msgEl.textContent = isOther ? 'Please type a reason.' : 'Please select a reason.';
+        return;
+      }
+
+      confirmBtn.textContent = 'BANNING...';
+      confirmBtn.disabled = true;
+      msgEl.textContent = '';
+
+      try {
+        const res = await fetch('/admin/ban', {
+          method: 'POST', credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId, banned: true, reason })
+        });
+        if (res.ok) {
+          close();
+          if (onBanned) onBanned();
+        } else {
+          const d = await res.json();
+          msgEl.textContent = d.error || 'Ban failed.';
+          confirmBtn.textContent = 'BAN USER';
+          confirmBtn.disabled = false;
+        }
+      } catch (err) {
+        msgEl.textContent = 'Network error.';
+        confirmBtn.textContent = 'BAN USER';
+        confirmBtn.disabled = false;
+      }
+    });
   },
 
   _showAdminModal(title, msg, onConfirm) {
