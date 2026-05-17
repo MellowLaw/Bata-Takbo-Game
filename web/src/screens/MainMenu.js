@@ -139,28 +139,46 @@ export const MainMenu = {
 
   // ── Helpers ────────────────────────────────────────────────────────────
 
+  _getVolume() {
+    const s = state.get('settings');
+    if (!s || !s.audio) return 0.4;
+    if (s.audio.muted) return 0;
+    const master = s.audio.master !== undefined ? s.audio.master : 0.8;
+    const music = s.audio.music !== undefined ? s.audio.music : 0.8;
+    return master * music * 0.5; // Scale slightly for balanced menu level
+  },
+
   _startMusic() {
+    const targetVolume = this._getVolume();
     if (_bgMusic) {
       // Already playing (e.g. returned from a sub-menu that kept music alive).
       // Only do a fade-in if it was paused or at a very low volume.
-      if (!_bgMusic.paused && _bgMusic.volume >= 0.4) return; // already at full vol
-      _bgMusic.play().catch(() => {});
-      this._fadeInMusic(1200);
+      if (!_bgMusic.paused && _bgMusic.volume >= targetVolume * 0.8 && targetVolume > 0) return;
+      
+      if (targetVolume === 0) {
+        _bgMusic.pause();
+      } else {
+        _bgMusic.volume = targetVolume;
+        _bgMusic.play().catch(() => {});
+      }
       return;
     }
 
     _bgMusic = new Audio('/assets/audio/menu_bg_music.mp3');
     _bgMusic.loop = true;
     _bgMusic.volume = 0;
-    _bgMusic.play().catch(() => {
-      // Auto-play may be blocked; attach a one-shot user interaction listener
-      const resume = () => {
-        _bgMusic.play().catch(() => {});
-        document.removeEventListener('pointerdown', resume);
-      };
-      document.addEventListener('pointerdown', resume, { once: true });
-    });
-    this._fadeInMusic(1200);
+    
+    if (targetVolume > 0) {
+      _bgMusic.play().catch(() => {
+        // Auto-play may be blocked; attach a one-shot user interaction listener
+        const resume = () => {
+          if (_bgMusic) _bgMusic.play().catch(() => {});
+          document.removeEventListener('pointerdown', resume);
+        };
+        document.addEventListener('pointerdown', resume, { once: true });
+      });
+      this._fadeInMusic(1200);
+    }
   },
 
   _stopMusic() {
@@ -179,7 +197,12 @@ export const MainMenu = {
     if (!_bgMusic) return;
     if (_fadeInterval) clearInterval(_fadeInterval);
 
-    const targetVolume = 0.5;
+    const targetVolume = this._getVolume();
+    if (targetVolume === 0) {
+      _bgMusic.volume = 0;
+      return;
+    }
+    
     const steps = 40;
     const stepTime = durationMs / steps;
     const increment = targetVolume / steps;
@@ -262,3 +285,26 @@ export const MainMenu = {
     }
   },
 };
+
+export function updateMenuVolume() {
+  if (_bgMusic) {
+    const s = state.get('settings');
+    if (!s || !s.audio) return;
+    if (s.audio.muted) {
+      _bgMusic.volume = 0;
+      _bgMusic.pause();
+    } else {
+      const master = s.audio.master !== undefined ? s.audio.master : 0.8;
+      const music = s.audio.music !== undefined ? s.audio.music : 0.8;
+      const targetVol = master * music * 0.5;
+      
+      _bgMusic.volume = targetVol;
+      if (targetVol > 0 && _bgMusic.paused) {
+        _bgMusic.play().catch(() => {});
+      } else if (targetVol === 0 && !_bgMusic.paused) {
+        _bgMusic.pause();
+      }
+    }
+  }
+}
+

@@ -6,7 +6,10 @@ import { state } from '../utils/StateManager.js';
 class AudioManager {
   constructor() {
     this.scene = null;
-    this.volume = 1.0;
+    this.masterVolume = 1.0;
+    this.sfxVolume = 1.0;
+    this.musicVolume = 1.0;
+    this.volume = 1.0; // Fallback compatibility
     this.muted = false;
     this.initialized = false;
     this.playerGender = null;
@@ -30,17 +33,28 @@ class AudioManager {
    */
   updateVolume() {
     const s = state.get('settings');
+    let master = 0.8;
+    let music = 0.8;
+    let sfx = 0.9;
+    
     if (s && s.audio) {
-      this.volume = (s.audio.master || 0.8) * (s.audio.sfx || 0.9);
+      master = s.audio.master !== undefined ? s.audio.master : 0.8;
+      music = s.audio.music !== undefined ? s.audio.music : 0.8;
+      sfx = s.audio.sfx !== undefined ? s.audio.sfx : 0.9;
       this.muted = s.audio.muted || false;
     }
     
+    this.masterVolume = master;
+    this.sfxVolume = sfx;
+    this.musicVolume = music;
+    this.volume = master * sfx; // Keep this.volume as fallback
+    
     // Update Phaser sound volume if scene exists
     if (this.scene && this.scene.sound) {
-      this.scene.sound.volume = this.muted ? 0 : this.volume;
+      this.scene.sound.volume = this.muted ? 0 : this.masterVolume;
       if (this.currentMusic) {
         try {
-          this.currentMusic.setVolume(this.muted ? 0 : this.volume * 0.25); // Lower BGM for clearer VO
+          this.currentMusic.setVolume(this.muted ? 0 : this.musicVolume * 0.25); // Lower BGM for clearer VO
         } catch (e) {
           console.warn('[AudioManager] currentMusic reference was dead, clearing it.');
           this.currentMusic = null;
@@ -460,7 +474,8 @@ class AudioManager {
     }
     
     try {
-      const playVolume = (options.volume !== undefined ? options.volume : 1) * this.volume;
+      // Phaser's main sound manager handles the master volume, so we only multiply by sfxVolume here
+      const playVolume = (options.volume !== undefined ? options.volume : 1) * this.sfxVolume;
       // scene.sound.play() is the correct Phaser 3 API — works directly after load.audio
       this.scene.sound.play(key, { volume: playVolume, loop: options.loop || false });
     } catch (e) {
@@ -482,7 +497,7 @@ class AudioManager {
     if (this.scene.cache.audio.exists(key)) {
       this.currentMusic = this.scene.sound.add(key, { 
         loop: true, 
-        volume: this.muted ? 0 : this.volume * 0.25 // Lower BGM for clearer VO
+        volume: this.muted ? 0 : this.musicVolume * 0.25 // Lower BGM for clearer VO
       });
       this.currentMusic.play();
     }
@@ -530,7 +545,7 @@ class AudioManager {
         if (this.currentMusic) {
           this.currentMusic.pause();
           // Restore volume for when it resumes
-          this.currentMusic.setVolume(this.muted ? 0 : this.volume * 0.4);
+          this.currentMusic.setVolume(this.muted ? 0 : this.musicVolume * 0.4);
         }
       }
     }, stepTime);
@@ -553,7 +568,7 @@ class AudioManager {
       this.currentMusic.setVolume(0);
       this.currentMusic.resume();
       
-      const targetVolume = this.volume * 0.4;
+      const targetVolume = this.musicVolume * 0.4;
       const steps = 10;
       const stepVol = targetVolume / steps;
       const stepTime = duration / steps;

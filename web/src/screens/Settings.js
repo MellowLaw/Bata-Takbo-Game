@@ -4,6 +4,7 @@
  */
 import { state } from '../utils/StateManager.js';
 import { audioManager } from '../game/AudioManager.js';
+import { updateMenuVolume } from './MainMenu.js';
 
 export const Settings = {
   render() {
@@ -419,6 +420,7 @@ export const Settings = {
 
     if (keyPath.startsWith('audio.')) {
       audioManager.updateVolume();
+      updateMenuVolume();
     }
   },
 };
