@@ -1166,19 +1166,25 @@ a {
 
 /* Compact landscape mobile (phones in landscape) */
 @media (orientation: landscape) and (max-height: 480px) {
+  .main-menu__title {
+    width: clamp(160px, 28vw, 280px);
+    margin-bottom: 0;
+  }
+
   .main-menu__content {
-    gap: var(--space-xs);
+    gap: 0;
+    padding: var(--space-xs);
   }
 
   .main-menu__nav {
-    gap: 2px;
+    gap: 0;
   }
 
   .main-menu__nav .menu-btn {
-    min-height: 40px;
-    padding: 2px var(--space-lg);
-    font-size: clamp(1rem, 2.8vmin, 1.4rem);
-    line-height: 1.2;
+    min-height: 28px;
+    padding: 1px var(--space-lg);
+    font-size: clamp(0.85rem, 2.5vmin, 1.2rem);
+    line-height: 1;
   }
 }
 
@@ -1201,6 +1207,7 @@ a {
 
 .main-menu__nav .menu-btn {
   padding: 2px var(--space-xl);
+  line-height: 1;
 }
 
 @media (orientation: landscape) {
@@ -2756,7 +2763,7 @@ a {
 /* --- Mobile landscape (short screens, ~360-500px tall) --- */
 @media (max-height: 500px) {
   .main-menu__title {
-    width: clamp(120px, 20vw, 200px);
+    width: clamp(150px, 25vw, 260px);
   }
 
   .menu-btn {
@@ -4032,6 +4039,76 @@ a {
   }
   .profile-card button {
     width: 100%;
+  }
+}
+
+/* Landscape mobile: sidebar stays but compact */
+@media screen and (max-height: 500px) and (orientation: landscape) {
+  #profile-content-wrapper {
+    padding: var(--space-xs) var(--space-sm) !important;
+    gap: var(--space-sm);
+  }
+  .profile-sidebar {
+    min-width: 160px;
+    width: 18%;
+    padding: var(--space-sm);
+    gap: 2px;
+  }
+  .profile-sidebar .back-btn {
+    margin-bottom: var(--space-xs);
+    padding: var(--space-xs) var(--space-sm);
+    font-size: var(--text-xs);
+  }
+  .profile-tab-btn {
+    padding: var(--space-xs) var(--space-sm);
+    font-size: var(--text-xs);
+  }
+  .profile-content-area {
+    width: 82% !important;
+  }
+  .profile-panel {
+    padding: var(--space-sm) var(--space-md);
+    border-radius: 8px;
+    box-shadow: 4px 4px 0px rgba(0,0,0,1);
+  }
+  .id-card-header {
+    gap: var(--space-xs) !important;
+    margin-bottom: var(--space-xs);
+  }
+  .id-card-avatar {
+    width: 45px !important;
+    height: 45px !important;
+  }
+  #profile-username {
+    font-size: var(--text-sm) !important;
+  }
+  #profile-bio {
+    font-size: 9px !important;
+    max-width: 120px !important;
+  }
+  .id-card-badge {
+    font-size: 9px !important;
+    padding: 2px 6px !important;
+  }
+  .profile-stat-box {
+    padding: var(--space-xs) var(--space-sm);
+  }
+  .profile-stat-label {
+    font-size: 9px;
+  }
+  .profile-stat-value {
+    font-size: var(--text-xs);
+    word-break: break-all;
+  }
+  #profile-stats-container {
+    gap: var(--space-xs) !important;
+    margin-bottom: var(--space-xs) !important;
+  }
+  .profile-card {
+    padding: var(--space-sm) !important;
+  }
+  .profile-card h3 {
+    font-size: var(--text-sm) !important;
   }
 }
 

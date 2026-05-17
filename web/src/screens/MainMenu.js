@@ -125,6 +125,9 @@ export const MainMenu = {
       this._loadProfileAvatar(profileIcon);
     }
 
+    // Check for admin and update title image
+    this._checkAdminAndUpdateTitle(el);
+
     // Particles background effect
     this._createParticles(el);
   },
@@ -259,6 +262,23 @@ export const MainMenu = {
       }
     } catch (e) {
       // Network error or guest — keep the default user_logo image
+    }
+  },
+
+  // Check if user is admin and update title image
+  async _checkAdminAndUpdateTitle(el) {
+    try {
+      const res = await fetch('/admin/check', { credentials: 'include' });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.isAdmin) {
+        const titleImg = el.querySelector('#main-title-img');
+        if (titleImg) {
+          titleImg.src = '/assets/ui/main-title-admin.png';
+        }
+      }
+    } catch (e) {
+      // Silent fail - keep default title
     }
   },
 

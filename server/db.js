@@ -118,6 +118,10 @@ export async function initDb() {
   `);
 
   // ─── Indexes ──────────────────────────────────────────────────────────────
+  // ─── Migrations ───────────────────────────────────────────────────────────
+  await db.exec(`ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT`);
+
+  // ─── Indexes ──────────────────────────────────────────────────────────────
   await db.exec(`CREATE INDEX IF NOT EXISTS idx_users_username      ON users(LOWER(username))`);
   await db.exec(`CREATE INDEX IF NOT EXISTS idx_users_email         ON users(LOWER(email))`);
   await db.exec(`CREATE INDEX IF NOT EXISTS idx_inf_scores_user     ON inf_scores(user_id)`);
