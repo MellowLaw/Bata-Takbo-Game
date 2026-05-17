@@ -430,13 +430,10 @@ app.post('/auth/save-data', authMiddleware, async (req, res) => {
 
     // Save gesture model to its own table if provided
     if (gestureModel !== undefined && gestureModel !== null) {
-      await db.run(
-        `INSERT INTO user_gesture_models (user_id, model_data, updated_at)
-         VALUES (?, ?, ?)
-         ON CONFLICT (user_id) DO UPDATE SET model_data = EXCLUDED.model_data, updated_at = EXCLUDED.updated_at
-         RETURNING user_id`,
-        [req.user.id, JSON.stringify(gestureModel), Date.now()]
-      );
+      const upsertSql = `INSERT INTO user_gesture_models (user_id, model_data, updated_at)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (user_id) DO UPDATE SET model_data = EXCLUDED.model_data, updated_at = EXCLUDED.updated_at`;
+      await db.pool.query(upsertSql, [req.user.id, JSON.stringify(gestureModel), Date.now()]);
     }
 
     // Read it back to confirm what's actually persisted.
