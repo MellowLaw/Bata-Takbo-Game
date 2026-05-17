@@ -24,7 +24,6 @@ export class GameScene extends Phaser.Scene {
     this.infPerfectWaves = 0;
     this.infTilesCollected = 0;
     this._infLastPlayerHp = 6; // track for perfect wave
-    console.log(`[GameScene] Initializing Chapter ${this.chapterId} (Tutorial: ${this.isTutorial}, Practice: ${this.isPracticeTutorial}, Character: ${this.character}, Control: ${this.control})`);
   }
 
   preload() {
@@ -1124,7 +1123,6 @@ export class GameScene extends Phaser.Scene {
       }
     });
 
-    console.log('[GameScene] Ready.');
     state.emit('game:scene_created');
   }
 

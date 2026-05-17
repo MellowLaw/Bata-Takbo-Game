@@ -193,7 +193,6 @@ class StateManager {
   }
 
   async saveTutorialState(sync = true) {
-    console.log('[TUTORIAL-DEBUG] saveTutorialState() called. tutorialComplete =', this._state.tutorialComplete);
     try {
       localStorage.setItem('bata_takbo_tutorial', JSON.stringify(this._state.tutorialComplete));
       if (sync) await this._syncToServer();
@@ -230,7 +229,6 @@ class StateManager {
     } catch (e) {}
 
     if (isRegistered) {
-      console.log('[TUTORIAL-DEBUG] logout(): saving state to server BEFORE invalidating JWT. tutorialComplete =', this._state.tutorialComplete);
       await this._syncToServer(); // await so save completes before JWT is blacklisted
     } else {
       try {
@@ -307,7 +305,6 @@ class StateManager {
 
   async _syncToServer() {
     if (this._isGuest()) {
-      console.log('[SAVE] skip — guest session');
       return;
     }
 
@@ -326,8 +323,6 @@ class StateManager {
       gestureModel
     };
 
-    console.log(`[SAVE] sending tutorialComplete=${payload.tutorialComplete} gestureSetupComplete=${payload.gestureSetupComplete} chaptersUnlocked=${payload.chapterProgress?.chaptersUnlocked}`);
-
     try {
       const res = await fetch('/auth/save-data', {
         method: 'POST',
@@ -341,9 +336,6 @@ class StateManager {
         return;
       }
       // Server echoes back the stored gameData so we can verify.
-      const body = await res.json().catch(() => ({}));
-      const stored = body && body.gameData;
-      console.log(`[SAVE] OK — server stored tutorialComplete=${stored?.tutorialComplete} gestureSetupComplete=${stored?.gestureSetupComplete} chaptersUnlocked=${stored?.chapterProgress?.chaptersUnlocked}`);
     } catch (e) {
       console.warn('[SAVE] network error —', e.message);
     }
@@ -377,7 +369,6 @@ class StateManager {
    */
   async hydrateFromServer() {
     if (this._isGuest()) {
-      console.log('[LOAD] skip — guest session');
       return;
     }
 
@@ -391,7 +382,6 @@ class StateManager {
         return false;
       }
       const { gameData } = await res.json();
-      console.log(`[LOAD] /auth/me received: tutorialComplete=${gameData?.tutorialComplete} gestureSetupComplete=${gameData?.gestureSetupComplete} chaptersUnlocked=${gameData?.chapterProgress?.chaptersUnlocked} hasModel=${!!gameData?.gestureModel}`);
 
       if (!gameData) {
         // Brand-new account — clear any leftover guest gesture model from IDB
@@ -442,7 +432,6 @@ class StateManager {
         localStorage.setItem('bata_takbo_settings', JSON.stringify(this._state.settings));
       } catch (e) { /* ignore */ }
 
-      console.log(`[LOAD] applied — tutorialComplete=${this._state.tutorialComplete} practiceTutorialComplete=${this._state.practiceTutorialComplete} gestureSetupComplete=${this._state.gestureSetupComplete}`);
       return true;
     } catch (e) {
       console.warn('[LOAD] network error —', e.message);

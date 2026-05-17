@@ -71,11 +71,7 @@ export class OrientationManager {
     // Try to lock orientation to landscape if Screen Orientation API is available
     if (screen.orientation && screen.orientation.lock) {
       screen.orientation.lock('landscape')
-        .then(() => {
-          console.log('[OrientationManager] Successfully locked to landscape');
-        })
-        .catch((error) => {
-          console.log('[OrientationManager] Could not lock orientation:', error.message);
+        .catch(() => {
           // Fallback: show orientation lock screen when in portrait
         });
     }

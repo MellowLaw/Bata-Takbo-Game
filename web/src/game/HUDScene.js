@@ -232,7 +232,6 @@ export class HUDScene extends Phaser.Scene {
       // Listen for texture load to replace placeholder
       this.textures.on('add', (key) => {
         if (key === 'boss_idle' && this.bossSprite && this.bossSprite.type === 'Rectangle') {
-          console.log('[HUDScene] boss_idle texture loaded, replacing placeholder');
           this.bossSprite.destroy();
           this.bossSprite = this.add.sprite(bossCenterX, bossCenterY, 'boss_idle');
           this.bossSprite.setOrigin(0.5, 0.5);

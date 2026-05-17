@@ -45,3 +45,6 @@ Thumbs.db
 
 # ── Vite local config ────────────────────────────────────────
 *.local
+
+# ── Dev-only guides and tools ────────────────────────────────
+GUIDES/

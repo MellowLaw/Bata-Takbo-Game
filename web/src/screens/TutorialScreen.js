@@ -203,7 +203,6 @@ export const TutorialScreen = {
   async _finish() {
     if (this._timePoll) { clearInterval(this._timePoll); this._timePoll = null; }
 
-    console.log('[TUTORIAL-DEBUG] TutorialScreen._finish(): setting tutorialComplete = true');
     state.set('tutorialComplete', true);
     await state.saveTutorialState();
 

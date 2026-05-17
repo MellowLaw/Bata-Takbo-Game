@@ -325,8 +325,6 @@ app.post('/auth/login', loginLimiter, async (req, res) => {
         } catch(e) { /* ignore */ }
       }
 
-      console.log(`[LOGIN] user=${user.username} returning: tutorialComplete=${gameData?.tutorialComplete} gestureSetupComplete=${gameData?.gestureSetupComplete} chaptersUnlocked=${gameData?.chapterProgress?.chaptersUnlocked} hasModel=${!!gameData?.gestureModel}`);
-
       return res.status(200).json({ success: true, gameData });
     } else {
       let attempts = user.failed_attempts + 1;
@@ -408,8 +406,6 @@ app.get('/auth/profile', authMiddleware, async (req, res) => {
 app.post('/auth/save-data', authMiddleware, async (req, res) => {
   try {
     const { settings, tutorialComplete, gestureSetupComplete, chapterProgress, bestiary, gestureModel } = req.body;
-    console.log(`[SAVE] user=${req.user.username} id=${req.user.id} incoming: tutorialComplete=${tutorialComplete} gestureSetupComplete=${gestureSetupComplete} chaptersUnlocked=${chapterProgress?.chaptersUnlocked}`);
-
     // Merge with existing game_data so partial saves don't wipe other fields.
     let existing = {};
     try {
@@ -441,8 +437,6 @@ app.post('/auth/save-data', authMiddleware, async (req, res) => {
     const verifyRow = await db.get('SELECT game_data FROM users WHERE id = ?', [req.user.id]);
     let stored = null;
     try { stored = verifyRow && verifyRow.game_data ? JSON.parse(verifyRow.game_data) : null; } catch(e) {}
-    console.log(`[SAVE] user=${req.user.username} stored: tutorialComplete=${stored?.tutorialComplete} gestureSetupComplete=${stored?.gestureSetupComplete} chaptersUnlocked=${stored?.chapterProgress?.chaptersUnlocked}`);
-
     // Echo the persisted state back so the client can verify.
     return res.status(200).json({ success: true, gameData: stored });
   } catch (err) {
@@ -477,8 +471,6 @@ app.get('/auth/me', authMiddleware, async (req, res) => {
         gameData.gestureModel = JSON.parse(modelRow.model_data);
       } catch(e) { /* ignore malformed model */ }
     }
-
-    console.log(`[ME] user=${row.username} returning: tutorialComplete=${gameData?.tutorialComplete} gestureSetupComplete=${gameData?.gestureSetupComplete} chaptersUnlocked=${gameData?.chapterProgress?.chaptersUnlocked} hasModel=${!!gameData?.gestureModel}`);
 
     return res.status(200).json({ username: row.username, gameData });
   } catch (err) {
@@ -814,9 +806,7 @@ app.post('/auth/forgot-password', forgotPasswordLimiter, async (req, res) => {
 
       if (transporter) {
         try {
-          console.log(`[INFO] Sending reset code to: ${sanitizedEmail}`);
           await transporter.sendMail(mailOptions);
-          console.log(`[INFO] Reset code sent to: ${sanitizedEmail}`);
         } catch (emailErr) {
           console.error(`[ERROR] Failed to send reset code to ${sanitizedEmail}:`, emailErr);
         }

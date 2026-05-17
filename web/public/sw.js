@@ -1,7 +1,7 @@
 // Service Worker — Bata, Takbo!
 // Network-first strategy — always serve fresh assets, cache only as offline fallback
 
-const CACHE_NAME = 'bata-takbo-v6';
+const CACHE_NAME = 'bata-takbo-v7';
 
 // Install — activate immediately, no pre-caching
 self.addEventListener('install', (event) => {
@@ -34,6 +34,9 @@ self.addEventListener('fetch', (event) => {
 
   // Bypass for Firebase / Google APIs
   if (url.hostname.includes('firebase') || url.hostname.includes('googleapis')) return;
+
+  // Bypass API routes — always fetch live
+  if (['/auth', '/api', '/leaderboard', '/admin'].some(p => url.pathname.startsWith(p))) return;
 
   // HTML pages — network first (always get latest app shell)
   if (url.pathname === '/' || url.pathname.endsWith('.html')) {

@@ -1972,7 +1972,6 @@ export class Boss {
 
   die() {
     if (this.attackTimer) this.attackTimer.remove();
-    console.log("BOSS DEFEATED");
     this.scene.events.emit('boss:died');
   }
   // ======== CHAPTER 3: KATAW — 14 ATTACKS ========

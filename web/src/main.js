@@ -111,9 +111,6 @@ async function init() {
     setTimeout(() => loadingOverlay.remove(), 600);
   }
 
-  console.log('🎮 Bata, Takbo! initialized');
-  console.log('📋 Settings:', state.get('settings'));
-  console.log('📖 Tutorial state:', state.get('tutorialComplete'));
 }
 
 // Prevent default mobile behaviors
@@ -317,8 +314,7 @@ document.addEventListener('keydown', (e) => {
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js')
-      .then(reg => console.log('SW registered:', reg.scope))
-      .catch(err => console.log('SW registration failed:', err));
+      .catch(err => console.warn('SW registration failed:', err));
   });
 }
 
