@@ -7,11 +7,11 @@ import { state } from '../utils/StateManager.js';
 export const AdminDashboard = {
   render() {
     return `
-      <div class="settings-screen screen" id="admin-container">
-        <div class="settings-screen__content" id="profile-content-wrapper" style="background: transparent; border: none; box-shadow: none;">
+      <div class="settings-screen screen" id="admin-container" style="padding: 0;">
+        <div class="settings-screen__content" id="profile-content-wrapper" style="background: transparent; border: none; box-shadow: none; padding: var(--space-md); gap: var(--space-md); max-width: 1600px; width: 98%;">
           
           <!-- SIDEBAR NAVIGATION -->
-          <div class="profile-sidebar">
+          <div class="profile-sidebar" style="min-width: 200px; width: 18%;">
             <button class="back-btn" id="btn-admin-back" style="margin-bottom: var(--space-md);">
               BACK TO MENU
             </button>
@@ -22,11 +22,11 @@ export const AdminDashboard = {
           </div>
 
           <!-- MAIN CONTENT AREA -->
-          <div class="profile-content-area scrollable">
+          <div class="profile-content-area scrollable" style="width: 100%;">
           
             <!-- DASHBOARD PANEL -->
-            <div id="panel-dashboard" class="profile-panel active">
-              <h2 style="font-family:'VCR',sans-serif; color:#111; text-transform:uppercase; margin:0 0 var(--space-md) 0; font-size:var(--text-xl); border-bottom:2px solid #111; padding-bottom:8px;">Server Overview</h2>
+            <div id="panel-dashboard" class="profile-panel active" style="max-width: 100%; margin: 0 auto;">
+              <h2 style="font-family:'VCR',sans-serif; color:#111; text-transform:uppercase; margin:0 0 var(--space-sm) 0; font-size:var(--text-xl); border-bottom:2px solid #111; padding-bottom:8px;">Server Overview</h2>
 
               <!-- Stat Cards -->
               <div id="admin-stats-container" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-md); margin-bottom: var(--space-lg);">
@@ -49,14 +49,14 @@ export const AdminDashboard = {
               </div>
 
               <!-- Charts Row -->
-              <div style="display:grid; grid-template-columns:1fr 1fr; gap:var(--space-md); margin-bottom:var(--space-lg);">
-                <div class="profile-stat-box" style="flex-direction:column;align-items:center;">
+              <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:var(--space-md); margin-bottom:var(--space-md); width:100%;">
+                <div class="profile-stat-box" style="flex-direction:column;align-items:center; min-width:0;">
                   <div style="font-family:'VCR',sans-serif;font-size:var(--text-xs);color:#555;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Games by Type</div>
-                  <canvas id="chart-games" width="160" height="160" style="max-width:160px;"></canvas>
+                  <canvas id="chart-games" width="140" height="140" style="max-width:140px;"></canvas>
                 </div>
-                <div class="profile-stat-box" style="flex-direction:column;align-items:stretch;">
+                <div class="profile-stat-box" style="flex-direction:column;align-items:stretch; min-width:0;">
                   <div style="font-family:'VCR',sans-serif;font-size:var(--text-xs);color:#555;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Recent Logins (last 7 days)</div>
-                  <canvas id="chart-logins" height="150"></canvas>
+                  <canvas id="chart-logins" height="120" style="max-height:120px;"></canvas>
                 </div>
               </div>
 

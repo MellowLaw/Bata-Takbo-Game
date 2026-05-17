@@ -15,6 +15,7 @@ export const ProfileScreen = {
             <button class="profile-tab-btn" data-target="panel-account" id="tab-btn-account">ACCOUNT SETTINGS</button>
             <button class="profile-tab-btn" data-target="panel-danger" id="tab-btn-danger">THE VOID</button>
             <button class="profile-tab-btn" id="btn-admin-panel" style="display: none; color: #e74c3c;">ADMIN PANEL</button>
+            <button class="profile-tab-btn" data-target="panel-logout" id="tab-btn-logout" style="margin-top: auto; color: #e74c3c; border-left: 3px solid #e74c3c; padding-left: calc(var(--space-md) - 1px);">LOGOUT</button>
           </div>
 
           <!-- MAIN CONTENT AREA -->
@@ -23,12 +24,27 @@ export const ProfileScreen = {
           <!-- STATS / ID CARD PANEL -->
           <div id="panel-stats" class="profile-panel active">
             
-            <div class="id-card-header">
-              <div class="id-card-avatar" id="id-card-avatar">?</div>
-              <div class="id-card-info">
-                <h2 id="profile-username">Loading...</h2>
-                <div class="id-card-badge" id="profile-account-type">GUEST</div>
+            <style>
+              @media (max-width: 600px) {
+                .id-card-header { flex-direction: column !important; align-items: flex-start !important; gap: var(--space-sm) !important; }
+                .id-card-header .id-card-badge { align-self: flex-start !important; margin-top: var(--space-xs) !important; }
+                #profile-stats-container { grid-template-columns: 1fr !important; }
+                #profile-stats-container .profile-stat-box[style*="span 2"] { grid-column: span 1 !important; }
+                #profile-username { font-size: var(--text-lg) !important; }
+                #profile-bio { max-width: 100% !important; font-size: 11px !important; }
+                .id-card-avatar { width: 60px !important; height: 60px !important; }
+              }
+            </style>
+
+            <div class="id-card-header" style="display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: var(--space-sm);">
+              <div style="display: flex; align-items: center; gap: var(--space-md); flex: 1; min-width: 0;">
+                <div class="id-card-avatar" id="id-card-avatar" style="flex-shrink: 0;">?</div>
+                <div class="id-card-info" style="min-width: 0; flex: 1;">
+                  <h2 id="profile-username" style="font-size: var(--text-xl); word-break: break-word;">Loading...</h2>
+                  <p id="profile-bio" style="font-family:'VCR',sans-serif;font-size:var(--text-xs);color:#666;margin-top:2px;font-style:italic;max-width:200px;word-wrap:break-word;min-height:1.2em;"></p>
+                </div>
               </div>
+              <div class="id-card-badge" id="profile-account-type" style="flex-shrink: 0;">GUEST</div>
             </div>
 
             <div id="profile-stats-container" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-md); margin-bottom: var(--space-md);">
@@ -115,20 +131,34 @@ export const ProfileScreen = {
               </div>
               <button id="btn-modal-avatar" style="padding: var(--space-sm) var(--space-md); font-family:'VCR',sans-serif; font-size: var(--text-sm);">CHANGE</button>
             </div>
+
+            <div class="profile-card" id="cb-group">
+              <div>
+                <h3>Bio</h3>
+                <p style="font-family:'VCR',sans-serif;font-size:12px;margin-top:4px;">Short description about you (max 150 chars)</p>
+              </div>
+              <button id="btn-modal-bio" style="padding: var(--space-sm) var(--space-md); font-family:'VCR',sans-serif; font-size: var(--text-sm);">CHANGE</button>
+            </div>
+          </div>
+
+          <!-- LOGOUT PANEL -->
+          <div id="panel-logout" class="profile-panel">
+            <h2 style="font-family:var(--font-display); color:#111; margin-bottom:var(--space-md); border-bottom:2px solid #111; padding-bottom:8px;">Log Out</h2>
+            <div class="profile-card" style="flex-direction: column; align-items: stretch; gap: var(--space-md);">
+              <div>
+                <h3 style="margin:0 0 4px;">Session</h3>
+                <p style="font-family:'VCR',sans-serif; font-size: var(--text-sm); color:#555;">You will be returned to the login screen.</p>
+              </div>
+              <button id="btn-confirm-logout" style="padding: var(--space-sm) var(--space-md); font-family:'VCR',sans-serif; font-size: var(--text-sm); background: #111; color: #e4cfc0; border: 2px solid #111; cursor: pointer; letter-spacing: 2px; text-transform: uppercase;">LOGOUT</button>
+            </div>
           </div>
 
           <!-- DANGER PANEL -->
           <div id="panel-danger" class="profile-panel" style="background: #cfb9b9; border-color: #8b0000;">
-            <h2 style="font-family:var(--font-display); color:#8b0000; margin-bottom:var(--space-md); border-bottom:3px solid #8b0000; padding-bottom:8px;">System Access</h2>
-            
-            <div class="profile-card" style="border-color: #8b0000; background:rgba(255,255,255,0.6); flex-direction: column; align-items: stretch; gap: var(--space-md);">
-              <h3 style="color: #8b0000;">Session Management</h3>
-              <button id="btn-profile-logout" style="padding: var(--space-sm); font-family:'VCR',sans-serif; font-size: var(--text-sm);">LOGOUT CURRENT DEVICE</button>
-              <button id="btn-logout-all" style="padding: var(--space-sm); font-family:'VCR',sans-serif; font-size: var(--text-sm); display: none;">LOG OUT ALL DEVICES</button>
-            </div>
+            <h2 style="font-family:var(--font-display); color:#8b0000; margin-bottom:var(--space-md); border-bottom:3px solid #8b0000; padding-bottom:8px;">Danger Zone</h2>
 
             <div id="da-group" class="profile-card" style="display: none; border-color: #8b0000; background: rgba(139, 0, 0, 0.1); flex-direction: column; align-items: stretch; gap: var(--space-sm);">
-              <h3 style="color: #8b0000; margin: 0;">Danger Zone</h3>
+              <h3 style="color: #8b0000; margin: 0;">Account Deletion</h3>
               <p style="font-family:'VCR',sans-serif; font-size: var(--text-sm); margin-bottom: var(--space-xs); color:#111;">Once you delete your account, there is no going back. Please be certain.</p>
               <button id="btn-modal-delete" style="width: 100%; background: #8b0000; border: 2px solid #111; color: #fff; cursor: pointer; letter-spacing: 2px; text-transform: uppercase; padding: var(--space-sm) var(--space-md); transition: all 0.2s ease;">Delete Account</button>
             </div>
@@ -205,6 +235,7 @@ export const ProfileScreen = {
     let registeredAt = null;
     let profileEmail = null;
     let avatarUrl = null;
+    let bio = null;
 
     if (isRegistered) {
       try {
@@ -220,6 +251,7 @@ export const ProfileScreen = {
           registeredAt = data.registeredAt;
           profileEmail = data.email || null;
           avatarUrl = data.avatar_url || null;
+          bio = data.bio || null;
         }
       } catch (err) {}
     }
@@ -246,6 +278,9 @@ export const ProfileScreen = {
     
     const pEmail = el.querySelector('#profile-email');
     if (pEmail) pEmail.textContent = profileEmail || '-';
+
+    const pBio = el.querySelector('#profile-bio');
+    if (pBio) pBio.textContent = bio || '';
 
     const pDate = el.querySelector('#profile-date');
     if (pDate && registeredAt) {
@@ -301,18 +336,14 @@ export const ProfileScreen = {
     const btnAvatar = el.querySelector('#btn-modal-avatar');
     if (btnAvatar) {
       btnAvatar.addEventListener('click', () => this._showAvatarModal());
-    }// System Access
-    const logoutAllBtn = el.querySelector('#btn-logout-all');
-    if (!isGuest && isRegistered && logoutAllBtn) {
-      logoutAllBtn.style.display = 'block';
-      logoutAllBtn.addEventListener('click', async () => {
-        try {
-          const res = await fetch('/auth/logout-all', { method: 'POST', credentials: 'include' });
-          if (res.ok) state.logout();
-        } catch (e) { console.error(e); }
-      });
     }
 
+    const btnBio = el.querySelector('#btn-modal-bio');
+    if (btnBio) {
+      btnBio.addEventListener('click', () => this._showBioModal(bio));
+    }
+
+    // System Access
     const daGroup = el.querySelector('#da-group');
     if (!isGuest && isRegistered && daGroup) {
       daGroup.style.display = 'flex';
@@ -328,27 +359,9 @@ export const ProfileScreen = {
       }
     } catch (e) {}
 
-    const pLogoutBtn = el.querySelector('#btn-profile-logout');
-    if (pLogoutBtn) {
-      pLogoutBtn.addEventListener('click', () => {
-        const dialogue = new DialogueBox('screen-container');
-        dialogue.show({
-          text: "Are you sure you want to log out?",
-          subtext: 'You will need to log back in to play.',
-          portrait: '/assets/entity/character-icon/character.png',
-          portraitFrames: 5,
-          position: 'center',
-          overlay: true,
-          typewriter: true,
-          buttons: [
-            { label: 'Yes, Log Out', action: 'logout' },
-            { label: 'Cancel', action: 'cancel', style: 'subtle' }
-          ]
-        }, (action) => {
-          dialogue.hide();
-          if (action === 'logout') state.logout();
-        });
-      });
+    const confirmLogoutBtn = el.querySelector('#btn-confirm-logout');
+    if (confirmLogoutBtn) {
+      confirmLogoutBtn.addEventListener('click', () => this._showLogoutModal());
     }
   },
 
@@ -696,104 +709,166 @@ export const ProfileScreen = {
 
   _showAvatarModal() {
     const overlay = this._createModalOverlay();
+    
+    // Generate preset avatar options (40 icons)
+    const presetIcons = [];
+    for (let i = 1; i <= 40; i++) {
+      const num = i.toString().padStart(2, '0');
+      presetIcons.push(`/assets/ui/User Profiles/Icons_${num}.png`);
+    }
+    
     overlay.innerHTML = `
-      <div class="profile-modal-box" style="max-width: 360px;">
-        <h3 style="color:#e4cfc0;font-family:'VCR',sans-serif;font-size:var(--text-lg);text-transform:uppercase;margin:0 0 var(--space-sm);text-align:center;letter-spacing:2px;">Profile Picture</h3>
+      <div class="profile-modal-box" style="max-width: 700px; width: 90vw; max-height: 90vh; overflow-y: auto;">
+        <h3 style="color:#e4cfc0;font-family:'VCR',sans-serif;font-size:var(--text-xl);text-transform:uppercase;margin:0 0 var(--space-md);text-align:center;letter-spacing:2px;">Choose Profile</h3>
         
-        <!-- Preview box -->
+        <!-- Current Preview -->
         <div id="avatar-preview-box" style="
-          width: 100px; height: 100px;
-          margin: 0 auto var(--space-md);
-          border: 3px solid #e4cfc0;
-          border-radius: 8px;
+          width: 150px; height: 150px;
+          margin: 0 auto var(--space-lg);
+          border: 4px solid #e4cfc0;
+          border-radius: 12px;
           background: #222;
           display: flex; align-items: center; justify-content: center;
-          overflow: hidden; cursor: pointer;
-          font-size: 2.5rem; color: #e4cfc0;
+          overflow: hidden;
+          font-size: 3rem; color: #e4cfc0;
         ">?</div>
 
-        <!-- Hidden file input -->
-        <input id="modal-avatar-file" type="file" accept="image/*" style="display:none;" />
+        <!-- Preset Grid -->
+        <div id="avatar-preset-grid" class="avatar-preset-grid" style="
+          display: grid;
+          grid-template-columns: repeat(10, 1fr);
+          grid-auto-rows: 55px;
+          gap: 12px;
+          margin-bottom: var(--space-lg);
+          padding: var(--space-md);
+          background: rgba(0,0,0,0.3);
+          border-radius: 12px;
+          max-height: 55vh;
+          overflow-y: auto;
+          scrollbar-width: thin;
+          scrollbar-color: #e4cfc0 #333;
+        ">
+          <style>
+            #avatar-preset-grid::-webkit-scrollbar { width: 10px; }
+            #avatar-preset-grid::-webkit-scrollbar-track { background: #333; border-radius: 5px; }
+            #avatar-preset-grid::-webkit-scrollbar-thumb { background: #e4cfc0; border-radius: 5px; border: 2px solid #333; }
+            #avatar-preset-grid::-webkit-scrollbar-thumb:hover { background: #d4bfa0; }
+            
+            /* Mobile responsive */
+            @media (max-width: 900px) {
+              #avatar-preset-grid {
+                grid-template-columns: repeat(6, 1fr) !important;
+                grid-auto-rows: 60px !important;
+              }
+            }
+            @media (max-width: 600px) {
+              #avatar-preset-grid {
+                grid-template-columns: repeat(5, 1fr) !important;
+                grid-auto-rows: 50px !important;
+                gap: 10px !important;
+              }
+            }
+            @media (max-width: 480px) {
+              #avatar-preset-grid {
+                grid-template-columns: repeat(4, 1fr) !important;
+                grid-auto-rows: 45px !important;
+                gap: 8px !important;
+                padding: 12px !important;
+              }
+            }
+          </style>
+          ${presetIcons.map((src, idx) => `
+            <div class="preset-avatar-option" data-src="${src}" style="
+              width: 100%;
+              height: 100%;
+              border: 2px solid #444;
+              border-radius: 8px;
+              cursor: pointer;
+              overflow: hidden;
+              transition: all 0.2s ease;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              background: #333;
+            " title="Profile ${idx + 1}">
+              <img src="${src}" style="width: 100%; height: 100%; object-fit: contain; display: block; image-rendering: pixelated;" />
+            </div>
+          `).join('')}
+        </div>
 
-        <!-- Upload button -->
-        <button id="modal-avatar-pick" style="
-          width: 100%; background: #333; border: 2px solid #e4cfc0;
-          color: #e4cfc0; font-family: 'VCR', sans-serif; font-size: var(--text-sm);
-          padding: var(--space-sm); cursor: pointer; border-radius: 4px;
-          text-transform: uppercase; letter-spacing: 1px; margin-bottom: var(--space-xs);
-          transition: all 0.2s ease;
-        ">📁 Choose Image</button>
+        <p id="modal-avatar-msg" style="font-family:'VCR',sans-serif;font-size:var(--text-sm);font-weight:bold;min-height:1.2em;text-align:center;margin:0 0 var(--space-md);color:var(--accent-red);"></p>
 
-        <!-- Remove button -->
-        <button id="modal-avatar-remove" style="
-          width: 100%; background: transparent; border: 2px solid #555;
-          color: #888; font-family: 'VCR', sans-serif; font-size: var(--text-xs);
-          padding: var(--space-xs); cursor: pointer; border-radius: 4px;
-          text-transform: uppercase; letter-spacing: 1px; margin-bottom: var(--space-md);
-        ">✕ Remove Picture</button>
-
-        <p id="modal-avatar-hint" style="font-family:'VCR',sans-serif;font-size:10px;color:#666;text-align:center;margin-bottom:var(--space-sm);">Max 2MB · JPG, PNG, GIF, WEBP</p>
-        <p id="modal-avatar-msg" style="font-family:'VCR',sans-serif;font-size:var(--text-sm);font-weight:bold;min-height:1.2em;text-align:center;margin:0 0 var(--space-sm);color:var(--accent-red);"></p>
-
-        <div style="display:flex;gap:var(--space-sm);">
-          <button id="modal-avatar-cancel" style="flex:1;background:transparent;border:2px solid #555;color:#aaa;font-family:'VCR',sans-serif;padding:8px;cursor:pointer;border-radius:4px;">CANCEL</button>
-          <button id="modal-avatar-confirm" style="flex:1;background:#e4cfc0;border:2px solid #111;color:#111;font-family:'VCR',sans-serif;font-weight:bold;padding:8px;cursor:pointer;border-radius:4px;" disabled>SAVE</button>
+        <div style="display:flex;gap:var(--space-md);">
+          <button id="modal-avatar-cancel" style="flex:1;background:transparent;border:2px solid #555;color:#aaa;font-family:'VCR',sans-serif;padding:12px;cursor:pointer;border-radius:4px;font-size:var(--text-sm);">CANCEL</button>
+          <button id="modal-avatar-remove" style="flex:1;background:#444;border:2px solid #666;color:#aaa;font-family:'VCR',sans-serif;padding:12px;cursor:pointer;border-radius:4px;font-size:var(--text-sm);">RESET</button>
+          <button id="modal-avatar-confirm" style="flex:1;background:#e4cfc0;border:2px solid #111;color:#111;font-family:'VCR',sans-serif;font-weight:bold;padding:12px;cursor:pointer;border-radius:4px;font-size:var(--text-sm);" disabled>SAVE</button>
         </div>
       </div>
     `;
 
-    const fileInput = overlay.querySelector('#modal-avatar-file');
-    const pickBtn = overlay.querySelector('#modal-avatar-pick');
     const removeBtn = overlay.querySelector('#modal-avatar-remove');
     const previewBox = overlay.querySelector('#avatar-preview-box');
+    const presetGrid = overlay.querySelector('#avatar-preset-grid');
     const msg = overlay.querySelector('#modal-avatar-msg');
     const confirmBtn = overlay.querySelector('#modal-avatar-confirm');
     const cancelBtn = overlay.querySelector('#modal-avatar-cancel');
 
-    let pendingDataUrl = undefined; // undefined = no change, null = remove, string = new image
+    let selectedAvatarUrl = undefined; // undefined = no change, null = reset to initial, string = new image
 
     // Load current avatar into preview
     const currentAvatar = document.querySelector('#id-card-avatar');
     if (currentAvatar) {
       const img = currentAvatar.querySelector('img');
       if (img) {
-        previewBox.innerHTML = `<img src="${img.src}" style="width:100%;height:100%;object-fit:cover;border-radius:4px;" />`;
+        previewBox.innerHTML = `<img src="${img.src}" style="width:100%;height:100%;object-fit:contain;border-radius:6px;" />`;
+        selectedAvatarUrl = img.src;
       } else {
         previewBox.textContent = currentAvatar.textContent || '?';
       }
     }
 
-    // Click preview or button to open file picker
-    pickBtn.addEventListener('click', () => fileInput.click());
-    previewBox.addEventListener('click', () => fileInput.click());
+    // Handle preset selection
+    const presetOptions = presetGrid.querySelectorAll('.preset-avatar-option');
+    presetOptions.forEach(option => {
+      option.addEventListener('click', () => {
+        // Remove selection from others
+        presetOptions.forEach(opt => {
+          opt.style.border = '3px solid #444';
+          opt.style.transform = 'scale(1)';
+        });
+        // Select this one
+        option.style.border = '3px solid #e4cfc0';
+        option.style.transform = 'scale(1.08)';
+        
+        selectedAvatarUrl = option.dataset.src;
+        previewBox.innerHTML = `<img src="${selectedAvatarUrl}" style="width:100%;height:100%;object-fit:contain;border-radius:6px;" />`;
+        confirmBtn.disabled = false;
+        msg.textContent = '';
+      });
+    });
 
-    // Remove picture
+    // Highlight current selection in grid
+    if (selectedAvatarUrl && selectedAvatarUrl.includes('/User Profiles/')) {
+      presetOptions.forEach(opt => {
+        if (opt.dataset.src === selectedAvatarUrl) {
+          opt.style.border = '3px solid #e4cfc0';
+          opt.style.transform = 'scale(1.08)';
+        }
+      });
+    }
+
+    // Reset button (back to initial letter)
     removeBtn.addEventListener('click', () => {
-      pendingDataUrl = null;
-      previewBox.textContent = '?';
+      presetOptions.forEach(opt => {
+        opt.style.border = '3px solid #444';
+        opt.style.transform = 'scale(1)';
+      });
+      selectedAvatarUrl = null;
+      const name = document.querySelector('#profile-username');
+      previewBox.textContent = (name?.textContent || '?').charAt(0).toUpperCase();
       previewBox.style.fontSize = '2.5rem';
       confirmBtn.disabled = false;
       msg.textContent = '';
-    });
-
-    // File selected
-    fileInput.addEventListener('change', () => {
-      const file = fileInput.files[0];
-      if (!file) return;
-
-      if (file.size > 2 * 1024 * 1024) {
-        msg.textContent = 'Image too large (max 2MB).';
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        pendingDataUrl = e.target.result;
-        previewBox.innerHTML = `<img src="${pendingDataUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:4px;" />`;
-        confirmBtn.disabled = false;
-        msg.textContent = '';
-      };
-      reader.readAsDataURL(file);
     });
 
     const closeModal = () => overlay.remove();
@@ -801,7 +876,7 @@ export const ProfileScreen = {
     overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
 
     const submit = async () => {
-      if (pendingDataUrl === undefined) { closeModal(); return; }
+      if (selectedAvatarUrl === undefined) { closeModal(); return; }
       confirmBtn.textContent = 'SAVING...';
       confirmBtn.disabled = true;
       msg.textContent = '';
@@ -811,15 +886,15 @@ export const ProfileScreen = {
           method: 'POST',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ avatarUrl: pendingDataUrl })
+          body: JSON.stringify({ avatarUrl: selectedAvatarUrl })
         });
         const data = await res.json();
         if (res.ok && data.success) {
           // Update the ID card avatar live
           const pAvatar = document.querySelector('#id-card-avatar');
           if (pAvatar) {
-            if (pendingDataUrl) {
-              pAvatar.innerHTML = `<img src="${pendingDataUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:2px;" alt="avatar" />`;
+            if (selectedAvatarUrl) {
+              pAvatar.innerHTML = `<img src="${selectedAvatarUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:2px;" alt="avatar" />`;
             } else {
               const name = document.querySelector('#profile-username');
               pAvatar.textContent = (name?.textContent || '?').charAt(0).toUpperCase();
@@ -839,6 +914,105 @@ export const ProfileScreen = {
     };
 
     confirmBtn.addEventListener('click', submit);
+  },
+
+  _showLogoutModal() {
+    const overlay = this._createModalOverlay();
+    overlay.innerHTML = `
+      <div class="profile-modal-box" style="max-width: min(360px, 90vw); width: 90vw;">
+        <h3 style="color:#e4cfc0;font-family:'VCR',sans-serif;font-size:var(--text-lg);text-transform:uppercase;margin:0 0 var(--space-sm);text-align:center;letter-spacing:2px;">Log Out</h3>
+        <p style="font-family:'VCR',sans-serif;font-size:var(--text-sm);color:#aaa;text-align:center;margin:0 0 var(--space-md);">Are you sure you want to log out?</p>
+        <div style="display:flex;gap:var(--space-sm);flex-wrap:wrap;">
+          <button id="modal-logout-cancel" style="flex:1;min-width:80px;background:transparent;border:2px solid #555;color:#aaa;font-family:'VCR',sans-serif;padding:10px;cursor:pointer;border-radius:4px;font-size:var(--text-sm);">CANCEL</button>
+          <button id="modal-logout-confirm" style="flex:1;min-width:80px;background:#e74c3c;border:2px solid #111;color:#fff;font-family:'VCR',sans-serif;font-weight:bold;padding:10px;cursor:pointer;border-radius:4px;font-size:var(--text-sm);">LOG OUT</button>
+        </div>
+      </div>
+    `;
+    const close = () => overlay.remove();
+    overlay.querySelector('#modal-logout-cancel').addEventListener('click', close);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+    overlay.querySelector('#modal-logout-confirm').addEventListener('click', () => {
+      close();
+      state.logout();
+    });
+  },
+
+  _showBioModal(currentBio) {
+    const overlay = this._createModalOverlay();
+    overlay.innerHTML = `
+      <div class="profile-modal-box" style="max-width: min(400px, 90vw); width: 90vw;">
+        <h3 style="color:#e4cfc0;font-family:'VCR',sans-serif;font-size:var(--text-lg);text-transform:uppercase;margin:0 0 var(--space-sm);text-align:center;letter-spacing:2px;">Edit Bio</h3>
+        
+        <textarea id="modal-bio-input" placeholder="Tell us about yourself..." class="login-card__input" maxlength="150" style="
+          width: 100%; min-height: clamp(80px, 20vh, 120px); resize: vertical;
+          background: rgba(255,255,255,0.1); border-color: #555;
+          font-family: 'VCR', sans-serif; font-size: var(--text-sm);
+          color: #fff; padding: var(--space-sm); margin-bottom: var(--space-xs);
+          border-radius: 4px; border: 2px solid #555;
+        ">${currentBio || ''}</textarea>
+        
+        <p id="modal-bio-counter" style="font-family:'VCR',sans-serif;font-size:10px;color:#666;text-align:right;margin-bottom:var(--space-sm);">${(currentBio || '').length}/150</p>
+        <p id="modal-bio-msg" style="font-family:'VCR',sans-serif;font-size:var(--text-sm);font-weight:bold;min-height:1.2em;text-align:center;margin:0 0 var(--space-sm);color:var(--accent-red);"></p>
+
+        <div style="display:flex;gap:var(--space-sm); flex-wrap: wrap;">
+          <button id="modal-bio-cancel" style="flex:1; min-width: 80px; background:transparent;border:2px solid #555;color:#aaa;font-family:'VCR',sans-serif;padding:10px;cursor:pointer;border-radius:4px;font-size:var(--text-sm);">CANCEL</button>
+          <button id="modal-bio-confirm" style="flex:1; min-width: 80px; background:#e4cfc0;border:2px solid #111;color:#111;font-family:'VCR',sans-serif;font-weight:bold;padding:10px;cursor:pointer;border-radius:4px;font-size:var(--text-sm);">SAVE</button>
+        </div>
+      </div>
+    `;
+
+    const input = overlay.querySelector('#modal-bio-input');
+    const counter = overlay.querySelector('#modal-bio-counter');
+    const msg = overlay.querySelector('#modal-bio-msg');
+    const confirmBtn = overlay.querySelector('#modal-bio-confirm');
+    const cancelBtn = overlay.querySelector('#modal-bio-cancel');
+
+    // Character counter
+    input.addEventListener('input', () => {
+      const len = input.value.length;
+      counter.textContent = `${len}/150`;
+      counter.style.color = len >= 140 ? '#e74c3c' : '#666';
+    });
+
+    const closeModal = () => overlay.remove();
+    cancelBtn.addEventListener('click', closeModal);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
+
+    const submit = async () => {
+      const newBio = input.value.trim();
+      
+      confirmBtn.textContent = 'SAVING...';
+      confirmBtn.disabled = true;
+      msg.textContent = '';
+
+      try {
+        const res = await fetch('/auth/change-bio', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bio: newBio })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          // Update the ID card bio live
+          const pBio = document.querySelector('#profile-bio');
+          if (pBio) pBio.textContent = data.bio || '';
+          closeModal();
+        } else {
+          msg.textContent = data.error || 'Failed to update bio.';
+          confirmBtn.textContent = 'SAVE';
+          confirmBtn.disabled = false;
+        }
+      } catch (err) {
+        msg.textContent = 'Network error. Try again.';
+        confirmBtn.textContent = 'SAVE';
+        confirmBtn.disabled = false;
+      }
+    };
+
+    confirmBtn.addEventListener('click', submit);
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.ctrlKey) submit(); if (e.key === 'Escape') closeModal(); });
+    setTimeout(() => input.focus(), 50);
   },
 
   onLeave() {

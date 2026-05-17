@@ -396,7 +396,8 @@ app.get('/auth/profile', authMiddleware, async (req, res) => {
       email: user.email || null,
       accountType: 'Registered',
       registeredAt: registeredAt,
-      avatar_url: user.avatar_url || null
+      avatar_url: user.avatar_url || null,
+      bio: user.bio || null
     });
   } catch (err) {
     console.error('Profile error:', err);
@@ -606,8 +607,9 @@ app.post('/auth/change-avatar', authMiddleware, async (req, res) => {
     if (avatarUrl) {
       const isDataUrl = avatarUrl.startsWith('data:image/');
       const isHttpUrl = avatarUrl.startsWith('http://') || avatarUrl.startsWith('https://');
+      const isLocalAsset = avatarUrl.startsWith('/assets/');
 
-      if (!isDataUrl && !isHttpUrl) {
+      if (!isDataUrl && !isHttpUrl && !isLocalAsset) {
         return res.status(400).json({ error: 'Must be a valid image URL or uploaded image file' });
       }
 
@@ -621,6 +623,25 @@ app.post('/auth/change-avatar', authMiddleware, async (req, res) => {
     res.json({ success: true, avatarUrl: avatarUrl || null });
   } catch (error) {
     console.error('Change avatar error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// --- Change Bio Endpoint ---
+app.post('/auth/change-bio', authMiddleware, async (req, res) => {
+  try {
+    const { bio } = req.body;
+    if (typeof bio !== 'string') {
+      return res.status(400).json({ error: 'Invalid bio format' });
+    }
+    
+    // Limit bio to 150 characters
+    const trimmedBio = bio.trim().substring(0, 150);
+    
+    await db.run('UPDATE users SET bio = ? WHERE id = ?', [trimmedBio || null, req.user.id]);
+    res.json({ success: true, bio: trimmedBio || null });
+  } catch (error) {
+    console.error('Change bio error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
