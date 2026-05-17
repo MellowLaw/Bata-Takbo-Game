@@ -1,5 +1,7 @@
 import { defineConfig } from 'vite';
 
+const API_URL = process.env.VITE_API_URL || 'http://localhost:3001';
+
 export default defineConfig({
   root: '.',
   publicDir: 'public',
@@ -12,12 +14,12 @@ export default defineConfig({
   server: {
     host: true,
     port: 5173,
-    allowedHosts: ['all', 'proofs-bunkbed-dandelion.ngrok-free.dev', 'wpjgg-180-195-68-59.run.pinggy-free.link', 'chaperone-bok-speckled.ngrok-free.dev'],
+    allowedHosts: ['all', 'chaperone-bok-speckled.ngrok-free.dev'],
     open: true,
     proxy: {
-      '/auth': 'http://localhost:3001',
-      '/admin': 'http://localhost:3001',
-      '/leaderboard': 'http://localhost:3001'
+      '/auth': API_URL,
+      '/admin': API_URL,
+      '/leaderboard': API_URL
     }
   },
 });

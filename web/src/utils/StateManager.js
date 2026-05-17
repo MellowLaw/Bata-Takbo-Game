@@ -360,6 +360,14 @@ class StateManager {
     this._state.chapterProgress = { chaptersUnlocked: [1], chaptersCompleted: [], bestScores: {} };
     this._state.bestiary = {};
     // settings deliberately not reset — user UI prefs persist across accounts on same device.
+    // Also wipe localStorage so stale values never leak to a different account on the same device.
+    try {
+      localStorage.removeItem('bata_takbo_tutorial');
+      localStorage.removeItem('bata_takbo_gesture_setup');
+      localStorage.removeItem('bata_takbo_practice_tutorial');
+      localStorage.removeItem('bata_takbo_progress');
+      localStorage.removeItem('bata_takbo_bestiary');
+    } catch(e) {}
   }
 
   /**

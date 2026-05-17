@@ -282,30 +282,28 @@ document.addEventListener('keydown', (e) => {
   let _fsToast = null;
   document.addEventListener('fullscreenchange', () => {
     if (!document.fullscreenElement) {
-      // Fullscreen was lost — user can double-tap anywhere (except buttons) to restore
-      // Also show a non-intrusive reminder
-      if (_fsToast) return; // already showing
-      _fsToast = document.createElement('div');
+      if (_fsToast) return;
+      _fsToast = document.createElement('button');
       _fsToast.id = 'fs-lost-toast';
-      _fsToast.textContent = '👆👆 Double-tap to go fullscreen';
+      _fsToast.textContent = '⛶  Tap to go fullscreen';
       _fsToast.style.cssText = `
         position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-        background: rgba(0,0,0,0.82); color: white;
-        padding: 9px 18px; border-radius: 20px;
+        background: rgba(0,0,0,0.88); color: white; border: 1px solid rgba(255,255,255,0.25);
+        padding: 10px 22px; border-radius: 20px; cursor: pointer;
         font-family: 'GigaSaturn', sans-serif;
-        font-size: clamp(0.6rem, 2vw, 0.8rem);
-        letter-spacing: 2px; z-index: 99998;
-        pointer-events: none; white-space: nowrap;
+        font-size: clamp(0.6rem, 2vw, 0.82rem);
+        letter-spacing: 2px; z-index: 99999;
+        pointer-events: auto; white-space: nowrap;
         animation: fsFadeIn 0.3s ease forwards;
       `;
+      _fsToast.addEventListener('click', () => {
+        requestFS();
+      });
+      _fsToast.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        requestFS();
+      }, { passive: false });
       document.body.appendChild(_fsToast);
-      // Auto-dismiss after 4s
-      setTimeout(() => {
-        if (_fsToast) {
-          _fsToast.style.animation = 'fsFadeOut 0.4s ease forwards';
-          setTimeout(() => { if (_fsToast) { _fsToast.remove(); _fsToast = null; } }, 420);
-        }
-      }, 4000);
     } else {
       // Fullscreen restored — remove toast if visible
       if (_fsToast) { _fsToast.remove(); _fsToast = null; }

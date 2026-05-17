@@ -152,7 +152,11 @@ export const GestureTraining = {
       backBtn.removeEventListener('click', handleBack);
       try { await gestureController.saveModel(); } catch (e) { console.warn('[GestureTraining] saveModel on back failed:', e); }
       try { gestureController.stopCamera(); } catch (e) { console.warn('[GestureTraining] stopCamera on back failed:', e); }
-      window.__screenManager.back();
+      if (window.__screenManager.canGoBack()) {
+        window.__screenManager.back();
+      } else {
+        window.__screenManager.navigate('main-menu');
+      }
     };
     backBtn.addEventListener('touchend', handleBack, { passive: false });
     backBtn.addEventListener('click', handleBack);
