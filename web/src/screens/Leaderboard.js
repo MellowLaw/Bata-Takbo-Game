@@ -40,9 +40,15 @@ export const Leaderboard = {
         </div>
 
         <div id="lb-guest-notice" style="
-          margin-top: var(--space-md); text-align: center;
-          animation: fadeInUp 0.4s ease 0.3s forwards; opacity: 0;
+          margin-top: var(--space-md);
           display: none;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          width: 100%;
+          padding: 0 var(--space-md);
+          animation: fadeInUp 0.4s ease 0.3s forwards; opacity: 0;
         ">
           <p style="font-family: var(--font-display); font-size: var(--text-xs); color: rgba(255,255,255,0.5); margin-bottom: var(--space-sm);">
             Sign in &amp; complete all chapters to submit your score!
@@ -65,7 +71,7 @@ export const Leaderboard = {
 
     const guestNotice = el.querySelector('#lb-guest-notice');
     if (isGuest && guestNotice) {
-      guestNotice.style.display = 'block';
+      guestNotice.style.display = 'flex';
       const signinBtn = el.querySelector('#btn-lb-signin');
       if (signinBtn) signinBtn.addEventListener('click', () => window.__screenManager.navigate('login-screen'));
     }
