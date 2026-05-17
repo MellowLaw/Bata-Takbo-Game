@@ -1,127 +1,131 @@
-import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import pg from 'pg';
 import bcrypt from 'bcryptjs';
-import fs from 'fs';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const { Pool } = pg;
+
+// ─── Thin compatibility wrapper ──────────────────────────────────────────────
+// server.js uses db.get / db.all / db.run / db.exec — we map those to pg Pool.
+// pg uses $1/$2/... placeholders; server.js uses ?/? — we convert automatically.
+function convertPlaceholders(sql) {
+  let i = 0;
+  return sql.replace(/\?/g, () => `$${++i}`);
+}
+
+function makeDb(pool) {
+  return {
+    // Returns the first row or undefined
+    async get(sql, params = []) {
+      const { rows } = await pool.query(convertPlaceholders(sql), params);
+      return rows[0];
+    },
+    // Returns all rows
+    async all(sql, params = []) {
+      const { rows } = await pool.query(convertPlaceholders(sql), params);
+      return rows;
+    },
+    // INSERT / UPDATE / DELETE — returns { lastID, changes }
+    async run(sql, params = []) {
+      const converted = convertPlaceholders(sql);
+      // For INSERTs we append RETURNING id so we get lastID back
+      const isInsert = /^\s*INSERT/i.test(sql);
+      const finalSql = isInsert && !/RETURNING/i.test(sql) ? `${converted} RETURNING id` : converted;
+      const { rows, rowCount } = await pool.query(finalSql, params);
+      return { lastID: rows[0]?.id ?? null, changes: rowCount };
+    },
+    // DDL statements (CREATE TABLE, ALTER TABLE, etc.)
+    async exec(sql) {
+      await pool.query(sql);
+    },
+    // Raw pool access for transactions
+    pool,
+  };
+}
 
 export async function initDb() {
-  const dbPath = path.join(__dirname, 'database.sqlite');
-  const db = await open({
-    filename: dbPath,
-    driver: sqlite3.Database
+  // Pool is created here — AFTER dotenv.config() has already run in server.js
+  const isRemoteDb = process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('localhost') && !process.env.DATABASE_URL.includes('127.0.0.1');
+  const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: isRemoteDb ? { rejectUnauthorized: false } : false,
+    max: 10,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 5000,
   });
 
+  pool.on('error', (err) => {
+    console.error('[DB] Unexpected pool error:', err.message);
+  });
+
+  const db = makeDb(pool);
+  // ─── Create tables ────────────────────────────────────────────────────────
   await db.exec(`
     CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      username TEXT UNIQUE NOT NULL,
-      email TEXT UNIQUE,
-      password_hash TEXT NOT NULL,
-      encrypted_data TEXT,
-      game_data TEXT,
-      failed_attempts INTEGER DEFAULT 0,
-      lockout_time INTEGER DEFAULT 0,
-      is_admin INTEGER DEFAULT 0,
-      banned INTEGER DEFAULT 0,
-      ban_reason TEXT,
-      cheat_score REAL DEFAULT 0,
-      last_login INTEGER,
-      reset_token TEXT,
-      reset_token_expiry INTEGER,
-      username_changed_at INTEGER,
-      invalidate_before INTEGER
+      id               SERIAL PRIMARY KEY,
+      username         TEXT UNIQUE NOT NULL,
+      email            TEXT UNIQUE,
+      password_hash    TEXT NOT NULL,
+      encrypted_data   TEXT,
+      game_data        TEXT,
+      failed_attempts  INTEGER NOT NULL DEFAULT 0,
+      lockout_time     BIGINT NOT NULL DEFAULT 0,
+      is_admin         BOOLEAN NOT NULL DEFAULT FALSE,
+      banned           BOOLEAN NOT NULL DEFAULT FALSE,
+      ban_reason       TEXT,
+      ban_appeal       TEXT,
+      cheat_score      REAL NOT NULL DEFAULT 0,
+      last_login       BIGINT,
+      reset_token      TEXT,
+      reset_token_expiry BIGINT,
+      username_changed_at BIGINT,
+      invalidate_before   BIGINT,
+      created_at          BIGINT,
+      avatar_url          TEXT
     )
   `);
 
   await db.exec(`
     CREATE TABLE IF NOT EXISTS endless_scores (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER NOT NULL,
-      username TEXT NOT NULL,
+      id               SERIAL PRIMARY KEY,
+      user_id          INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      username         TEXT NOT NULL,
       survival_seconds INTEGER NOT NULL,
-      control_type TEXT NOT NULL CHECK(control_type IN ('gesture', 'keyboard')),
-      created_at INTEGER NOT NULL,
-      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      control_type     TEXT NOT NULL CHECK(control_type IN ('gesture', 'keyboard')),
+      created_at       BIGINT NOT NULL
     )
   `);
 
   await db.exec(`
     CREATE TABLE IF NOT EXISTS inf_scores (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER NOT NULL,
-      username TEXT NOT NULL,
-      chapter_id INTEGER NOT NULL CHECK(chapter_id IN (1, 2, 3)),
-      score INTEGER NOT NULL,
-      waves_survived INTEGER NOT NULL DEFAULT 0,
+      id               SERIAL PRIMARY KEY,
+      user_id          INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      username         TEXT NOT NULL,
+      chapter_id       INTEGER NOT NULL CHECK(chapter_id IN (1, 2, 3)),
+      score            INTEGER NOT NULL,
+      waves_survived   INTEGER NOT NULL DEFAULT 0,
       survival_seconds INTEGER NOT NULL DEFAULT 0,
-      control_type TEXT NOT NULL CHECK(control_type IN ('gesture', 'keyboard')),
-      created_at INTEGER NOT NULL,
-      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      control_type     TEXT NOT NULL CHECK(control_type IN ('gesture', 'keyboard')),
+      created_at       BIGINT NOT NULL
     )
   `);
 
-  // Migrate older databases by adding new columns if they are missing
-  try { await db.exec('ALTER TABLE users ADD COLUMN email TEXT'); } catch(e) {}
-  try { await db.exec('ALTER TABLE users ADD COLUMN game_data TEXT'); } catch(e) {}
-  try { await db.exec('ALTER TABLE users ADD COLUMN failed_attempts INTEGER DEFAULT 0'); } catch(e) {}
-  try { await db.exec('ALTER TABLE users ADD COLUMN lockout_time INTEGER DEFAULT 0'); } catch(e) {}
-  try { await db.exec('ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0'); } catch(e) {}
-  try { await db.exec('ALTER TABLE users ADD COLUMN banned INTEGER DEFAULT 0'); } catch(e) {}
-  try { await db.exec('ALTER TABLE users ADD COLUMN ban_reason TEXT'); } catch(e) {}
-  try { await db.exec('ALTER TABLE users ADD COLUMN cheat_score REAL DEFAULT 0'); } catch(e) {}
-  try { await db.exec('ALTER TABLE users ADD COLUMN last_login INTEGER'); } catch(e) {}
-  try { await db.exec('ALTER TABLE users ADD COLUMN reset_token TEXT'); } catch(e) {}
-  try { await db.exec('ALTER TABLE users ADD COLUMN reset_token_expiry INTEGER'); } catch(e) {}
-  try { await db.exec('ALTER TABLE users ADD COLUMN username_changed_at INTEGER'); } catch(e) {}
-  
-  // Add invalidate_before column if missing
-  try {
-    const tableInfo = await db.all("PRAGMA table_info(users)");
-    const hasInvalidate = tableInfo.some(c => c.name === 'invalidate_before');
-    if (!hasInvalidate) {
-      await db.exec(`ALTER TABLE users ADD COLUMN invalidate_before INTEGER`);
-      console.log('Migration: Added invalidate_before to users table');
-    }
-  } catch(e) {}
+  // Gesture models stored separately to keep users table lean (models can be several MB)
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS user_gesture_models (
+      user_id    INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      model_data TEXT NOT NULL,
+      updated_at BIGINT NOT NULL
+    )
+  `);
 
-  // Add created_at column if missing
-  try {
-    const tableInfo = await db.all("PRAGMA table_info(users)");
-    const hasCreatedAt = tableInfo.some(c => c.name === 'created_at');
-    if (!hasCreatedAt) {
-      await db.exec(`ALTER TABLE users ADD COLUMN created_at INTEGER`);
-      console.log('Migration: Added created_at to users table');
-    }
-  } catch(e) {}
+  // ─── Indexes ──────────────────────────────────────────────────────────────
+  await db.exec(`CREATE INDEX IF NOT EXISTS idx_users_username      ON users(LOWER(username))`);
+  await db.exec(`CREATE INDEX IF NOT EXISTS idx_users_email         ON users(LOWER(email))`);
+  await db.exec(`CREATE INDEX IF NOT EXISTS idx_inf_scores_user     ON inf_scores(user_id)`);
+  await db.exec(`CREATE INDEX IF NOT EXISTS idx_inf_scores_chapter  ON inf_scores(chapter_id, control_type, score DESC)`);
+  await db.exec(`CREATE INDEX IF NOT EXISTS idx_endless_scores_user ON endless_scores(user_id)`);
+  await db.exec(`CREATE INDEX IF NOT EXISTS idx_endless_scores_ctrl ON endless_scores(control_type, survival_seconds DESC)`);
 
-  // Add ban_appeal column if missing
-  try {
-    const tableInfo = await db.all("PRAGMA table_info(users)");
-    const hasBanAppeal = tableInfo.some(c => c.name === 'ban_appeal');
-    if (!hasBanAppeal) {
-      await db.exec(`ALTER TABLE users ADD COLUMN ban_appeal TEXT`);
-      console.log('Migration: Added ban_appeal to users table');
-    }
-  } catch(e) {}
-
-  // Add avatar_url column if missing
-  try {
-    const tableInfo = await db.all("PRAGMA table_info(users)");
-    const hasAvatar = tableInfo.some(c => c.name === 'avatar_url');
-    if (!hasAvatar) {
-      await db.exec(`ALTER TABLE users ADD COLUMN avatar_url TEXT`);
-      console.log('Migration: Added avatar_url to users table');
-    }
-  } catch(e) {}
-
-  // ─── Seed admin accounts from .env ───────────────────────────────────────
-  // Reads ADMIN_SEED_1/2/3 variables. Creates accounts only if the username
-  // doesn't exist yet. Set ADMIN_SEED_FORCE=true to also update existing
-  // accounts' email/password (useful when you change credentials in .env).
+  // ─── Seed admin accounts from .env ────────────────────────────────────────
   try {
     const forceReseed = process.env.ADMIN_SEED_FORCE === 'true';
     if (forceReseed) {
@@ -129,9 +133,9 @@ export async function initDb() {
       console.warn('[SEED]     Remember to set ADMIN_SEED_FORCE=false after restarting!');
     }
 
-    // Remove legacy test accounts (ADMIN/PLAYER1/TESTER) if still present.
+    // Remove legacy test accounts if still present
     for (const legacyUser of ['ADMIN', 'PLAYER1', 'TESTER']) {
-      const legacy = await db.get('SELECT id FROM users WHERE username = ? COLLATE NOCASE', [legacyUser]);
+      const legacy = await db.get('SELECT id FROM users WHERE LOWER(username) = LOWER(?)', [legacyUser]);
       if (legacy) {
         await db.run('DELETE FROM users WHERE id = ?', [legacy.id]);
         console.log(`[SEED] Removed legacy account: ${legacyUser}`);
@@ -153,31 +157,28 @@ export async function initDb() {
       const email    = process.env[`ADMIN_SEED_${i}_EMAIL`];
       const password = process.env[`ADMIN_SEED_${i}_PASSWORD`];
 
-      if (!username || !password) continue; // slot not configured
+      if (!username || !password) continue;
 
-      const existing = await db.get('SELECT id, is_admin FROM users WHERE username = ? COLLATE NOCASE', [username]);
+      const existing = await db.get('SELECT id, is_admin FROM users WHERE LOWER(username) = LOWER(?)', [username]);
 
       if (!existing) {
-        // Account doesn't exist — create it fresh
         const hash = await bcrypt.hash(password, 12);
         await db.run(
-          'INSERT INTO users (username, email, password_hash, is_admin, game_data) VALUES (?, ?, ?, 1, ?)',
+          'INSERT INTO users (username, email, password_hash, is_admin, game_data) VALUES (?, ?, ?, TRUE, ?)',
           [username, email || null, hash, fullUnlockData]
         );
         console.log(`[SEED] ✅ Created admin account: ${username}`);
 
       } else if (forceReseed) {
-        // Force mode — update email and rehash password
         const hash = await bcrypt.hash(password, 12);
         await db.run(
-          'UPDATE users SET email = ?, password_hash = ?, is_admin = 1 WHERE id = ?',
+          'UPDATE users SET email = ?, password_hash = ?, is_admin = TRUE WHERE id = ?',
           [email || null, hash, existing.id]
         );
         console.log(`[SEED] 🔄 Updated admin credentials: ${username}`);
 
       } else if (!existing.is_admin) {
-        // Exists but not admin — promote
-        await db.run('UPDATE users SET is_admin = 1 WHERE id = ?', [existing.id]);
+        await db.run('UPDATE users SET is_admin = TRUE WHERE id = ?', [existing.id]);
         console.log(`[SEED] ⬆️  Promoted to admin: ${username}`);
 
       } else {
@@ -188,14 +189,6 @@ export async function initDb() {
     console.error('[SEED] Error seeding admin accounts:', e);
   }
 
-
-
-  // Database Privileges Emulation via strict permissions
-  try {
-    fs.chmodSync(dbPath, 0o600);
-  } catch(e) {
-    console.warn('Could not set strict file permissions, potentially unsupported on this OS:', e.message);
-  }
-
+  console.log('[DB] PostgreSQL tables ready.');
   return db;
 }

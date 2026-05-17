@@ -159,7 +159,7 @@ app.post('/auth/check-username', async (req, res) => {
     const sanitizedUsername = username.trim();
     
     // Parameterized query to prevent SQL Injection
-    const user = await db.get('SELECT id, username FROM users WHERE username = ? COLLATE NOCASE', [sanitizedUsername]);
+    const user = await db.get('SELECT id, username FROM users WHERE LOWER(username) = LOWER(?)', [sanitizedUsername]);
     
     if (user) {
       return res.status(200).json({ exists: true, username: user.username });
@@ -211,12 +211,12 @@ app.post('/auth/register', async (req, res) => {
     const sanitizedEmail = email.trim();
 
     // Check if user already exists
-    const existing = await db.get('SELECT id FROM users WHERE username = ? COLLATE NOCASE', [sanitizedUsername]);
+    const existing = await db.get('SELECT id FROM users WHERE LOWER(username) = LOWER(?)', [sanitizedUsername]);
     if (existing) {
       return res.status(400).json({ error: 'Username already taken. Please try another.' });
     }
 
-    const existingEmail = await db.get('SELECT id FROM users WHERE email = ? COLLATE NOCASE', [sanitizedEmail]);
+    const existingEmail = await db.get('SELECT id FROM users WHERE LOWER(email) = LOWER(?)', [sanitizedEmail]);
     if (existingEmail) {
       return res.status(400).json({ error: 'Email already registered. Please login or try another.' });
     }
@@ -272,7 +272,7 @@ app.post('/auth/login', loginLimiter, async (req, res) => {
     }
     
     const sanitizedUsername = username.trim();
-    const user = await db.get('SELECT * FROM users WHERE username = ? COLLATE NOCASE OR email = ? COLLATE NOCASE', [sanitizedUsername, sanitizedUsername]);
+    const user = await db.get('SELECT * FROM users WHERE LOWER(username) = LOWER(?) OR LOWER(email) = LOWER(?)', [sanitizedUsername, sanitizedUsername]);
     
     if (!user) {
       // Intentionally generic error
@@ -316,6 +316,15 @@ app.post('/auth/login', loginLimiter, async (req, res) => {
         console.error('Failed to parse game data on login:', e);
       }
 
+      // Load gesture model from its dedicated table
+      const modelRow = await db.get('SELECT model_data FROM user_gesture_models WHERE user_id = ?', [user.id]);
+      if (modelRow && modelRow.model_data) {
+        try {
+          if (!gameData) gameData = {};
+          gameData.gestureModel = JSON.parse(modelRow.model_data);
+        } catch(e) { /* ignore */ }
+      }
+
       console.log(`[LOGIN] user=${user.username} returning: tutorialComplete=${gameData?.tutorialComplete} gestureSetupComplete=${gameData?.gestureSetupComplete} chaptersUnlocked=${gameData?.chapterProgress?.chaptersUnlocked} hasModel=${!!gameData?.gestureModel}`);
 
       return res.status(200).json({ success: true, gameData });
@@ -346,7 +355,7 @@ app.post('/auth/appeal-ban', async (req, res) => {
     }
 
     const sanitizedUsername = username.trim();
-    const user = await db.get('SELECT * FROM users WHERE username = ? COLLATE NOCASE', [sanitizedUsername]);
+    const user = await db.get('SELECT * FROM users WHERE LOWER(username) = LOWER(?)', [sanitizedUsername]);
     
     if (!user) return res.status(401).json({ error: 'Authentication failed' });
     if (!user.banned) return res.status(400).json({ error: 'User is not banned' });
@@ -407,6 +416,7 @@ app.post('/auth/save-data', authMiddleware, async (req, res) => {
       if (row && row.game_data) existing = JSON.parse(row.game_data) || {};
     } catch (e) { /* ignore */ }
 
+    // gestureModel is stored in its own table to keep users table lean
     const gameData = {
       ...existing,
       ...(settings !== undefined ? { settings } : {}),
@@ -414,10 +424,20 @@ app.post('/auth/save-data', authMiddleware, async (req, res) => {
       ...(gestureSetupComplete !== undefined ? { gestureSetupComplete } : {}),
       ...(chapterProgress !== undefined ? { chapterProgress } : {}),
       ...(bestiary !== undefined ? { bestiary } : {}),
-      ...(gestureModel !== undefined && gestureModel !== null ? { gestureModel } : {})
     };
 
     await db.run('UPDATE users SET game_data = ? WHERE id = ?', [JSON.stringify(gameData), req.user.id]);
+
+    // Save gesture model to its own table if provided
+    if (gestureModel !== undefined && gestureModel !== null) {
+      await db.run(
+        `INSERT INTO user_gesture_models (user_id, model_data, updated_at)
+         VALUES (?, ?, ?)
+         ON CONFLICT (user_id) DO UPDATE SET model_data = EXCLUDED.model_data, updated_at = EXCLUDED.updated_at
+         RETURNING user_id`,
+        [req.user.id, JSON.stringify(gestureModel), Date.now()]
+      );
+    }
 
     // Read it back to confirm what's actually persisted.
     const verifyRow = await db.get('SELECT game_data FROM users WHERE id = ?', [req.user.id]);
@@ -450,6 +470,16 @@ app.get('/auth/me', authMiddleware, async (req, res) => {
     } catch(e) {
       console.error('[ME] Failed to parse game_data for', row.username, e);
     }
+
+    // Load gesture model from its dedicated table
+    const modelRow = await db.get('SELECT model_data FROM user_gesture_models WHERE user_id = ?', [req.user.id]);
+    if (modelRow && modelRow.model_data) {
+      try {
+        if (!gameData) gameData = {};
+        gameData.gestureModel = JSON.parse(modelRow.model_data);
+      } catch(e) { /* ignore malformed model */ }
+    }
+
     console.log(`[ME] user=${row.username} returning: tutorialComplete=${gameData?.tutorialComplete} gestureSetupComplete=${gameData?.gestureSetupComplete} chaptersUnlocked=${gameData?.chapterProgress?.chaptersUnlocked} hasModel=${!!gameData?.gestureModel}`);
 
     return res.status(200).json({ username: row.username, gameData });
@@ -524,7 +554,7 @@ app.post('/auth/change-username', authMiddleware, async (req, res) => {
 
     const trimmed = newUsername.trim();
 
-    const existing = await db.get('SELECT id FROM users WHERE username = ? COLLATE NOCASE AND id != ?', [trimmed, req.user.id]);
+    const existing = await db.get('SELECT id FROM users WHERE LOWER(username) = LOWER(?) AND id != ?', [trimmed, req.user.id]);
     if (existing) {
       return res.status(409).json({ error: 'Username is already taken' });
     }
@@ -539,15 +569,18 @@ app.post('/auth/change-username', authMiddleware, async (req, res) => {
       }
     }
 
-    await db.exec('BEGIN TRANSACTION');
+    const client = await db.pool.connect();
     try {
-      await db.run('UPDATE users SET username = ?, username_changed_at = ? WHERE id = ?', [trimmed, Date.now(), req.user.id]);
-      await db.run('UPDATE endless_scores SET username = ? WHERE user_id = ?', [trimmed, req.user.id]);
-      await db.run('UPDATE inf_scores SET username = ? WHERE user_id = ?', [trimmed, req.user.id]);
-      await db.exec('COMMIT');
+      await client.query('BEGIN');
+      await client.query('UPDATE users SET username = $1, username_changed_at = $2 WHERE id = $3', [trimmed, Date.now(), req.user.id]);
+      await client.query('UPDATE endless_scores SET username = $1 WHERE user_id = $2', [trimmed, req.user.id]);
+      await client.query('UPDATE inf_scores SET username = $1 WHERE user_id = $2', [trimmed, req.user.id]);
+      await client.query('COMMIT');
     } catch (e) {
-      await db.exec('ROLLBACK');
+      await client.query('ROLLBACK');
       throw e;
+    } finally {
+      client.release();
     }
 
     const newToken = jwt.sign({ id: req.user.id, username: trimmed }, JWT_SECRET, { expiresIn: '30d' });
@@ -612,7 +645,7 @@ app.post('/auth/change-email', authMiddleware, async (req, res) => {
     const match = await bcrypt.compare(password, user.password_hash);
     if (!match) return res.status(401).json({ error: 'Incorrect password' });
 
-    const existing = await db.get('SELECT id FROM users WHERE email = ? COLLATE NOCASE AND id != ?', [newEmail.trim(), req.user.id]);
+    const existing = await db.get('SELECT id FROM users WHERE LOWER(email) = LOWER(?) AND id != ?', [newEmail.trim(), req.user.id]);
     if (existing) return res.status(409).json({ error: 'That email is already in use by another account' });
 
     await db.run('UPDATE users SET email = ? WHERE id = ?', [newEmail.trim().toLowerCase(), req.user.id]);
@@ -702,7 +735,7 @@ app.post('/auth/forgot-username', forgotPasswordLimiter, async (req, res) => {
     if (!email) return res.status(400).json({ error: 'Email required' });
 
     const sanitizedEmail = email.trim();
-    const user = await db.get('SELECT username FROM users WHERE email = ? COLLATE NOCASE', [sanitizedEmail]);
+    const user = await db.get('SELECT username FROM users WHERE LOWER(email) = LOWER(?)', [sanitizedEmail]);
 
     if (user) {
       const mailOptions = {
@@ -738,7 +771,7 @@ app.post('/auth/forgot-password', forgotPasswordLimiter, async (req, res) => {
     if (!email) return res.status(400).json({ error: 'Email required' });
 
     const sanitizedEmail = email.trim();
-    const user = await db.get('SELECT id FROM users WHERE email = ? COLLATE NOCASE', [sanitizedEmail]);
+    const user = await db.get('SELECT id FROM users WHERE LOWER(email) = LOWER(?)', [sanitizedEmail]);
 
     if (user) {
       const code = String(Math.floor(100000 + Math.random() * 900000)); // 6-digit code
@@ -786,7 +819,7 @@ app.post('/auth/verify-reset-code', async (req, res) => {
     const { email, code } = req.body;
     if (!email || !code) return res.status(400).json({ error: 'Email and code are required' });
 
-    const user = await db.get('SELECT id, reset_token, reset_token_expiry FROM users WHERE email = ? COLLATE NOCASE', [email.trim()]);
+    const user = await db.get('SELECT id, reset_token, reset_token_expiry FROM users WHERE LOWER(email) = LOWER(?)', [email.trim()]);
 
     if (!user || user.reset_token !== String(code).trim()) {
       return res.status(400).json({ error: 'Incorrect code. Please check your email and try again.' });
@@ -824,7 +857,7 @@ app.post('/auth/reset-password', async (req, res) => {
       return res.status(400).json({ error: 'Password cannot contain spaces' });
     }
 
-    const user = await db.get('SELECT id, reset_token, reset_token_expiry FROM users WHERE email = ? COLLATE NOCASE', [email.trim()]);
+    const user = await db.get('SELECT id, reset_token, reset_token_expiry FROM users WHERE LOWER(email) = LOWER(?)', [email.trim()]);
 
     if (!user || user.reset_token !== String(code).trim()) {
       return res.status(400).json({ error: 'Invalid or expired code.' });
@@ -888,7 +921,9 @@ app.get('/admin/stats', authMiddleware, adminMiddleware, async (req, res) => {
     const totalUsers = (await db.get('SELECT COUNT(*) as c FROM users')).c;
     const totalInfGames = (await db.get('SELECT COUNT(*) as c FROM inf_scores')).c;
     const totalEndlessGames = (await db.get('SELECT COUNT(*) as c FROM endless_scores')).c;
-    const dbSize = fs.statSync(path.join(__dirname, 'database.sqlite')).size;
+    // PostgreSQL: get approximate db size via pg_database
+    const dbSizeRow = await db.get(`SELECT pg_database_size(current_database()) as size`);
+    const dbSize = parseInt(dbSizeRow?.size || 0);
     const uptime = process.uptime();
     
     const recentScores = await db.all("SELECT username, 'Chapter ' || chapter_id as action, created_at as time, score as value FROM inf_scores ORDER BY created_at DESC LIMIT 20");
@@ -1089,8 +1124,9 @@ app.post('/leaderboard/endless', authMiddleware, async (req, res) => {
       return res.status(400).json({ error: 'Invalid survivalSeconds' });
     }
 
-    const user = await db.get('SELECT username, banned FROM users WHERE id = ?', [req.user.id]);
+    const user = await db.get('SELECT username, banned, is_admin FROM users WHERE id = ?', [req.user.id]);
     if (!user || user.banned) return res.status(403).json({ error: 'Forbidden' });
+    if (user.is_admin) return res.status(403).json({ error: 'Admin accounts cannot submit scores' });
 
     await db.run(
       'INSERT INTO endless_scores (user_id, username, survival_seconds, control_type, created_at) VALUES (?, ?, ?, ?, ?)',
@@ -1115,8 +1151,8 @@ app.get('/leaderboard/endless', async (req, res) => {
       SELECT e.username, MAX(e.survival_seconds) AS best_seconds
       FROM endless_scores e
       INNER JOIN users u ON e.user_id = u.id
-      WHERE e.control_type = ? AND u.banned = 0
-      GROUP BY e.user_id
+      WHERE e.control_type = ? AND u.banned = FALSE AND u.is_admin = FALSE
+      GROUP BY e.user_id, e.username
       ORDER BY best_seconds DESC
       LIMIT 20
     `, [controlType]);
@@ -1139,8 +1175,9 @@ app.post('/leaderboard/inf', authMiddleware, async (req, res) => {
     if (!['gesture', 'keyboard'].includes(controlType)) return res.status(400).json({ error: 'Invalid controlType' });
     if (typeof score !== 'number' || score < 0 || score > 9999999) return res.status(400).json({ error: 'Invalid score' });
 
-    const user = await db.get('SELECT username, banned FROM users WHERE id = ?', [req.user.id]);
+    const user = await db.get('SELECT username, banned, is_admin FROM users WHERE id = ?', [req.user.id]);
     if (!user || user.banned) return res.status(403).json({ error: 'Forbidden' });
+    if (user.is_admin) return res.status(403).json({ error: 'Admin accounts cannot submit scores' });
 
     await db.run(
       'INSERT INTO inf_scores (user_id, username, chapter_id, score, waves_survived, survival_seconds, control_type, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
@@ -1165,8 +1202,8 @@ app.get('/leaderboard/inf', async (req, res) => {
              i.waves_survived, i.survival_seconds
       FROM inf_scores i
       INNER JOIN users u ON i.user_id = u.id
-      WHERE i.chapter_id = ? AND i.control_type = ? AND u.banned = 0
-      GROUP BY i.user_id
+      WHERE i.chapter_id = ? AND i.control_type = ? AND u.banned = FALSE AND u.is_admin = FALSE
+      GROUP BY i.user_id, i.username, i.waves_survived, i.survival_seconds
       ORDER BY best_score DESC
       LIMIT 20
     `, [Number(chapterId), controlType]);
