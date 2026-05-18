@@ -121,7 +121,7 @@ export class GameScene extends Phaser.Scene {
       this.load.spritesheet('chest1_loot', '/assets/projectiles/shared/chest1.png', { frameWidth: 32, frameHeight: 32 });
       this.load.spritesheet('chest2_loot', '/assets/projectiles/shared/chest2.png', { frameWidth: 32, frameHeight: 32 });
       this.load.spritesheet('chest3_loot', '/assets/projectiles/shared/chest3.png', { frameWidth: 32, frameHeight: 32 });
-      this.load.spritesheet('chest4_loot', '/assets/projectiles/shared/chest4.png', { frameWidth: 32, frameHeight: 32 });
+      this.load.spritesheet('chest4_loot', '/assets/projectiles/shared/chest4.png', { frameWidth: 31, frameHeight: 32 });
       this.load.spritesheet('chest5_loot', '/assets/projectiles/shared/chest5.png', { frameWidth: 32, frameHeight: 32 });
       this.load.spritesheet('chest_effects', '/assets/fx/chest2.png', { frameWidth: 64, frameHeight: 64 });
 
@@ -162,7 +162,7 @@ export class GameScene extends Phaser.Scene {
       this.load.spritesheet('chest1_loot', '/assets/projectiles/shared/chest1.png', { frameWidth: 32, frameHeight: 32 });
       this.load.spritesheet('chest2_loot', '/assets/projectiles/shared/chest2.png', { frameWidth: 32, frameHeight: 32 });
       this.load.spritesheet('chest3_loot', '/assets/projectiles/shared/chest3.png', { frameWidth: 32, frameHeight: 32 });
-      this.load.spritesheet('chest4_loot', '/assets/projectiles/shared/chest4.png', { frameWidth: 32, frameHeight: 32 });
+      this.load.spritesheet('chest4_loot', '/assets/projectiles/shared/chest4.png', { frameWidth: 31, frameHeight: 32 });
       this.load.spritesheet('chest5_loot', '/assets/projectiles/shared/chest5.png', { frameWidth: 32, frameHeight: 32 });
       this.load.spritesheet('chest_effects', '/assets/fx/chest2.png', { frameWidth: 64, frameHeight: 64 });
 

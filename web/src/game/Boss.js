@@ -50,6 +50,8 @@ export class Boss {
     // Chapter 2 ultimate attack tracking
     this._ch2UltimateActive = false;
     this._ch2UltimateCount = 0;
+    this._ch2BeeswarmCounter = 0;
+    this._ch2BeeswarmThreshold = Phaser.Math.Between(4, 6);
     
     if (this.isTutorial) {
       // In tutorial, don't start the normal attack loop.
@@ -229,9 +231,8 @@ export class Boss {
       } else if (this.scene.chapterId === 2) {
         this.scene.events.emit('boss:attack');
 
-        // 8 unique attack patterns with anti-repeat and anti-pair logic
-        // Beeswarm (0) and Hibiscus (1) must NEVER be consecutive in either order
-        const BEESWARM = 0, HIBISCUS = 1;
+        // 7 unique attack patterns with anti-repeat logic
+        // Beeswarm is now a background overlay distraction, NOT a pattern slot
         let pattern;
 
         // Admin test mode: lock to specific attack ID
@@ -240,24 +241,29 @@ export class Boss {
         } else {
           let safetyCounter = 0;
           do {
-            pattern = Phaser.Math.Between(0, 7);
+            pattern = Phaser.Math.Between(0, 6);
             safetyCounter++;
-            // Block: same as last, OR beeswarm↔hibiscus adjacent pair
-          } while (safetyCounter < 20 && (pattern === this.lastAttackId ||
-            ((pattern === BEESWARM && this.lastAttackId === HIBISCUS) ||
-             (pattern === HIBISCUS && this.lastAttackId === BEESWARM))));
+          } while (safetyCounter < 20 && pattern === this.lastAttackId);
           this.secondLastAttackId = this.lastAttackId;
           this.lastAttackId = pattern;
         }
 
-        if (pattern === 0) currentAttackDuration = this.ch2AttackBeeswarm();
-        else if (pattern === 1) currentAttackDuration = this.ch2AttackHibiscus();
-        else if (pattern === 2) currentAttackDuration = this.ch2AttackVines();
-        else if (pattern === 3) currentAttackDuration = this.ch2AttackCarrotRain();
-        else if (pattern === 4) currentAttackDuration = this.ch2AttackExplodingEggs();
-        else if (pattern === 5) currentAttackDuration = this.ch2AttackSnappingFlora();
-        else if (pattern === 6) currentAttackDuration = this.ch2AttackAcidSpitter();
+        if (pattern === 0) currentAttackDuration = this.ch2AttackHibiscus();
+        else if (pattern === 1) currentAttackDuration = this.ch2AttackVines();
+        else if (pattern === 2) currentAttackDuration = this.ch2AttackCarrotRain();
+        else if (pattern === 3) currentAttackDuration = this.ch2AttackExplodingEggs();
+        else if (pattern === 4) currentAttackDuration = this.ch2AttackSnappingFlora();
+        else if (pattern === 5) currentAttackDuration = this.ch2AttackAcidSpitter();
         else currentAttackDuration = this.ch2AttackGolemQuakeNotes();
+
+        // Beeswarm overlay: fire as a background distraction every 4-6 attacks
+        if (!this._ch2BeeswarmCounter) this._ch2BeeswarmCounter = 0;
+        this._ch2BeeswarmCounter++;
+        if (this._ch2BeeswarmCounter >= this._ch2BeeswarmThreshold) {
+          this._ch2BeeswarmCounter = 0;
+          this._ch2BeeswarmThreshold = Phaser.Math.Between(4, 6);
+          this._ch2BeeswarmOverlay();
+        }
       } else if (this.scene.chapterId === 3) {
         this.scene.events.emit('boss:attack');
         // 9 Unique attacks with anti-repeat
@@ -686,8 +692,8 @@ export class Boss {
 
   // ================= CHAPTER 2: BUNGISNGIS MECHANICS =================
 
-  /** Attack 1: The Beeswarm — Horizontal sweep visual distraction */
-  ch2AttackBeeswarm() {
+  /** Beeswarm Overlay — fires on top of real attacks as a visual distraction */
+  _ch2BeeswarmOverlay() {
     // Play bee swarm spawn sound
     const swarmVariant = Phaser.Math.Between(1, 3);
     audioManager.play(`ch2_bee_swarm${swarmVariant === 1 ? '' : '_' + swarmVariant}`, { volume: 0.7 });
@@ -746,9 +752,7 @@ export class Boss {
     // Two swarms traversing simultaneously from both sides
     executeSwarm(true);   // Left to right
     executeSwarm(false);  // Right to left
-
-    // Total cooldown: slow travel across full board
-    return 4000;
+    // No return value — this is a background overlay, not an attack turn
   }
 
   /** Attack 2: Hibiscus Pollen Burst — Concentric Rings Sequence */
