@@ -24,27 +24,14 @@ export const ProfileScreen = {
           <!-- STATS / ID CARD PANEL -->
           <div id="panel-stats" class="profile-panel active">
             
-            <style>
-              @media (max-width: 600px) {
-                .id-card-header { flex-direction: column !important; align-items: flex-start !important; gap: var(--space-sm) !important; }
-                .id-card-header .id-card-badge { align-self: flex-start !important; margin-top: var(--space-xs) !important; }
-                #profile-stats-container { grid-template-columns: 1fr !important; }
-                #profile-stats-container .profile-stat-box[style*="span 2"] { grid-column: span 1 !important; }
-                #profile-username { font-size: var(--text-lg) !important; }
-                #profile-bio { max-width: 100% !important; font-size: 11px !important; }
-                .id-card-avatar { width: 60px !important; height: 60px !important; }
-              }
-            </style>
 
-            <div class="id-card-header" style="display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: var(--space-sm);">
-              <div style="display: flex; align-items: center; gap: var(--space-md); flex: 1; min-width: 0;">
-                <div class="id-card-avatar" id="id-card-avatar" style="flex-shrink: 0;">?</div>
-                <div class="id-card-info" style="min-width: 0; flex: 1;">
-                  <h2 id="profile-username" style="font-size: var(--text-xl); word-break: break-word;">Loading...</h2>
-                  <p id="profile-bio" style="font-family:'VCR',sans-serif;font-size:var(--text-xs);color:#666;margin-top:2px;font-style:italic;max-width:200px;word-wrap:break-word;min-height:1.2em;"></p>
-                </div>
+            <div class="id-card-header">
+              <div class="id-card-avatar" id="id-card-avatar" style="flex-shrink: 0;">?</div>
+              <div class="id-card-info" style="min-width: 0; display: flex; flex-direction: column; gap: 2px; padding-bottom:0;">
+                <h2 id="profile-username" style="font-size: var(--text-xl); word-break: break-word;">Loading...</h2>
+                <div class="id-card-badge" id="profile-account-type" style="align-self: flex-start;">GUEST</div>
+                <p id="profile-bio" style="font-family:'VCR',sans-serif;font-size:var(--text-xs);color:#666;margin-top:2px;font-style:italic;max-width:200px;word-wrap:break-word;min-height:1.2em;"></p>
               </div>
-              <div class="id-card-badge" id="profile-account-type" style="flex-shrink: 0;">GUEST</div>
             </div>
 
             <div id="profile-stats-container" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-md); margin-bottom: var(--space-md);">
@@ -57,17 +44,17 @@ export const ProfileScreen = {
                 <div class="profile-stat-value" id="profile-date">-</div>
               </div>
               <div class="profile-stat-box" style="grid-column: span 2;">
-                <div class="profile-stat-label">Total Games Played</div>
+                <div class="profile-stat-label">Endless Runs</div>
                 <div class="profile-stat-value" id="profile-games">-</div>
               </div>
             </div>
 
-            <!-- NORMAL MODE STATS -->
-            <h3 style="font-family:'VCR',sans-serif; color:#111; text-transform:uppercase; margin:var(--space-md) 0 0 0; letter-spacing:1px; border-bottom:2px solid #111; padding-bottom:4px;">Normal Mode Records</h3>
+            <!-- ENDLESS MODE STATS -->
+            <h3 style="font-family:'VCR',sans-serif; color:#111; text-transform:uppercase; margin:var(--space-md) 0 0 0; letter-spacing:1px; border-bottom:2px solid #111; padding-bottom:4px;">Endless Mode Records</h3>
             <div class="inf-stats-container">
               <div class="inf-stats-header">
                 <div>CHAPTER</div>
-                <div>BEST TIME</div>
+                <div>BEST SCORE</div>
                 <div>RANK</div>
               </div>
               <div class="inf-stat-row">
@@ -257,12 +244,22 @@ export const ProfileScreen = {
     }
 
     const pAvatar = el.querySelector('#id-card-avatar');
-    if (pAvatar && username) {
-      if (avatarUrl) {
-        pAvatar.innerHTML = `<img src="${avatarUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:2px;" alt="avatar" />`;
-      } else {
-        pAvatar.textContent = username.charAt(0).toUpperCase();
-      }
+    if (pAvatar) {
+      const _getOrAssignPreset = () => {
+        try {
+          const stored = localStorage.getItem('bata_takbo_preset_avatar');
+          if (stored) return stored;
+          const n = (Math.floor(Math.random() * 40) + 1).toString().padStart(2, '0');
+          const preset = `/assets/ui/User Profiles/Icons_${n}.png`;
+          localStorage.setItem('bata_takbo_preset_avatar', preset);
+          return preset;
+        } catch(e) {
+          const n = (Math.floor(Math.random() * 40) + 1).toString().padStart(2, '0');
+          return `/assets/ui/User Profiles/Icons_${n}.png`;
+        }
+      };
+      const imgSrc = avatarUrl || _getOrAssignPreset();
+      pAvatar.innerHTML = `<img src="${imgSrc}" style="width:100%;height:100%;object-fit:cover;border-radius:2px;image-rendering:pixelated;" alt="avatar" />`;
     }
     
     const pUser = el.querySelector('#profile-username');
@@ -288,15 +285,15 @@ export const ProfileScreen = {
       pDate.textContent = d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
     }
 
-    const progress = state.get('chapterProgress');
-    let gamesPlayed = 0;
-    
-    if (progress) {
-      if (progress.chaptersCompleted) gamesPlayed = progress.chaptersCompleted.length;
-    }
-    
     const pGames = el.querySelector('#profile-games');
-    if (pGames) pGames.textContent = gamesPlayed.toString();
+    if (pGames && !isGuest) {
+      fetch('/profile/endless-runs', { credentials: 'include' })
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { if (d && pGames) pGames.textContent = d.count.toLocaleString(); })
+        .catch(() => { if (pGames) pGames.textContent = '—'; });
+    } else if (pGames) {
+      pGames.textContent = '—';
+    }
     
     const guestPromoContainer = el.querySelector('#profile-guest-promo');
     const cuGroup = el.querySelector('#cu-group');
@@ -312,7 +309,7 @@ export const ProfileScreen = {
       if (tabAccountBtn) tabAccountBtn.style.display = 'none';
     } else {
       if (guestPromoContainer) guestPromoContainer.style.display = 'none';
-      this._loadInfiniteRanks(username, el);
+      this._loadEndlessRanks(username, el);
     }
 
     const btnPromoReg = el.querySelector('#btn-profile-register');
@@ -365,7 +362,7 @@ export const ProfileScreen = {
     }
   },
 
-  async _loadInfiniteRanks(username, el) {
+  async _loadEndlessRanks(username, el) {
     const formatSeconds = (totalSeconds) => {
       const minutes = Math.floor(totalSeconds / 60);
       const seconds = totalSeconds % 60;
@@ -378,7 +375,7 @@ export const ProfileScreen = {
       
       try {
         // Fetch keyboard leaderboard as standard
-        const res = await fetch(`/leaderboard/inf?chapterId=${ch}&controlType=keyboard`);
+        const res = await fetch(`/leaderboard/endless?chapterId=${ch}&controlType=keyboard`);
         const data = await res.json();
         
         let found = false;
@@ -386,7 +383,7 @@ export const ProfileScreen = {
           const rankIndex = data.entries.findIndex(e => e.username === username);
           if (rankIndex !== -1) {
             const entry = data.entries[rankIndex];
-            timeEl.textContent = entry.survival_seconds ? formatSeconds(entry.survival_seconds) : `Score: ${entry.best_score}`;
+            timeEl.textContent = entry.score != null ? Number(entry.score).toLocaleString() : '—';
             rankEl.textContent = `#${rankIndex + 1}`;
             rankEl.style.fontWeight = 'bold';
             if (rankIndex === 0) rankEl.style.color = '#d4af37'; // Gold
@@ -733,6 +730,13 @@ export const ProfileScreen = {
           font-size: 3rem; color: #e4cfc0;
         ">?</div>
 
+        <!-- Upload from File -->
+        <div style="display:flex;align-items:center;gap:var(--space-md);margin-bottom:var(--space-md);">
+          <button id="modal-avatar-upload-btn" style="flex:1;background:#333;border:2px solid #666;color:#e4cfc0;font-family:'VCR',sans-serif;padding:10px;cursor:pointer;border-radius:4px;font-size:var(--text-sm);">UPLOAD FROM FILE</button>
+          <input id="modal-avatar-file-input" type="file" accept="image/*" style="display:none;" />
+          <span style="font-family:'VCR',sans-serif;font-size:10px;color:#666;">or pick a preset below</span>
+        </div>
+
         <!-- Preset Grid -->
         <div id="avatar-preset-grid" class="avatar-preset-grid" style="
           display: grid;
@@ -806,6 +810,8 @@ export const ProfileScreen = {
       </div>
     `;
 
+    const uploadBtn = overlay.querySelector('#modal-avatar-upload-btn');
+    const fileInput = overlay.querySelector('#modal-avatar-file-input');
     const removeBtn = overlay.querySelector('#modal-avatar-remove');
     const previewBox = overlay.querySelector('#avatar-preview-box');
     const presetGrid = overlay.querySelector('#avatar-preset-grid');
@@ -857,16 +863,42 @@ export const ProfileScreen = {
       });
     }
 
-    // Reset button (back to initial letter)
+    // Upload from file
+    uploadBtn.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+      if (!file.type.startsWith('image/')) {
+        msg.textContent = 'Please select a valid image file.';
+        return;
+      }
+      if (file.size > 2 * 1024 * 1024) {
+        msg.textContent = 'Image must be under 2MB.';
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        selectedAvatarUrl = e.target.result;
+        previewBox.innerHTML = `<img src="${selectedAvatarUrl}" style="width:100%;height:100%;object-fit:contain;border-radius:6px;" />`;
+        presetOptions.forEach(opt => {
+          opt.style.border = '2px solid #444';
+          opt.style.transform = 'scale(1)';
+        });
+        confirmBtn.disabled = false;
+        msg.textContent = '';
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // Reset button — pick a random preset
     removeBtn.addEventListener('click', () => {
       presetOptions.forEach(opt => {
         opt.style.border = '3px solid #444';
         opt.style.transform = 'scale(1)';
       });
-      selectedAvatarUrl = null;
-      const name = document.querySelector('#profile-username');
-      previewBox.textContent = (name?.textContent || '?').charAt(0).toUpperCase();
-      previewBox.style.fontSize = '2.5rem';
+      const n = (Math.floor(Math.random() * 40) + 1).toString().padStart(2, '0');
+      selectedAvatarUrl = `/assets/ui/User Profiles/Icons_${n}.png`;
+      previewBox.innerHTML = `<img src="${selectedAvatarUrl}" style="width:100%;height:100%;object-fit:contain;border-radius:6px;" />`;
       confirmBtn.disabled = false;
       msg.textContent = '';
     });

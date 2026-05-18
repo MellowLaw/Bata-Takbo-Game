@@ -105,13 +105,16 @@ export class ScreenManager {
    */
   _waitForTransition(el) {
     return new Promise(resolve => {
-      const onEnd = () => {
-        el.removeEventListener('transitionend', onEnd);
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        el.removeEventListener('transitionend', finish);
         resolve();
       };
-      el.addEventListener('transitionend', onEnd);
-      // Fallback timeout
-      setTimeout(resolve, 500);
+      el.addEventListener('transitionend', finish, { once: true });
+      // Fallback: match --transition-slow (400ms) + small buffer
+      setTimeout(finish, 420);
     });
   }
 }

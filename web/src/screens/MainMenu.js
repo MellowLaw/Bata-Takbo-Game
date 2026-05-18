@@ -67,8 +67,8 @@ export const MainMenu = {
               transition: border-color 0.2s ease;
             "
           >
-            <img src="/assets/ui/user_logo.png" alt="Profile"
-              style="width:100%; height:100%; object-fit:cover; border-radius:50%;" />
+<img id="profile-default-img" src="" alt="Profile"
+              style="width:100%; height:100%; object-fit:cover; border-radius:50%; image-rendering:pixelated;" />
           </div>
         </div>
       </div>
@@ -243,25 +243,44 @@ export const MainMenu = {
     }, stepTime);
   },
 
+  _randomPresetIcon() {
+    const n = (Math.floor(Math.random() * 40) + 1).toString().padStart(2, '0');
+    return `/assets/ui/User Profiles/Icons_${n}.png`;
+  },
+
+  _getOrAssignPreset() {
+    try {
+      const stored = localStorage.getItem('bata_takbo_preset_avatar');
+      if (stored) return stored;
+      const preset = this._randomPresetIcon();
+      localStorage.setItem('bata_takbo_preset_avatar', preset);
+      return preset;
+    } catch(e) {
+      return this._randomPresetIcon();
+    }
+  },
+
   // Load avatar from /auth/profile and update the icon element
   async _loadProfileAvatar(iconEl) {
+    // Set the persistent preset as the default immediately
+    const defaultImg = iconEl.querySelector('#profile-default-img');
+    if (defaultImg) defaultImg.src = this._getOrAssignPreset();
+
     try {
       const res = await fetch('/auth/profile', { credentials: 'include' });
-      if (!res.ok) return; // guest or error — keep the default icon
+      if (!res.ok) return; // guest or error — keep the preset
       const data = await res.json();
 
       if (data.avatar_url) {
-        // Has a custom avatar image
         iconEl.innerHTML = `<img src="${data.avatar_url}" alt="avatar"
-          style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`;
-      } else if (data.username) {
-        // No avatar — show initial letter like the ID card
-        iconEl.innerHTML = `<span>${data.username.charAt(0).toUpperCase()}</span>`;
-        iconEl.style.background = '#1a1510';
-        iconEl.style.border = '2px solid #e4cfc0';
+          style="width:100%;height:100%;object-fit:cover;border-radius:50%;image-rendering:pixelated;" />`;
+      } else {
+        // Logged in but no custom avatar — use persistent preset
+        iconEl.innerHTML = `<img src="${this._getOrAssignPreset()}" alt="avatar"
+          style="width:100%;height:100%;object-fit:cover;border-radius:50%;image-rendering:pixelated;" />`;
       }
     } catch (e) {
-      // Network error or guest — keep the default user_logo image
+      // Network error or guest — preset already set above
     }
   },
 

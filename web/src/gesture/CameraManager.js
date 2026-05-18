@@ -12,7 +12,7 @@ export class CameraManager {
 
   async initialize() {
     if (this.isActive) return;
-    const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+    const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     try {
       this.stream = await navigator.mediaDevices.getUserMedia({
         video: {
@@ -24,6 +24,9 @@ export class CameraManager {
       });
       
       this.video.srcObject = this.stream;
+      this.video.setAttribute('playsinline', '');
+      this.video.setAttribute('muted', '');
+      this.video.muted = true;
       this.video.playsInline = true;
       
       return new Promise((resolve) => {

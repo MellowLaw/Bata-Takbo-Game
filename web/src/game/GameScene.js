@@ -16,14 +16,15 @@ export class GameScene extends Phaser.Scene {
     this.isPracticeTutorial = data.isPracticeTutorial || false;
     this.character = data.character || 'male';
     this.control = data.control || 'keyboard'; // 'gesture' or 'keyboard'
-    this.isInfMode = data.isInfMode || false;
+    this.isEndless = data.isEndless || false;
     this.isGameOver = false;
     this.chapterScore = 0; // Live score for regular chapters
-    this.infScore = 0;
-    this.infWavesSurvived = 0;
-    this.infPerfectWaves = 0;
-    this.infTilesCollected = 0;
-    this._infLastPlayerHp = 6; // track for perfect wave
+    this.endlessScore = 0;
+    this.endlessWaves = 0;
+    this.endlessPerfectWaves = 0;
+    this.endlessTilesCollected = 0;
+    this.endlessCombo = 1;         // combo multiplier, grows on perfect waves
+    this._endlessLastPlayerHp = 6; // track for perfect wave
   }
 
   preload() {
@@ -118,9 +119,9 @@ export class GameScene extends Phaser.Scene {
       this.load.spritesheet('bawang_effects', '/assets/fx/bawang_effects.png', { frameWidth: 64, frameHeight: 64 });
       // Chest loot - 5 different chest variations (single column, 4 frames each ~32x32)
       this.load.spritesheet('chest1_loot', '/assets/projectiles/shared/chest1.png', { frameWidth: 32, frameHeight: 32 });
-      this.load.spritesheet('chest2_loot', '/assets/projectiles/shared/chest2.png', { frameWidth: 34, frameHeight: 32 });
+      this.load.spritesheet('chest2_loot', '/assets/projectiles/shared/chest2.png', { frameWidth: 32, frameHeight: 32 });
       this.load.spritesheet('chest3_loot', '/assets/projectiles/shared/chest3.png', { frameWidth: 32, frameHeight: 32 });
-      this.load.spritesheet('chest4_loot', '/assets/projectiles/shared/chest4.png', { frameWidth: 31, frameHeight: 32 });
+      this.load.spritesheet('chest4_loot', '/assets/projectiles/shared/chest4.png', { frameWidth: 32, frameHeight: 32 });
       this.load.spritesheet('chest5_loot', '/assets/projectiles/shared/chest5.png', { frameWidth: 32, frameHeight: 32 });
       this.load.spritesheet('chest_effects', '/assets/fx/chest2.png', { frameWidth: 64, frameHeight: 64 });
 
@@ -159,9 +160,9 @@ export class GameScene extends Phaser.Scene {
       this.load.spritesheet('bawang_effects', '/assets/fx/bawang_effects.png', { frameWidth: 64, frameHeight: 64 });
       // Chest loot - 5 different chest variations (single column, 4 frames each ~32x32)
       this.load.spritesheet('chest1_loot', '/assets/projectiles/shared/chest1.png', { frameWidth: 32, frameHeight: 32 });
-      this.load.spritesheet('chest2_loot', '/assets/projectiles/shared/chest2.png', { frameWidth: 34, frameHeight: 32 });
+      this.load.spritesheet('chest2_loot', '/assets/projectiles/shared/chest2.png', { frameWidth: 32, frameHeight: 32 });
       this.load.spritesheet('chest3_loot', '/assets/projectiles/shared/chest3.png', { frameWidth: 32, frameHeight: 32 });
-      this.load.spritesheet('chest4_loot', '/assets/projectiles/shared/chest4.png', { frameWidth: 31, frameHeight: 32 });
+      this.load.spritesheet('chest4_loot', '/assets/projectiles/shared/chest4.png', { frameWidth: 32, frameHeight: 32 });
       this.load.spritesheet('chest5_loot', '/assets/projectiles/shared/chest5.png', { frameWidth: 32, frameHeight: 32 });
       this.load.spritesheet('chest_effects', '/assets/fx/chest2.png', { frameWidth: 64, frameHeight: 64 });
 
@@ -368,8 +369,8 @@ export class GameScene extends Phaser.Scene {
       }
     });
 
-    // Endless mode: treat like chapter 1 grid (legacy, isInfMode uses actual chapterId)
-    const isEndless = this.chapterId === 4;
+    // Legacy chapterId=4 endless (unused path kept for safety)
+    const isLegacyEndless = this.chapterId === 4;
 
     // 1. Initialize dynamic Grid based on Chapter ID
     let gridCols = 7, gridRows = 7;
@@ -392,8 +393,8 @@ export class GameScene extends Phaser.Scene {
       this.player.isInvincible = true;
     }
 
-    // Endless mode (legacy chapterId=4): 3 lives
-    if (isEndless) {
+    // Legacy chapterId=4: 3 lives
+    if (isLegacyEndless) {
       this.player.hp = 3;
       this.player.maxHp = 3;
     }
@@ -402,9 +403,8 @@ export class GameScene extends Phaser.Scene {
     this._adminCheckReady = this._checkAdminTestMode();
 
     // 3. Initialize Boss (attack logic only — sprite lives in HUDScene)
-    // Endless mode: create a boss (ch1 attacks) but with infinite HP so it never dies
     this.boss = new Boss(this, this.grid, this.isTutorial);
-    if (isEndless) {
+    if (isLegacyEndless || this.isEndless) {
       this.boss.hp = Infinity;
       this.boss.maxHp = Infinity;
     }
@@ -990,45 +990,50 @@ export class GameScene extends Phaser.Scene {
 
     this.events.on('player:died', () => this.showGameOver(false));
     this.events.on('boss:died', () => {
-      if (this.isInfMode) return;
+      if (this.isEndless) return;
       this.showGameOver(true);
     });
 
-    // INF mode: accumulate score each wave
+    // Endless mode: accumulate score each wave
     this.events.on('inf:wave', (waveNum) => {
-      if (!this.isInfMode) return;
-      this.infWavesSurvived = waveNum;
+      if (!this.isEndless) return;
+      this.endlessWaves = waveNum;
       const hud = this.scene.get('HUDScene');
       const elapsedSecs = hud ? Math.floor(hud.elapsed / 1000) : 0;
-      // Perfect wave bonus (player didn't take damage since last wave)
-      if (this.player && this.player.hp === this._infLastPlayerHp) {
-        this.infPerfectWaves++;
+      // Perfect wave: player took no damage → grow combo streak (cap ×3.0)
+      if (this.player && this.player.hp === this._endlessLastPlayerHp) {
+        this.endlessPerfectWaves++;
+        this.endlessCombo = Math.min(3.0, 1.0 + this.endlessPerfectWaves * 0.1);
+      } else {
+        // Took damage — reset streak
+        this.endlessCombo = 1.0;
+        this.endlessPerfectWaves = 0;
       }
-      this._infLastPlayerHp = this.player ? this.player.hp : 6;
-      this.infScore = (this.infWavesSurvived * 100)
-        + (this.infTilesCollected * 500) // Increased pickup multiplier
-        + (elapsedSecs * 2)
-        + (this.infPerfectWaves * 25);
-      if (hud && hud.updateScore) hud.updateScore(this.infScore);
-      if (hud && hud.updateInfWave) hud.updateInfWave(waveNum);
+      this._endlessLastPlayerHp = this.player ? this.player.hp : 6;
+      const baseWave = this.endlessWaves * 100;
+      const baseTile = this.endlessTilesCollected * 500;
+      const baseTime = elapsedSecs * 2;
+      this.endlessScore = Math.floor((baseWave + baseTile + baseTime) * this.endlessCombo);
+      if (hud && hud.updateScore) hud.updateScore(this.endlessScore);
+      if (hud && hud.updateEndlessWave) hud.updateEndlessWave(waveNum);
+      else if (hud && hud.updateInfWave) hud.updateInfWave(waveNum);
     });
 
-    // INF mode: golden tile collected gives score bonus
+    // Endless mode: golden tile collected gives score bonus
     this.events.on('damageTile:collected', () => {
-      if (!this.isInfMode) return;
-      this.infTilesCollected++;
-
+      if (!this.isEndless) return;
+      this.endlessTilesCollected++;
       const hud = this.scene.get('HUDScene');
       const elapsedSecs = hud ? Math.floor(hud.elapsed / 1000) : 0;
-      this.infScore = (this.infWavesSurvived * 100)
-        + (this.infTilesCollected * 500) // Significantly increased score for pickup to make it rewarding
-        + (elapsedSecs * 2)
-        + (this.infPerfectWaves * 25);
-      if (hud && hud.updateScore) hud.updateScore(this.infScore);
+      const baseWave = this.endlessWaves * 100;
+      const baseTile = this.endlessTilesCollected * 500;
+      const baseTime = elapsedSecs * 2;
+      this.endlessScore = Math.floor((baseWave + baseTile + baseTime) * this.endlessCombo);
+      if (hud && hud.updateScore) hud.updateScore(this.endlessScore);
     });
 
     // Regular chapters: time-based score update every second (10 points per second)
-    if (!this.isInfMode) {
+    if (!this.isEndless) {
       this.time.addEvent({
         delay: 1000,
         repeat: -1,
@@ -1697,14 +1702,14 @@ export class GameScene extends Phaser.Scene {
       const hud = this.scene.get('HUDScene');
       const elapsedSecs = hud ? Math.floor(hud.elapsed / 1000) : 0;
 
-      // INF mode: use accumulated inf score, skip chapter unlock logic
-      if (this.isInfMode) {
+      // Endless mode: save accumulated score, skip chapter unlock logic
+      if (this.isEndless) {
         this.scene.stop('HUDScene');
         state.set('lastGameResult', {
           chapterId: this.chapterId, isVictory: false,
-          timeSurvived: elapsedSecs, score: this.infScore,
-          wavesSurvived: this.infWavesSurvived,
-          isInfMode: true,
+          timeSurvived: elapsedSecs, score: this.endlessScore,
+          wavesSurvived: this.endlessWaves,
+          isEndless: true,
           control: this.control,
           character: this.character
         });
@@ -1765,7 +1770,6 @@ export class GameScene extends Phaser.Scene {
         chapterId: this.chapterId, isVictory,
         timeSurvived: elapsedSecs, score: finalScore,
         isEndless: false,
-        isInfMode: this.isInfMode,
         control: this.control,
         character: this.character
       });

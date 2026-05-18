@@ -111,10 +111,13 @@ export const AdminDashboard = {
               </div>
 
               <div class="inf-stats-container">
-                <div class="inf-stats-header" style="grid-template-columns: 1fr 3fr 3fr 2fr;">
+                <div class="inf-stats-header" style="grid-template-columns: 0.5fr 2fr 2fr 1fr 1fr 1.5fr 1.5fr;">
                   <div>#</div>
                   <div>USER</div>
-                  <div>SURVIVAL TIME</div>
+                  <div>CH</div>
+                  <div>WAVES</div>
+                  <div>SCORE</div>
+                  <div>TIME</div>
                   <div>ACTIONS</div>
                 </div>
                 <div id="lb-endless-list">
@@ -253,13 +256,12 @@ export const AdminDashboard = {
       const gamesCanvas = this.container.querySelector('#chart-games');
       if (gamesCanvas && window.Chart) {
         if (gamesCanvas._chartInstance) gamesCanvas._chartInstance.destroy();
-        const infCount  = data.stats.totalInfGames  ?? 0;
-        const endCount  = data.stats.totalEndlessGames ?? 0;
+        const endlessCount = data.stats.totalEndlessGames ?? 0;
         gamesCanvas._chartInstance = new Chart(gamesCanvas, {
           type: 'doughnut',
           data: {
-            labels: ['Normal Mode', 'Endless'],
-            datasets: [{ data: [infCount, endCount], backgroundColor: ['#3498db','#e67e22'], borderWidth: 2, borderColor: '#111' }]
+            labels: ['Endless Mode'],
+            datasets: [{ data: [endlessCount], backgroundColor: ['#e67e22'], borderWidth: 2, borderColor: '#111' }]
           },
           options: {
             responsive: false,
@@ -414,17 +416,22 @@ export const AdminDashboard = {
       const data = await res.json();
       if (!res.ok) throw new Error();
 
-      // Filter endless scores by active control type
+      // Filter by active control type
       const filtered = data.leaderboard.endless.filter(s => s.control_type === controlType);
 
       let endHtml = '';
       filtered.forEach((s, i) => {
+        const mm = Math.floor((s.survival_seconds||0)/60);
+        const ss = String((s.survival_seconds||0)%60).padStart(2,'0');
         endHtml += `
-          <div class="inf-stat-row ${s.suspicious ? 'suspicious' : ''}" style="grid-template-columns: 1fr 3fr 3fr 2fr; ${s.suspicious?'background:rgba(231,76,60,0.1);border:1px solid #e74c3c;':''}">
+          <div class="inf-stat-row ${s.suspicious ? 'suspicious' : ''}" style="grid-template-columns: 0.5fr 2fr 2fr 1fr 1fr 1.5fr 1.5fr; ${s.suspicious?'background:rgba(231,76,60,0.1);border:1px solid #e74c3c;':''}">
             <div style="font-weight:bold;color:#888;">${i+1}</div>
             <div style="font-weight:bold;">${s.username} ${s.suspicious?'<span style="color:#e74c3c;font-size:10px;">⚠️</span>':''}</div>
-            <div>${Math.floor(s.survival_seconds/60)}m ${String(s.survival_seconds%60).padStart(2,'0')}s</div>
-            <div><button class="admin-btn del-score" data-id="${s.id}" data-type="endless" style="font-size:14px;padding:4px 8px;background:#c0392b;color:#fff;border:1px solid #111;cursor:pointer;" title="Delete Score"><i class="fas fa-trash"></i></button></div>
+            <div>CH${s.chapter_id}</div>
+            <div style="font-weight:bold;color:#e67e22;">${s.waves_survived||0}</div>
+            <div>${(s.score||0).toLocaleString()}</div>
+            <div>${mm}m ${ss}s</div>
+            <div><button class="admin-btn del-score" data-id="${s.id}" style="font-size:14px;padding:4px 8px;background:#c0392b;color:#fff;border:1px solid #111;cursor:pointer;" title="Delete Score"><i class="fas fa-trash"></i></button></div>
           </div>
         `;
       });
@@ -435,10 +442,9 @@ export const AdminDashboard = {
           const target = e.target.closest('button');
           this._showAdminModal('DELETE SCORE', 'Delete this score entry? This cannot be undone.', async () => {
             const id = target.dataset.id;
-            const type = target.dataset.type;
             await fetch('/admin/delete-score', {
               method:'DELETE', credentials:'include', headers:{'Content-Type':'application/json'},
-              body: JSON.stringify({ id, type })
+              body: JSON.stringify({ id })
             });
             this.loadLeaderboard(this._activeLbControl || 'keyboard');
           });

@@ -73,8 +73,8 @@ export const ModeSelect = {
 
     const isTouchDevice = () => window.matchMedia('(hover: none)').matches;
 
-    const navigate = (isInfMode) => {
-      window.__screenManager.navigate('character-select', { chapterId, isInfMode });
+    const navigate = (isEndless) => {
+      window.__screenManager.navigate('character-select', { chapterId, isEndless });
     };
 
     // Normal card

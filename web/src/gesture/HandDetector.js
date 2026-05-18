@@ -23,7 +23,7 @@ export class HandDetector {
     this.ctx = canvasElement ? canvasElement.getContext('2d') : null;
 
     // Lower resolution on mobile for performance
-    const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+    const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     this._camW = isMobile ? 320 : 640;
     this._camH = isMobile ? 240 : 480;
 
@@ -53,7 +53,7 @@ export class HandDetector {
       locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
     });
 
-    const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+    const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     this.hands.setOptions({
       maxNumHands: 1,
       modelComplexity: 0,          // Always use lite model — fast enough for KNN

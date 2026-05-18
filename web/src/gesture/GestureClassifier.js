@@ -198,6 +198,24 @@ export class GestureClassifier {
   }
 
   /**
+   * Clear samples for a single class label only, then persist.
+   * @param {string} label - e.g. 'up', 'down', 'left', 'right', 'idle'
+   */
+  async resetClass(label) {
+    try {
+      const dataset = this.classifier.getClassifierDataset();
+      if (dataset[label]) {
+        this.classifier.clearClass(label);
+        this._cachedTotal = 0;
+        this._countDirty = true;
+        await this.saveModel();
+      }
+    } catch (e) {
+      console.warn('[GestureClassifier] resetClass failed:', e);
+    }
+  }
+
+  /**
    * Clear KNN engine and IndexedDB cache.
    */
   async resetModel() {

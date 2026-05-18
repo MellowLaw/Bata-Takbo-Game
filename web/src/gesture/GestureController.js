@@ -152,10 +152,14 @@ class GestureController {
     }
   }
 
-  async saveModel() {
+  async saveModel({ syncToServer = false } = {}) {
     if (!this.classifier) return;
     await this.classifier.saveModel();
     state.set('gestureModelTrained', true);
+    // Only sync to server when explicitly requested (e.g. on back/complete)
+    if (syncToServer) {
+      try { await state._syncToServer(); } catch(e) {}
+    }
   }
 
   async resetAllGestures() {
@@ -164,6 +168,13 @@ class GestureController {
     }
     state.set('gestureModelTrained', false);
     state.emit('gesture:sampleAdded', { label: '', counts: {} });
+  }
+
+  async resetGestureClass(label) {
+    if (this.classifier) {
+      await this.classifier.resetClass(label);
+    }
+    state.emit('gesture:sampleAdded', { label, counts: this.classifier.getClassExampleCount() });
   }
 
   getSampleCounts() {

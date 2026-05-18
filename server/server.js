@@ -237,10 +237,14 @@ app.post('/auth/register', async (req, res) => {
     
     const dbEncryptedString = JSON.stringify({ iv: ivBase64, data: encryptedData, tag: authTag });
 
+    // Assign a random preset avatar from the 40 available icons
+    const randomIconNum = (Math.floor(Math.random() * 40) + 1).toString().padStart(2, '0');
+    const defaultAvatar = `/assets/ui/User Profiles/Icons_${randomIconNum}.png`;
+
     // Insert user safely mapped into the database using param queries
     const result = await db.run(
-      'INSERT INTO users (username, email, password_hash, encrypted_data, created_at) VALUES (?, ?, ?, ?, ?)',
-      [sanitizedUsername, sanitizedEmail, passwordHash, dbEncryptedString, Date.now()]
+      'INSERT INTO users (username, email, password_hash, encrypted_data, created_at, avatar_url) VALUES (?, ?, ?, ?, ?, ?)',
+      [sanitizedUsername, sanitizedEmail, passwordHash, dbEncryptedString, Date.now(), defaultAvatar]
     );
 
     // After success, instantly log them in using identically constructed JWT token logic 
@@ -399,6 +403,15 @@ app.get('/auth/profile', authMiddleware, async (req, res) => {
     });
   } catch (err) {
     console.error('Profile error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.get('/profile/endless-runs', authMiddleware, async (req, res) => {
+  try {
+    const row = await db.get('SELECT COUNT(*) as count FROM inf_scores WHERE user_id = ?', [req.user.id]);
+    return res.status(200).json({ count: row?.count || 0 });
+  } catch (err) {
     return res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -563,7 +576,6 @@ app.post('/auth/change-username', authMiddleware, async (req, res) => {
     try {
       await client.query('BEGIN');
       await client.query('UPDATE users SET username = $1, username_changed_at = $2 WHERE id = $3', [trimmed, Date.now(), req.user.id]);
-      await client.query('UPDATE endless_scores SET username = $1 WHERE user_id = $2', [trimmed, req.user.id]);
       await client.query('UPDATE inf_scores SET username = $1 WHERE user_id = $2', [trimmed, req.user.id]);
       await client.query('COMMIT');
     } catch (e) {
@@ -912,7 +924,7 @@ app.get('/admin/users', authMiddleware, adminMiddleware, async (req, res) => {
     const users = await db.all(`
       SELECT u.id, u.username, u.email, u.is_admin, u.banned, u.ban_reason, u.ban_appeal, u.cheat_score, u.last_login, u.created_at,
              CASE WHEN u.game_data IS NOT NULL THEN 1 ELSE 0 END as has_game_data,
-             (SELECT COUNT(*) FROM inf_scores WHERE user_id = u.id) + (SELECT COUNT(*) FROM endless_scores WHERE user_id = u.id) as games_played,
+             (SELECT COUNT(*) FROM inf_scores WHERE user_id = u.id) as games_played,
              (SELECT COALESCE(SUM(score), 0) FROM inf_scores WHERE user_id = u.id) as total_score
       FROM users u
       ORDER BY u.id DESC
@@ -927,14 +939,14 @@ app.get('/admin/users', authMiddleware, adminMiddleware, async (req, res) => {
 app.get('/admin/stats', authMiddleware, adminMiddleware, async (req, res) => {
   try {
     const totalUsers = (await db.get('SELECT COUNT(*) as c FROM users')).c;
-    const totalInfGames = (await db.get('SELECT COUNT(*) as c FROM inf_scores')).c;
-    const totalEndlessGames = (await db.get('SELECT COUNT(*) as c FROM endless_scores')).c;
+    const totalEndlessGames = (await db.get('SELECT COUNT(*) as c FROM inf_scores')).c;
+    const totalNormalGames = 0; // Normal mode scores are not tracked
     // PostgreSQL: get approximate db size via pg_database
     const dbSizeRow = await db.get(`SELECT pg_database_size(current_database()) as size`);
     const dbSize = parseInt(dbSizeRow?.size || 0);
     const uptime = process.uptime();
     
-    const recentScores = await db.all("SELECT username, 'Chapter ' || chapter_id as action, created_at as time, score as value FROM inf_scores ORDER BY created_at DESC LIMIT 20");
+    const recentScores = await db.all("SELECT username, 'Endless Ch' || chapter_id as action, created_at as time, score as value FROM inf_scores ORDER BY created_at DESC LIMIT 20");
     const recentLogins = await db.all("SELECT username, 'Login' as action, last_login as time, 0 as value FROM users WHERE last_login IS NOT NULL ORDER BY last_login DESC LIMIT 20");
     const recentRegs = await db.all("SELECT username, 'Registered' as action, created_at as time, 0 as value FROM users WHERE created_at IS NOT NULL ORDER BY created_at DESC LIMIT 20");
     
@@ -943,7 +955,7 @@ app.get('/admin/stats', authMiddleware, adminMiddleware, async (req, res) => {
       .slice(0, 20);
       
     return res.status(200).json({
-      stats: { totalUsers, totalGamesPlayed: totalInfGames + totalEndlessGames, totalInfGames, totalEndlessGames, dbSize, uptime },
+      stats: { totalUsers, totalGamesPlayed: totalEndlessGames, totalEndlessGames, totalNormalGames, dbSize, uptime },
       activity
     });
   } catch (err) {
@@ -1027,23 +1039,16 @@ app.post('/admin/reset-progress', authMiddleware, adminMiddleware, async (req, r
 // Get leaderboard with cheat scores (admin only)
 app.get('/admin/leaderboard', authMiddleware, adminMiddleware, async (req, res) => {
   try {
-    const infScores = await db.all('SELECT s.id, s.user_id, s.username, s.chapter_id, s.score, s.waves_survived, s.survival_seconds, s.control_type, s.created_at, u.banned, u.cheat_score FROM inf_scores s JOIN users u ON s.user_id = u.id ORDER BY s.score DESC');
-    const endlessScores = await db.all('SELECT s.id, s.user_id, s.username, s.survival_seconds, s.control_type, s.created_at, u.banned, u.cheat_score FROM endless_scores s JOIN users u ON s.user_id = u.id ORDER BY s.survival_seconds DESC');
-    
-    const flaggedInf = infScores.map(s => {
-      let suspicious = s.cheat_score > 50;
-      if (s.score > 5000 && s.survival_seconds < 30) suspicious = true;
-      if (s.score > 25000) suspicious = true;
-      return { ...s, type: 'inf', suspicious };
-    });
-    
+    const endlessScores = await db.all('SELECT s.id, s.user_id, s.username, s.chapter_id, s.score, s.waves_survived, s.survival_seconds, s.control_type, s.created_at, u.banned, u.cheat_score FROM inf_scores s JOIN users u ON s.user_id = u.id ORDER BY s.waves_survived DESC, s.score DESC');
+
     const flaggedEndless = endlessScores.map(s => {
       let suspicious = s.cheat_score > 50;
-      if (s.survival_seconds > 3600) suspicious = true; // Over 1 hour endless
+      if (s.score > 500000) suspicious = true;
+      if (s.waves_survived > 10000) suspicious = true;
       return { ...s, type: 'endless', suspicious };
     });
-    
-    return res.status(200).json({ leaderboard: { inf: flaggedInf, endless: flaggedEndless } });
+
+    return res.status(200).json({ leaderboard: { endless: flaggedEndless } });
   } catch (err) {
     console.error('Admin leaderboard error:', err);
     return res.status(500).json({ error: 'Internal server error' });
@@ -1052,9 +1057,8 @@ app.get('/admin/leaderboard', authMiddleware, adminMiddleware, async (req, res) 
 
 app.delete('/admin/delete-score', authMiddleware, adminMiddleware, async (req, res) => {
   try {
-    const { id, type } = req.body;
-    if (type === 'inf') await db.run('DELETE FROM inf_scores WHERE id = ?', [id]);
-    else if (type === 'endless') await db.run('DELETE FROM endless_scores WHERE id = ?', [id]);
+    const { id } = req.body;
+    await db.run('DELETE FROM inf_scores WHERE id = ?', [id]);
     return res.status(200).json({ success: true, message: 'Score deleted' });
   } catch (err) {
     return res.status(500).json({ error: 'Server error' });
@@ -1120,68 +1124,16 @@ app.post('/admin/verify-test-token', authMiddleware, adminMiddleware, async (req
   }
 });
 
-// ========== ENDLESS LEADERBOARD ==========
+// ========== ENDLESS MODE LEADERBOARD ==========
 
-// Submit endless score (registered users only)
+// Submit Endless Mode score (registered users only)
 app.post('/leaderboard/endless', authMiddleware, async (req, res) => {
-  try {
-    const { survivalSeconds, controlType } = req.body;
-    if (!survivalSeconds || !controlType) return res.status(400).json({ error: 'Missing survivalSeconds or controlType' });
-    if (!['gesture', 'keyboard'].includes(controlType)) return res.status(400).json({ error: 'Invalid controlType' });
-    if (typeof survivalSeconds !== 'number' || survivalSeconds < 0 || survivalSeconds > 86400) {
-      return res.status(400).json({ error: 'Invalid survivalSeconds' });
-    }
-
-    const user = await db.get('SELECT username, banned, is_admin FROM users WHERE id = ?', [req.user.id]);
-    if (!user || user.banned) return res.status(403).json({ error: 'Forbidden' });
-    if (user.is_admin) return res.status(403).json({ error: 'Admin accounts cannot submit scores' });
-
-    await db.run(
-      'INSERT INTO endless_scores (user_id, username, survival_seconds, control_type, created_at) VALUES (?, ?, ?, ?, ?)',
-      [req.user.id, user.username, Math.floor(survivalSeconds), controlType, Date.now()]
-    );
-    return res.status(200).json({ success: true });
-  } catch (err) {
-    console.error('Endless score submit error:', err);
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Get endless leaderboard (top 20 per control type, best score per user)
-app.get('/leaderboard/endless', async (req, res) => {
-  try {
-    const { controlType } = req.query;
-    if (!controlType || !['gesture', 'keyboard'].includes(controlType)) {
-      return res.status(400).json({ error: 'Invalid or missing controlType' });
-    }
-
-    const rows = await db.all(`
-      SELECT e.username, MAX(e.survival_seconds) AS best_seconds
-      FROM endless_scores e
-      INNER JOIN users u ON e.user_id = u.id
-      WHERE e.control_type = ? AND u.banned = FALSE AND u.is_admin = FALSE
-      GROUP BY e.user_id, e.username
-      ORDER BY best_seconds DESC
-      LIMIT 20
-    `, [controlType]);
-
-    return res.status(200).json({ entries: rows });
-  } catch (err) {
-    console.error('Endless leaderboard fetch error:', err);
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// ========== INF LEADERBOARD ==========
-
-// Submit INF score (registered users only)
-app.post('/leaderboard/inf', authMiddleware, async (req, res) => {
   try {
     const { chapterId, score, wavesSurvived, survivalSeconds, controlType } = req.body;
     if (!chapterId || score == null || !controlType) return res.status(400).json({ error: 'Missing required fields' });
     if (![1, 2, 3].includes(Number(chapterId))) return res.status(400).json({ error: 'Invalid chapterId' });
     if (!['gesture', 'keyboard'].includes(controlType)) return res.status(400).json({ error: 'Invalid controlType' });
-    if (typeof score !== 'number' || score < 0 || score > 9999999) return res.status(400).json({ error: 'Invalid score' });
+    if (typeof score !== 'number' || score < 0 || score > 99999999) return res.status(400).json({ error: 'Invalid score' });
 
     const user = await db.get('SELECT username, banned, is_admin FROM users WHERE id = ?', [req.user.id]);
     if (!user || user.banned) return res.status(403).json({ error: 'Forbidden' });
@@ -1193,35 +1145,48 @@ app.post('/leaderboard/inf', authMiddleware, async (req, res) => {
     );
     return res.status(200).json({ success: true });
   } catch (err) {
-    console.error('INF score submit error:', err);
+    console.error('Endless score submit error:', err);
     return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// Get INF leaderboard (top 20 per chapter + control type, best score per user)
-app.get('/leaderboard/inf', async (req, res) => {
+// Get Endless Mode leaderboard — ranked by waves DESC then score DESC (top 20 per chapter + control type, best run per user)
+app.get('/leaderboard/endless', async (req, res) => {
   try {
     const { chapterId, controlType } = req.query;
     if (!chapterId || ![1, 2, 3].includes(Number(chapterId))) return res.status(400).json({ error: 'Invalid or missing chapterId' });
     if (!controlType || !['gesture', 'keyboard'].includes(controlType)) return res.status(400).json({ error: 'Invalid or missing controlType' });
 
+    // Best run per user = the run with most waves; score breaks ties
     const rows = await db.all(`
-      SELECT i.username, MAX(i.score) AS best_score,
-             i.waves_survived, i.survival_seconds
-      FROM inf_scores i
-      INNER JOIN users u ON i.user_id = u.id
-      WHERE i.chapter_id = ? AND i.control_type = ? AND u.banned = FALSE AND u.is_admin = FALSE
-      GROUP BY i.user_id, i.username, i.waves_survived, i.survival_seconds
-      ORDER BY best_score DESC
+      SELECT username, waves_survived, score, survival_seconds
+      FROM (
+        SELECT i.user_id, i.username,
+               i.waves_survived, i.score, i.survival_seconds,
+               ROW_NUMBER() OVER (
+                 PARTITION BY i.user_id
+                 ORDER BY i.waves_survived DESC, i.score DESC
+               ) AS rn
+        FROM inf_scores i
+        INNER JOIN users u ON i.user_id = u.id
+        WHERE i.chapter_id = $1 AND i.control_type = $2
+          AND u.banned = FALSE AND u.is_admin = FALSE
+      ) ranked
+      WHERE rn = 1
+      ORDER BY waves_survived DESC, score DESC
       LIMIT 20
     `, [Number(chapterId), controlType]);
 
     return res.status(200).json({ entries: rows });
   } catch (err) {
-    console.error('INF leaderboard fetch error:', err);
+    console.error('Endless leaderboard fetch error:', err);
     return res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+// Legacy alias — redirect old /leaderboard/inf calls to /leaderboard/endless
+app.post('/leaderboard/inf', (req, res) => res.redirect(307, '/leaderboard/endless'));
+app.get('/leaderboard/inf', (req, res) => res.redirect(301, `/leaderboard/endless?${new URLSearchParams(req.query)}`));
 
 // Initialize database and start server
 initDb().then(database => {
