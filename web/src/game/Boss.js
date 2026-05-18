@@ -16,8 +16,8 @@ export class Boss {
     // In tutorial mode, we want a lot of HP so it doesn't die.
     if (this.isTutorial) {
       this.maxHp = 9999;
-    } else if (this.isInfMode) {
-      this.maxHp = Infinity; // INF mode has infinite health
+    } else if (scene.isEndless) {
+      this.maxHp = Infinity;
     } else if (scene.chapterId === 1) {
       this.maxHp = 5;
     } else if (scene.chapterId === 2) {
@@ -31,7 +31,7 @@ export class Boss {
     this.lastAttackId = -1;
     this.secondLastAttackId = -1; // Track two back to prevent problematic pairs
     this.waveCount = 0;
-    this.isInfMode = scene.isInfMode || false;
+    this.isInfMode = scene.isEndless || false;
     this.infSpeedMultiplier = 1.0;
     this.infPerfectWave = true;
 

@@ -107,13 +107,18 @@ export class Player {
     // Play directional dash animation
     this.sprite.play(`dash_${direction}`);
 
-    // Calculate duration: speed boosted halves transition time, dashing slightly extends it over the longer gap
-    let duration = this.isSpeedBoosted ? 75 : 150;
+    // Calculate duration: overclock = 40ms, speed boost = 75ms, dash = 200ms, normal = 150ms
+    let duration = this.isOverclocked ? 40 : this.isSpeedBoosted ? 75 : 150;
     if (this.hasDash) duration = 200;
 
-    // Clear dash flag once actively moving
+    // Decrement dash charges; clear flag when exhausted
     if (this.hasDash) {
+      this.dashCharges = (this.dashCharges || 1) - 1;
+      if (this.dashCharges <= 0) {
         this.hasDash = false;
+        this.dashCharges = 0;
+        this.scene.player?.sprite?.clearTint();
+      }
     }
 
     this.scene.tweens.add({
@@ -127,6 +132,11 @@ export class Player {
         this.sprite.play(`idle_${this.facing}`);
         this.scene.events.emit('player:moved', this.col, this.row);
         state.emit('player:moved', direction);
+
+        // Keep sight aura centred on player
+        if (this.scene._sightAura && this.scene._sightAura.active) {
+          this.scene._sightAura.setPosition(this.sprite.x, this.sprite.y);
+        }
 
         // Grid Hazard Effects
         if (this.grid.cells[this.row][this.col].status === 'mud') {
@@ -174,7 +184,18 @@ export class Player {
   }
 
   takeDamage() {
-    if (this.isInvulnerable || this.isInvincible || this.isInvisible || this.hp <= 0) return;
+    if (this.isInvulnerable || this.isInvincible || this.isInvisible || this.isGhost || this.hp <= 0) return;
+
+    // COUNTER: absorb exactly one hit
+    if (this.hasCounter) {
+      this.hasCounter = false;
+      this.scene.player?.sprite?.clearTint();
+      if (this.scene._counterRing && this.scene._counterRing.active) {
+        this.scene.tweens.add({ targets: this.scene._counterRing, alpha: 0, scaleX: 2, scaleY: 2, duration: 300, onComplete: () => this.scene._counterRing.destroy() });
+      }
+      this.scene.cameras.main.flash(120, 255, 100, 0);
+      return;
+    }
     
     this.hp--;
     this.scene.events.emit('player:health_changed', this.hp);
