@@ -134,6 +134,7 @@ html,
 body {
   width: 100%;
   height: 100%;
+  height: 100dvh;
   overflow: hidden;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
@@ -206,6 +207,7 @@ a {
 #app {
   width: 100%;
   height: 100%;
+  height: 100dvh;
   position: relative;
   overflow: hidden;
 }
@@ -213,6 +215,7 @@ a {
 #screen-container {
   width: 100%;
   height: 100%;
+  height: 100dvh;
   position: relative;
 }
 
@@ -1626,11 +1629,12 @@ a {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: flex-start;
   background-image: url('/assets/ui/backgrounds/settings_background.png');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  padding: 0;
+  padding: 0 !important;
   overflow: hidden;
 }
 
@@ -1642,7 +1646,7 @@ a {
   display: flex;
   flex-direction: row;
   gap: var(--space-lg);
-  padding: var(--space-lg);
+  padding: var(--space-sm) var(--space-lg) var(--space-lg);
   overflow: hidden;
   margin: 0 auto;
 }
@@ -3752,7 +3756,7 @@ a {
 .profile-sidebar .back-btn {
   position: static;
   width: 100%;
-  margin-bottom: var(--space-lg);
+  margin-bottom: var(--space-md);
   background: transparent;
   color: #e4cfc0;
   border: 2px solid #e4cfc0;
@@ -3997,8 +4001,10 @@ a {
 @media screen and (max-width: 768px) {
   #profile-content-wrapper {
     flex-direction: column !important;
-    padding: var(--space-sm) !important;
+    padding: 8px 10px 10px !important;
     gap: var(--space-sm);
+    height: 100dvh !important;
+    max-height: 100dvh !important;
   }
   .profile-sidebar {
     width: 100%;
@@ -4006,13 +4012,13 @@ a {
     flex-wrap: nowrap;
     overflow-x: auto;
     overflow-y: hidden;
-    scrollbar-width: none; /* Firefox */
+    scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
     box-shadow: 4px 4px 0px rgba(0,0,0,1);
     padding: var(--space-sm);
   }
   .profile-sidebar::-webkit-scrollbar {
-    display: none; /* Chrome/Safari */
+    display: none;
   }
   .profile-sidebar .back-btn,
   .profile-tab-btn {
@@ -4023,14 +4029,35 @@ a {
     padding: var(--space-sm) var(--space-md);
     text-align: center;
   }
-  .profile-panel {
-    padding: var(--space-md);
+  /* Cream panel — full width, 16px breathing room */
+  .profile-content-area {
+    width: 100% !important;
+    flex-grow: 1;
+    min-height: 0;
   }
+  .profile-panel {
+    padding: 16px !important;
+  }
+  /* Header — compact on mobile */
   .id-card-header {
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    gap: var(--space-md);
+    gap: var(--space-md) !important;
+    align-items: center !important;
+    padding-bottom: 0px !important;
+    margin-bottom: 8px !important;
+  }
+  .id-card-header .id-card-info {
+    flex: 0 1 auto !important;
+  }
+  .id-card-avatar {
+    width: 64px !important;
+    height: 64px !important;
+  }
+  /* Stat cards — single column, full width */
+  #profile-stats-container {
+    grid-template-columns: 1fr !important;
+  }
+  #profile-stats-container .profile-stat-box {
+    grid-column: span 1 !important;
   }
   .profile-card {
     flex-direction: column;

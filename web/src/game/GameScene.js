@@ -16,14 +16,15 @@ export class GameScene extends Phaser.Scene {
     this.isPracticeTutorial = data.isPracticeTutorial || false;
     this.character = data.character || 'male';
     this.control = data.control || 'keyboard'; // 'gesture' or 'keyboard'
-    this.isInfMode = data.isInfMode || false;
+    this.isEndless = data.isEndless || false;
     this.isGameOver = false;
     this.chapterScore = 0; // Live score for regular chapters
-    this.infScore = 0;
-    this.infWavesSurvived = 0;
-    this.infPerfectWaves = 0;
-    this.infTilesCollected = 0;
-    this._infLastPlayerHp = 6; // track for perfect wave
+    this.endlessScore = 0;
+    this.endlessWaves = 0;
+    this.endlessPerfectWaves = 0;
+    this.endlessTilesCollected = 0;
+    this.endlessCombo = 1;         // combo multiplier, grows on perfect waves
+    this._endlessLastPlayerHp = 6; // track for perfect wave
   }
 
   preload() {
@@ -118,7 +119,7 @@ export class GameScene extends Phaser.Scene {
       this.load.spritesheet('bawang_effects', '/assets/fx/bawang_effects.png', { frameWidth: 64, frameHeight: 64 });
       // Chest loot - 5 different chest variations (single column, 4 frames each ~32x32)
       this.load.spritesheet('chest1_loot', '/assets/projectiles/shared/chest1.png', { frameWidth: 32, frameHeight: 32 });
-      this.load.spritesheet('chest2_loot', '/assets/projectiles/shared/chest2.png', { frameWidth: 34, frameHeight: 32 });
+      this.load.spritesheet('chest2_loot', '/assets/projectiles/shared/chest2.png', { frameWidth: 32, frameHeight: 32 });
       this.load.spritesheet('chest3_loot', '/assets/projectiles/shared/chest3.png', { frameWidth: 32, frameHeight: 32 });
       this.load.spritesheet('chest4_loot', '/assets/projectiles/shared/chest4.png', { frameWidth: 31, frameHeight: 32 });
       this.load.spritesheet('chest5_loot', '/assets/projectiles/shared/chest5.png', { frameWidth: 32, frameHeight: 32 });
@@ -159,7 +160,7 @@ export class GameScene extends Phaser.Scene {
       this.load.spritesheet('bawang_effects', '/assets/fx/bawang_effects.png', { frameWidth: 64, frameHeight: 64 });
       // Chest loot - 5 different chest variations (single column, 4 frames each ~32x32)
       this.load.spritesheet('chest1_loot', '/assets/projectiles/shared/chest1.png', { frameWidth: 32, frameHeight: 32 });
-      this.load.spritesheet('chest2_loot', '/assets/projectiles/shared/chest2.png', { frameWidth: 34, frameHeight: 32 });
+      this.load.spritesheet('chest2_loot', '/assets/projectiles/shared/chest2.png', { frameWidth: 32, frameHeight: 32 });
       this.load.spritesheet('chest3_loot', '/assets/projectiles/shared/chest3.png', { frameWidth: 32, frameHeight: 32 });
       this.load.spritesheet('chest4_loot', '/assets/projectiles/shared/chest4.png', { frameWidth: 31, frameHeight: 32 });
       this.load.spritesheet('chest5_loot', '/assets/projectiles/shared/chest5.png', { frameWidth: 32, frameHeight: 32 });
@@ -368,8 +369,8 @@ export class GameScene extends Phaser.Scene {
       }
     });
 
-    // Endless mode: treat like chapter 1 grid (legacy, isInfMode uses actual chapterId)
-    const isEndless = this.chapterId === 4;
+    // Legacy chapterId=4 endless (unused path kept for safety)
+    const isLegacyEndless = this.chapterId === 4;
 
     // 1. Initialize dynamic Grid based on Chapter ID
     let gridCols = 7, gridRows = 7;
@@ -392,8 +393,8 @@ export class GameScene extends Phaser.Scene {
       this.player.isInvincible = true;
     }
 
-    // Endless mode (legacy chapterId=4): 3 lives
-    if (isEndless) {
+    // Legacy chapterId=4: 3 lives
+    if (isLegacyEndless) {
       this.player.hp = 3;
       this.player.maxHp = 3;
     }
@@ -402,9 +403,8 @@ export class GameScene extends Phaser.Scene {
     this._adminCheckReady = this._checkAdminTestMode();
 
     // 3. Initialize Boss (attack logic only — sprite lives in HUDScene)
-    // Endless mode: create a boss (ch1 attacks) but with infinite HP so it never dies
     this.boss = new Boss(this, this.grid, this.isTutorial);
-    if (isEndless) {
+    if (isLegacyEndless || this.isEndless) {
       this.boss.hp = Infinity;
       this.boss.maxHp = Infinity;
     }
@@ -894,20 +894,22 @@ export class GameScene extends Phaser.Scene {
         // Common (rarity 0) — grey
         [
           { name: 'SPEED BOOST', apply: () => this._applyBuff('speed', 5000) },
-          { name: 'VITALITY', apply: () => { if (this.player.hp < this.player.maxHp) { this.player.hp++; this.events.emit('player:health_changed', this.player.hp); } } },
-          { name: 'SIGHT', apply: () => this._applyBuff('sight', 6000) },
+          { name: 'SIGHT', apply: () => this._applyBuff('sight', 7000) },
+          { name: 'DECOY', apply: () => this._applyBuff('decoy', 0) },
+          { name: 'COUNTER', apply: () => this._applyBuff('counter', 0) },
         ],
         // Rare (rarity 1) — blue
         [
           { name: 'THE ANCHOR', apply: () => this._applyBuff('anchor', 5000) },
-          { name: 'DASH', apply: () => this._applyBuff('dash', 8000) },
-          { name: 'HEALTH POTION', apply: () => { this.player.maxHp++; this.player.hp = this.player.maxHp; this.events.emit('player:health_changed', this.player.hp); } },
+          { name: 'TRIPLE DASH', apply: () => this._applyBuff('dash', 3) },
+          { name: 'OVERCLOCK', apply: () => this._applyBuff('overclock', 3000) },
         ],
         // Legendary (rarity 2) — gold
         [
           { name: 'INVINCIBILITY', apply: () => this._applyBuff('invincible', 5000) },
           { name: 'TIME STOP', apply: () => this._applyBuff('timestop', 3000) },
           { name: 'BLINK', apply: () => this._applyBuff('blink', 0) },
+          { name: 'GHOST', apply: () => this._applyBuff('ghost', 4000) },
         ],
       ];
 
@@ -990,45 +992,50 @@ export class GameScene extends Phaser.Scene {
 
     this.events.on('player:died', () => this.showGameOver(false));
     this.events.on('boss:died', () => {
-      if (this.isInfMode) return;
+      if (this.isEndless) return;
       this.showGameOver(true);
     });
 
-    // INF mode: accumulate score each wave
+    // Endless mode: accumulate score each wave
     this.events.on('inf:wave', (waveNum) => {
-      if (!this.isInfMode) return;
-      this.infWavesSurvived = waveNum;
+      if (!this.isEndless) return;
+      this.endlessWaves = waveNum;
       const hud = this.scene.get('HUDScene');
       const elapsedSecs = hud ? Math.floor(hud.elapsed / 1000) : 0;
-      // Perfect wave bonus (player didn't take damage since last wave)
-      if (this.player && this.player.hp === this._infLastPlayerHp) {
-        this.infPerfectWaves++;
+      // Perfect wave: player took no damage → grow combo streak (cap ×3.0)
+      if (this.player && this.player.hp === this._endlessLastPlayerHp) {
+        this.endlessPerfectWaves++;
+        this.endlessCombo = Math.min(3.0, 1.0 + this.endlessPerfectWaves * 0.1);
+      } else {
+        // Took damage — reset streak
+        this.endlessCombo = 1.0;
+        this.endlessPerfectWaves = 0;
       }
-      this._infLastPlayerHp = this.player ? this.player.hp : 6;
-      this.infScore = (this.infWavesSurvived * 100)
-        + (this.infTilesCollected * 500) // Increased pickup multiplier
-        + (elapsedSecs * 2)
-        + (this.infPerfectWaves * 25);
-      if (hud && hud.updateScore) hud.updateScore(this.infScore);
-      if (hud && hud.updateInfWave) hud.updateInfWave(waveNum);
+      this._endlessLastPlayerHp = this.player ? this.player.hp : 6;
+      const baseWave = this.endlessWaves * 100;
+      const baseTile = this.endlessTilesCollected * 500;
+      const baseTime = elapsedSecs * 2;
+      this.endlessScore = Math.floor((baseWave + baseTile + baseTime) * this.endlessCombo);
+      if (hud && hud.updateScore) hud.updateScore(this.endlessScore);
+      if (hud && hud.updateEndlessWave) hud.updateEndlessWave(waveNum);
+      else if (hud && hud.updateInfWave) hud.updateInfWave(waveNum);
     });
 
-    // INF mode: golden tile collected gives score bonus
+    // Endless mode: golden tile collected gives score bonus
     this.events.on('damageTile:collected', () => {
-      if (!this.isInfMode) return;
-      this.infTilesCollected++;
-
+      if (!this.isEndless) return;
+      this.endlessTilesCollected++;
       const hud = this.scene.get('HUDScene');
       const elapsedSecs = hud ? Math.floor(hud.elapsed / 1000) : 0;
-      this.infScore = (this.infWavesSurvived * 100)
-        + (this.infTilesCollected * 500) // Significantly increased score for pickup to make it rewarding
-        + (elapsedSecs * 2)
-        + (this.infPerfectWaves * 25);
-      if (hud && hud.updateScore) hud.updateScore(this.infScore);
+      const baseWave = this.endlessWaves * 100;
+      const baseTile = this.endlessTilesCollected * 500;
+      const baseTime = elapsedSecs * 2;
+      this.endlessScore = Math.floor((baseWave + baseTile + baseTime) * this.endlessCombo);
+      if (hud && hud.updateScore) hud.updateScore(this.endlessScore);
     });
 
     // Regular chapters: time-based score update every second (10 points per second)
-    if (!this.isInfMode) {
+    if (!this.isEndless) {
       this.time.addEvent({
         delay: 1000,
         repeat: -1,
@@ -1289,10 +1296,83 @@ export class GameScene extends Phaser.Scene {
   _applyBuff(type, durationMs) {
     if (type === 'speed') {
       this.player.isSpeedBoosted = true;
-      this.time.delayedCall(durationMs, () => this.player.isSpeedBoosted = false);
+      this.player.sprite.setTint(0xffff00);
+      this.time.delayedCall(durationMs, () => {
+        this.player.isSpeedBoosted = false;
+        this.player.sprite.clearTint();
+      });
+
     } else if (type === 'sight') {
+      // Show a yellow early-warning ring on all currently telegraphed tiles
+      // and extend future telegraphs with an earlier pre-warning while active
       this.player.hasSight = true;
-      this.time.delayedCall(durationMs, () => this.player.hasSight = false);
+      this.player.sprite.setTint(0x00ffcc);
+      // Pulse a teal aura around player
+      const aura = this.add.ellipse(
+        this.player.sprite.x, this.player.sprite.y,
+        this.grid.tileSize * 1.8, this.grid.tileSize * 1.8,
+        0x00ffcc, 0.18
+      ).setDepth(9);
+      const auraTween = this.tweens.add({ targets: aura, scaleX: 1.3, scaleY: 1.3, alpha: 0.05, yoyo: true, repeat: -1, duration: 600 });
+      this.time.delayedCall(durationMs, () => {
+        this.player.hasSight = false;
+        this.player.sprite.clearTint();
+        auraTween.stop();
+        aura.destroy();
+      });
+      // Update aura position each frame
+      this._sightAura = aura;
+
+    } else if (type === 'decoy') {
+      // Drop a decoy ghost on current tile — any attack hitting that tile this wave is blocked
+      const col = this.player.col;
+      const row = this.player.row;
+      const pos = this.grid.getPixelPosition(col, row);
+      const decoy = this.add.ellipse(pos.x, pos.y, this.grid.tileSize * 0.7, this.grid.tileSize * 0.7, 0xffffff, 0.35)
+        .setDepth(8);
+      this.tweens.add({ targets: decoy, alpha: 0.1, scaleX: 1.2, scaleY: 1.2, yoyo: true, repeat: -1, duration: 400 });
+      this._decoys = this._decoys || [];
+      this._decoys.push({ col, row, sprite: decoy });
+      // Despawn after one wave or 6 seconds
+      this.time.delayedCall(6000, () => {
+        this._decoys = (this._decoys || []).filter(d => d.sprite !== decoy);
+        decoy.destroy();
+      });
+
+    } else if (type === 'counter') {
+      // Absorb the next single hit — a shield that blocks exactly one damage instance
+      this.player.hasCounter = true;
+      this.player.sprite.setTint(0xff6600);
+      const ring = this.add.ellipse(
+        this.player.sprite.x, this.player.sprite.y,
+        this.grid.tileSize * 1.6, this.grid.tileSize * 1.6,
+        0xff6600, 0
+      ).setDepth(9).setStrokeStyle(3, 0xff6600, 0.9);
+      this.tweens.add({ targets: ring, scaleX: 1.15, scaleY: 1.15, alpha: 0.7, yoyo: true, repeat: -1, duration: 400 });
+      this._counterRing = ring;
+      // Auto-expire after 10 seconds if never triggered
+      this.time.delayedCall(10000, () => {
+        if (this.player.hasCounter) {
+          this.player.hasCounter = false;
+          this.player.sprite.clearTint();
+          if (this._counterRing && this._counterRing.active) this._counterRing.destroy();
+        }
+      });
+
+    } else if (type === 'overclock') {
+      // Triple move speed — much faster than regular speed boost
+      this.player.isSpeedBoosted = true;
+      this.player.isOverclocked = true;
+      this.player.sprite.setTint(0xff4400);
+      const shim = this.tweens.add({ targets: this.player.sprite, scaleX: this.player.sprite.scaleX * 1.08, scaleY: this.player.sprite.scaleY * 1.08, yoyo: true, repeat: -1, duration: 100 });
+      this.time.delayedCall(durationMs, () => {
+        this.player.isSpeedBoosted = false;
+        this.player.isOverclocked = false;
+        this.player.sprite.clearTint();
+        shim.stop();
+        this.player.sprite.setScale(this.player.sprite.scaleX);
+      });
+
     } else if (type === 'anchor') {
       this.player.isAnchored = true;
       this.player.sprite.setTint(0x4488ff);
@@ -1300,9 +1380,21 @@ export class GameScene extends Phaser.Scene {
         this.player.isAnchored = false;
         this.player.sprite.clearTint();
       });
+
     } else if (type === 'dash') {
+      // durationMs here is reused as dashCharges count
+      this.player.dashCharges = durationMs || 3;
       this.player.hasDash = true;
-      // Triggers auto-clear on next move in Player.js
+      this.player.sprite.setTint(0x88aaff);
+      // Auto-clear if charges not used within 12 seconds
+      this.time.delayedCall(12000, () => {
+        if (this.player.dashCharges > 0) {
+          this.player.dashCharges = 0;
+          this.player.hasDash = false;
+          this.player.sprite.clearTint();
+        }
+      });
+
     } else if (type === 'invincible') {
       this.player.isInvincible = true;
       this.player.sprite.setTint(0xffdd00);
@@ -1313,24 +1405,67 @@ export class GameScene extends Phaser.Scene {
         this.player.sprite.alpha = 1;
         shim.stop();
       });
+
     } else if (type === 'timestop') {
       this.events.emit('boss:timestop', true);
       this.time.delayedCall(durationMs, () => this.events.emit('boss:timestop', false));
+
     } else if (type === 'blink') {
+      let targetCol, targetRow;
       if (this.goldenTile) {
-        // Flash fx
+        targetCol = this.goldenTile.col;
+        targetRow = this.goldenTile.row;
+      } else {
+        // No golden tile — pick the safe tile farthest from the player
+        let bestDist = -1;
+        for (let r = 0; r < this.grid.rows; r++) {
+          for (let c = 0; c < this.grid.cols; c++) {
+            if (c === this.player.col && r === this.player.row) continue;
+            if (this.grid.cells[r][c].status === 'locked') continue;
+            const dist = Math.abs(c - this.player.col) + Math.abs(r - this.player.row);
+            if (dist > bestDist) { bestDist = dist; targetCol = c; targetRow = r; }
+          }
+        }
+      }
+      if (targetCol !== undefined) {
         const fx = this.add.sprite(this.player.sprite.x, this.player.sprite.y, 'lightning_burst');
         fx.setScale(1.5).setDepth(200).play('anim_lightning_burst');
         fx.once('animationcomplete', () => fx.destroy());
-
-        // TP directly to the target tile
-        this.player.col = this.goldenTile.col;
-        this.player.row = this.goldenTile.row;
+        this.player.col = targetCol;
+        this.player.row = targetRow;
         const tgt = this.grid.getPixelPosition(this.player.col, this.player.row);
         this.player.sprite.x = tgt.x;
         this.player.sprite.y = tgt.y;
         this.events.emit('player:moved', this.player.col, this.player.row);
       }
+
+    } else if (type === 'ghost') {
+      // Player becomes ethereal — standing on a telegraphed/red tile does NOT deal damage
+      this.player.isGhost = true;
+      this.player.sprite.setTint(0xaaffee);
+      this.player.sprite.setAlpha(0.55);
+      const ghostShim = this.tweens.add({ targets: this.player.sprite, alpha: 0.3, yoyo: true, repeat: -1, duration: 350 });
+      // Floating ghost particles
+      const ghostFx = this.time.addEvent({
+        delay: 120,
+        repeat: Math.floor(durationMs / 120),
+        callback: () => {
+          if (!this.player.sprite.active) return;
+          const p = this.add.ellipse(
+            this.player.sprite.x + Phaser.Math.Between(-12, 12),
+            this.player.sprite.y + Phaser.Math.Between(-12, 12),
+            8, 8, 0xaaffee, 0.6
+          ).setDepth(12);
+          this.tweens.add({ targets: p, alpha: 0, y: p.y - 18, duration: 500, onComplete: () => p.destroy() });
+        }
+      });
+      this.time.delayedCall(durationMs, () => {
+        this.player.isGhost = false;
+        this.player.sprite.clearTint();
+        this.player.sprite.alpha = 1;
+        ghostShim.stop();
+        ghostFx.remove();
+      });
     }
   }
 
@@ -1697,14 +1832,14 @@ export class GameScene extends Phaser.Scene {
       const hud = this.scene.get('HUDScene');
       const elapsedSecs = hud ? Math.floor(hud.elapsed / 1000) : 0;
 
-      // INF mode: use accumulated inf score, skip chapter unlock logic
-      if (this.isInfMode) {
+      // Endless mode: save accumulated score, skip chapter unlock logic
+      if (this.isEndless) {
         this.scene.stop('HUDScene');
         state.set('lastGameResult', {
           chapterId: this.chapterId, isVictory: false,
-          timeSurvived: elapsedSecs, score: this.infScore,
-          wavesSurvived: this.infWavesSurvived,
-          isInfMode: true,
+          timeSurvived: elapsedSecs, score: this.endlessScore,
+          wavesSurvived: this.endlessWaves,
+          isEndless: true,
           control: this.control,
           character: this.character
         });
@@ -1765,7 +1900,6 @@ export class GameScene extends Phaser.Scene {
         chapterId: this.chapterId, isVictory,
         timeSurvived: elapsedSecs, score: finalScore,
         isEndless: false,
-        isInfMode: this.isInfMode,
         control: this.control,
         character: this.character
       });

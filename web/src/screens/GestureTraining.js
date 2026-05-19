@@ -114,7 +114,7 @@ export const GestureTraining = {
                 </button>
                 <input type="file" id="import-file-input" accept=".json" style="display: none;" />
                 <button class="menu-btn text-red" id="btn-reset-gestures" style="font-size: var(--text-xs); padding: 0;">
-                  RESET ALL
+                  RESET
                 </button>
               </div>
 
@@ -137,7 +137,7 @@ export const GestureTraining = {
     this.fromCharSelect = params.fromCharSelect || false;
     this.returnChapterId = params.chapterId || 1;
     this.returnGender = params.gender || null;
-    this.returnIsInfMode = params.isInfMode || false;
+    this.returnIsEndless = params.isEndless || false;
 
     // Force canvas size to match video aspect locally
     this.canvasEl.width = 640;
@@ -150,7 +150,7 @@ export const GestureTraining = {
       e.stopPropagation();
       backBtn.removeEventListener('touchend', handleBack);
       backBtn.removeEventListener('click', handleBack);
-      try { await gestureController.saveModel(); } catch (e) { console.warn('[GestureTraining] saveModel on back failed:', e); }
+      try { await gestureController.saveModel({ syncToServer: true }); } catch (e) { console.warn('[GestureTraining] saveModel on back failed:', e); }
       try { gestureController.stopCamera(); } catch (e) { console.warn('[GestureTraining] stopCamera on back failed:', e); }
       if (window.__screenManager.canGoBack()) {
         window.__screenManager.back();
@@ -208,6 +208,23 @@ export const GestureTraining = {
         this.activeDir = btn.dataset.dir;
         this._updateProgressUI(el);
       });
+
+      // Right-click to reset a single direction
+      btn.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        this._showResetModal(el, btn.dataset.dir);
+      });
+
+      // Long-press for mobile (600ms)
+      let longPressTimer = null;
+      btn.addEventListener('touchstart', (e) => {
+        longPressTimer = setTimeout(() => {
+          longPressTimer = null;
+          this._showResetModal(el, btn.dataset.dir);
+        }, 600);
+      }, { passive: true });
+      btn.addEventListener('touchend', () => { if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; } });
+      btn.addEventListener('touchmove', () => { if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; } });
     });
 
     // Record button bindings
@@ -279,12 +296,8 @@ export const GestureTraining = {
     });
 
     // Reset gestures
-    el.querySelector('#btn-reset-gestures').addEventListener('click', async () => {
-      if (confirm('Reset all trained gestures? This cannot be undone.')) {
-        await gestureController.resetAllGestures();
-        alert('All gestures cleared.');
-        this._updateUIFromCounts({});
-      }
+    el.querySelector('#btn-reset-gestures').addEventListener('click', () => {
+      this._showResetModal(el);
     });
     
     // Export gestures
@@ -533,6 +546,192 @@ export const GestureTraining = {
     });
   },
 
+  _showResetModal(el, preselectedDir = null) {
+    const existing = document.getElementById('gesture-reset-modal');
+    if (existing) existing.remove();
+
+    const dirs = [
+      { dir: 'up',    label: 'UP',    icon: '▲' },
+      { dir: 'down',  label: 'DOWN',  icon: '▼' },
+      { dir: 'left',  label: 'LEFT',  icon: '◄' },
+      { dir: 'right', label: 'RIGHT', icon: '►' },
+      { dir: 'idle',  label: 'REST',  icon: '✋' },
+    ];
+
+    const counts = gestureController.getSampleCounts();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'gesture-reset-modal';
+    overlay.style.cssText = `
+      position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 99998; animation: fsFadeIn 0.2s ease forwards;
+    `;
+
+    overlay.innerHTML = `
+      <div style="
+        background: #1a1510; border: 2px solid #555; border-radius: 14px;
+        padding: 20px 18px 16px; max-width: 340px; width: 92vw;
+        font-family: 'VCR', sans-serif; color: #e4cfc0;
+        display: flex; flex-direction: column; gap: 14px;
+      ">
+        <div style="text-align: center;">
+          <h3 style="margin: 0 0 4px; font-size: clamp(0.9rem, 3.5vw, 1.1rem); letter-spacing: 2px; text-transform: uppercase;">
+            Reset Gestures
+          </h3>
+          <p style="font-size: clamp(0.6rem, 2.2vw, 0.72rem); color: #888; margin: 0; letter-spacing: 1px;">
+            Tap to select, then confirm.
+          </p>
+        </div>
+
+        <div id="reset-dir-list" style="
+          display: grid;
+          grid-template-columns: repeat(5, 1fr);
+          gap: 8px;
+        ">
+          ${dirs.map(({ dir, label, icon }) => {
+            const count = counts[dir] || 0;
+            const isSelected = preselectedDir === dir;
+            const borderStyle = isSelected ? '2px solid #e4cfc0' : '2px solid #444';
+            const bgStyle = isSelected ? 'rgba(228,207,192,0.1)' : 'rgba(255,255,255,0.04)';
+            const iconHtml = dir === 'idle'
+              ? `<img src="/assets/ui/hand.png" style="width:28px;height:28px;object-fit:contain;image-rendering:pixelated;" />`
+              : `<span style="font-size:1.3rem;line-height:1;">${icon}</span>`;
+            return `
+              <div class="reset-tile" data-dir="${dir}" data-selected="${isSelected ? '1' : '0'}" style="
+                display: flex; flex-direction: column; align-items: center; justify-content: center;
+                gap: 5px; padding: 10px 4px 8px;
+                background: ${bgStyle}; border: ${borderStyle};
+                border-radius: 10px; cursor: pointer;
+                transition: border-color 0.15s, background 0.15s;
+                user-select: none; -webkit-user-select: none;
+                touch-action: manipulation;
+              ">
+                ${iconHtml}
+                <span style="font-size: clamp(0.55rem, 2vw, 0.68rem); letter-spacing: 1px;">${label}</span>
+                <span style="font-size: clamp(0.5rem, 1.5vw, 0.6rem); color: ${count > 0 ? '#aaa' : '#555'};">${count}</span>
+              </div>
+            `;
+          }).join('')}
+        </div>
+
+        <button id="reset-select-all" style="
+          background: transparent; border: 1px solid #555; color: #e74c3c;
+          font-family: 'VCR', sans-serif; padding: 7px; cursor: pointer;
+          border-radius: 6px; font-size: clamp(0.65rem, 2.2vw, 0.75rem);
+          letter-spacing: 1px; width: 100%; touch-action: manipulation;
+        ">SELECT ALL</button>
+
+        <p id="reset-modal-msg" style="
+          font-size: clamp(0.6rem, 2vw, 0.7rem); color: #e74c3c; text-align: center;
+          min-height: 14px; margin: -6px 0 -4px;
+        "></p>
+
+        <div style="display: flex; gap: 8px;">
+          <button id="reset-modal-cancel" style="
+            flex: 1; background: transparent; border: 2px solid #555; color: #aaa;
+            font-family: 'VCR', sans-serif; padding: 10px 6px; cursor: pointer;
+            border-radius: 6px; font-size: clamp(0.65rem, 2.5vw, 0.8rem); letter-spacing: 1px;
+            touch-action: manipulation;
+          ">CANCEL</button>
+          <button id="reset-modal-confirm" style="
+            flex: 1; background: #e74c3c; border: 2px solid #111; color: #fff;
+            font-family: 'VCR', sans-serif; font-weight: bold; padding: 10px 6px;
+            cursor: pointer; border-radius: 6px; font-size: clamp(0.65rem, 2.5vw, 0.8rem); letter-spacing: 1px;
+            touch-action: manipulation;
+          ">RESET</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    const tiles = overlay.querySelectorAll('.reset-tile');
+    const selectAllBtn = overlay.querySelector('#reset-select-all');
+    const msg = overlay.querySelector('#reset-modal-msg');
+
+    const isSelected = (tile) => tile.dataset.selected === '1';
+
+    const setTile = (tile, selected) => {
+      tile.dataset.selected = selected ? '1' : '0';
+      tile.style.border = selected ? '2px solid #e4cfc0' : '2px solid #444';
+      tile.style.background = selected ? 'rgba(228,207,192,0.12)' : 'rgba(255,255,255,0.04)';
+    };
+
+    const updateSelectAllLabel = () => {
+      const allSelected = [...tiles].every(t => isSelected(t));
+      selectAllBtn.textContent = allSelected ? 'DESELECT ALL' : 'SELECT ALL';
+      selectAllBtn.style.borderColor = allSelected ? '#e74c3c' : '#555';
+    };
+    updateSelectAllLabel();
+
+    tiles.forEach(tile => {
+      const toggle = (e) => {
+        e.preventDefault();
+        setTile(tile, !isSelected(tile));
+        msg.textContent = '';
+        updateSelectAllLabel();
+      };
+      tile.addEventListener('click', toggle);
+      tile.addEventListener('touchend', toggle, { passive: false });
+    });
+
+    selectAllBtn.addEventListener('click', () => {
+      const allSelected = [...tiles].every(t => isSelected(t));
+      tiles.forEach(t => setTile(t, !allSelected));
+      msg.textContent = '';
+      updateSelectAllLabel();
+    });
+
+    const close = () => overlay.remove();
+    overlay.querySelector('#reset-modal-cancel').addEventListener('click', close);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+
+    overlay.querySelector('#reset-modal-confirm').addEventListener('click', async () => {
+      const selected = [...tiles].filter(t => isSelected(t)).map(t => t.dataset.dir);
+      if (selected.length === 0) {
+        msg.textContent = 'Select at least one gesture to reset.';
+        return;
+      }
+
+      const confirmBtn = overlay.querySelector('#reset-modal-confirm');
+      confirmBtn.textContent = 'RESETTING...';
+      confirmBtn.disabled = true;
+
+      if (selected.length === dirs.length) {
+        await gestureController.resetAllGestures();
+        this._updateUIFromCounts({});
+      } else {
+        for (const dir of selected) {
+          await gestureController.resetGestureClass(dir);
+        }
+        this._updateUIFromCounts();
+      }
+
+      close();
+      const names = selected.map(d => d.toUpperCase()).join(', ');
+      this._showToast(`Cleared: ${names}`);
+    });
+  },
+
+  _showToast(message) {
+    const toast = document.createElement('div');
+    toast.textContent = message;
+    toast.style.cssText = `
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.85); color: white; padding: 10px 20px;
+      border-radius: 8px; font-family: 'GigaSaturn', sans-serif;
+      font-size: clamp(0.6rem,2vw,0.8rem); z-index: 99999;
+      pointer-events: none; letter-spacing: 1px;
+      animation: fsFadeIn 0.3s ease forwards;
+    `;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+      toast.style.animation = 'fsFadeOut 0.4s ease forwards';
+      setTimeout(() => toast.remove(), 400);
+    }, 2500);
+  },
+
   _showRecordingHint(el, direction, instruction) {
     this._hideRecordingHint(); // remove any existing
     const hint = document.createElement('div');
@@ -581,7 +780,7 @@ export const GestureTraining = {
   },
 
   async _completeTutorial() {
-    await gestureController.saveModel();
+    await gestureController.saveModel({ syncToServer: true });
     state.set('gestureSetupComplete', true);
     state.set('selectedControl', 'gesture');
     await state.saveGestureSetupState();
@@ -591,7 +790,7 @@ export const GestureTraining = {
       gestureController.stopCamera();
       window.__screenManager.navigate('character-select', {
         chapterId: this.returnChapterId,
-        isInfMode: this.returnIsInfMode
+        isEndless: this.returnIsEndless
       }, false);
     }
     // else: opened Gesture Setup directly — stay on screen, model is saved

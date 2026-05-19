@@ -112,7 +112,7 @@ export const CharacterSelect = {
             window.__screenManager.navigate('gesture-training', {
               fromCharSelect: true,
               chapterId: this._params.chapterId || 1,
-              isInfMode: this._params.isInfMode || false,
+              isEndless: this._params.isEndless || false,
               gender
             });
             return;
@@ -122,8 +122,8 @@ export const CharacterSelect = {
         state.set('selectedCharacter', gender);
         state.set('selectedControl', control);
         const chapterId = this._params.chapterId || 1;
-        const isInfMode = this._params.isInfMode || false;
-        window.__screenManager.navigate('game-screen', { chapterId, character: gender, control, isInfMode });
+        const isEndless = this._params.isEndless || false;
+        window.__screenManager.navigate('game-screen', { chapterId, character: gender, control, isEndless });
       });
     });
   },

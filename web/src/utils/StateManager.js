@@ -10,7 +10,7 @@ class StateManager {
       gestureModelTrained: false,
       settings: this._loadSettings(),
       user: null,
-      isAuthenticated: false,
+      isAuthenticated: !this._isGuest(),
       tutorialComplete: this._loadTutorialState(),
       gestureSetupComplete: this._loadGestureSetupState(),
       practiceTutorialComplete: this._loadPracticeTutorialState(),
@@ -260,7 +260,13 @@ class StateManager {
     try {
       localStorage.removeItem('bata_takbo_gesture_setup');
       localStorage.removeItem('bata_takbo_practice_tutorial');
+      localStorage.removeItem('bata_takbo_preset_avatar');
     } catch(e) {}
+
+    // Wipe IDB gesture model so it never bleeds to guest or a different account
+    if (window.__gestureController) {
+      try { await window.__gestureController.resetAllGestures(); } catch(e) {}
+    }
 
     // Reset in-memory state so it doesn't bleed to the next user
     this._state.settings = this._loadSettings();
@@ -273,6 +279,7 @@ class StateManager {
 
 
     this.set('isAuthenticated', false);
+    try { localStorage.removeItem('guest_session'); } catch(e) {}
     this.set('user', null);
 
     if (window.__screenManager) {
@@ -308,9 +315,15 @@ class StateManager {
       return;
     }
 
+    this.set('isAuthenticated', true);
+
     let gestureModel = null;
     if (window.__gestureController && window.__gestureController.classifier) {
-      gestureModel = window.__gestureController.classifier.exportData();
+      const exported = window.__gestureController.classifier.exportData();
+      // Only include if it has actual data — never overwrite server with null/empty
+      if (exported && Object.keys(exported).length > 0) {
+        gestureModel = exported;
+      }
     }
 
     const payload = {
@@ -320,8 +333,10 @@ class StateManager {
       practiceTutorialComplete: this._state.practiceTutorialComplete,
       chapterProgress: this._state.chapterProgress,
       bestiary: this._state.bestiary,
-      gestureModel
     };
+
+    // Only attach gestureModel if we actually have one to avoid wiping server data
+    if (gestureModel) payload.gestureModel = gestureModel;
 
     try {
       const res = await fetch('/auth/save-data', {
@@ -372,6 +387,8 @@ class StateManager {
       return;
     }
 
+    this.set('isAuthenticated', true);
+
     // Wipe any leftover state so a stale value can never satisfy `state.get(...)`.
     this._resetAccountState();
 
@@ -418,7 +435,8 @@ class StateManager {
           console.error('[LOAD] failed to import gesture model:', e);
         }
       } else if (!gameData.gestureModel && window.__gestureController) {
-        // Account has no saved model — clear any stale local IDB model
+        // Account exists but has no saved gesture model — wipe IDB so stale
+        // gestures from another account or guest session don't bleed through.
         try { await window.__gestureController.resetAllGestures(); } catch(e) {}
       }
 

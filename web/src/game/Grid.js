@@ -623,23 +623,42 @@ export class Grid {
   telegraph(col, row, durationMs = 1500) {
     const x = this.offsetX + col * this.tileSize;
     const y = this.offsetY + row * this.tileSize;
+    const cx = x + this.tileSize / 2;
+    const cy = y + this.tileSize / 2;
 
-    const tempTile = this.scene.add.image(x + this.tileSize / 2, y + this.tileSize / 2, 'red_tile');
+    const hasSight = this.scene.player && this.scene.player.hasSight;
+
+    // SIGHT powerup: show an early yellow pre-warning for the first 40% of the telegraph window
+    if (hasSight) {
+      const preWarn = this.scene.add.rectangle(cx, cy, this.tileSize, this.tileSize, 0xffff00, 0)
+        .setDepth(5).setStrokeStyle(3, 0xffff00, 0.9);
+      this.scene.tweens.add({ targets: preWarn, fillAlpha: 0.25, duration: 120 });
+      this.scene.time.delayedCall(durationMs * 0.4, () => {
+        if (preWarn && preWarn.active) {
+          this.scene.tweens.add({ targets: preWarn, fillAlpha: 0, strokeAlpha: 0, duration: 200, onComplete: () => preWarn.destroy() });
+        }
+      });
+    }
+
+    const tempTile = this.scene.add.image(cx, cy, 'red_tile');
     tempTile.setDisplaySize(this.tileSize, this.tileSize);
-    tempTile.setDepth(5); // Render behind player (depth 10) but above grid background (depth 0)
-    // Set initial alpha (mostly solid)
-    tempTile.setAlpha(0.85);
-
-    // Stay solid for most of the duration, then fade out quickly at the end
-    this.scene.tweens.add({
-      targets: tempTile,
-      alpha: 0,
-      delay: durationMs * 0.75,
-      duration: durationMs * 0.25,
-      ease: 'Linear',
-      onComplete: () => {
-        if (tempTile && tempTile.active) tempTile.destroy();
-      }
+    tempTile.setDepth(5);
+    // With sight: delay the red tile so player sees yellow first, then red
+    const redDelay = hasSight ? durationMs * 0.35 : 0;
+    tempTile.setAlpha(0);
+    this.scene.time.delayedCall(redDelay, () => {
+      if (!tempTile.active) return;
+      tempTile.setAlpha(0.85);
+      // Stay solid for most of the remaining duration, then fade out quickly at the end
+      const remaining = durationMs - redDelay;
+      this.scene.tweens.add({
+        targets: tempTile,
+        alpha: 0,
+        delay: remaining * 0.75,
+        duration: remaining * 0.25,
+        ease: 'Linear',
+        onComplete: () => { if (tempTile && tempTile.active) tempTile.destroy(); }
+      });
     });
   }
 

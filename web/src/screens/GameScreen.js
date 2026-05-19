@@ -185,7 +185,7 @@ export const GameScreen = {
     this.chapterId = chapterId;
     const isTutorial = params.isTutorial || false;
     const isPracticeTutorial = params.isPracticeTutorial || false;
-    const isInfMode = params.isInfMode || false;
+    const isEndless = params.isEndless || false;
     const character = params.character || state.get('selectedCharacter') || 'male';
     const control = params.control || state.get('selectedControl') || 'keyboard';
     state.set('selectedCharacter', character);
@@ -266,7 +266,7 @@ export const GameScreen = {
 
     // Add scenes manually ONCE with the correct data, preventing double-start
     this.game.events.on('ready', () => {
-      this.game.scene.add('GameScene', GameScene, true, { chapterId, isTutorial, isPracticeTutorial, isInfMode, character, control });
+      this.game.scene.add('GameScene', GameScene, true, { chapterId, isTutorial, isPracticeTutorial, isEndless, character, control });
       this.game.scene.add('HUDScene', HUDScene, false);
       // GameScene.create() will call scene.launch('HUDScene') when ready
     });
@@ -399,7 +399,7 @@ export const GameScreen = {
     const btnQuit = el.querySelector('#btn-quit');
     if (btnRestart) {
       btnRestart.addEventListener('click', () => {
-        window.__screenManager.navigate('game-screen', { chapterId, character, control, isInfMode }, false);
+        window.__screenManager.navigate('game-screen', { chapterId, character, control, isEndless }, false);
       });
     }
     if (btnQuit) {
