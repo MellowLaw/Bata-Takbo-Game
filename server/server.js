@@ -1150,14 +1150,27 @@ app.post('/leaderboard/endless', authMiddleware, async (req, res) => {
   }
 });
 
-// Get Endless Mode leaderboard — ranked by waves DESC then score DESC (top 20 per chapter + control type, best run per user)
+// Get Endless Mode leaderboard — supports sortBy=waves (default) or sortBy=score
+// waves: waves DESC, time ASC (faster wins ties), score DESC
+// score: score DESC, waves DESC, time ASC
+// Best run per user shown only
 app.get('/leaderboard/endless', async (req, res) => {
   try {
-    const { chapterId, controlType } = req.query;
+    const { chapterId, controlType, sortBy } = req.query;
     if (!chapterId || ![1, 2, 3].includes(Number(chapterId))) return res.status(400).json({ error: 'Invalid or missing chapterId' });
     if (!controlType || !['gesture', 'keyboard'].includes(controlType)) return res.status(400).json({ error: 'Invalid or missing controlType' });
 
-    // Best run per user = the run with most waves; score breaks ties
+    const mode = sortBy === 'score' ? 'score' : 'waves';
+
+    // innerOrder: picks the user's single best run for this board type
+    // outerOrder: ranks all users against each other
+    const innerOrder = mode === 'score'
+      ? 'i.score DESC, i.waves_survived DESC, i.survival_seconds ASC'
+      : 'i.waves_survived DESC, i.survival_seconds ASC, i.score DESC';
+    const outerOrder = mode === 'score'
+      ? 'score DESC, waves_survived DESC, survival_seconds ASC'
+      : 'waves_survived DESC, survival_seconds ASC, score DESC';
+
     const rows = await db.all(`
       SELECT username, waves_survived, score, survival_seconds
       FROM (
@@ -1165,7 +1178,7 @@ app.get('/leaderboard/endless', async (req, res) => {
                i.waves_survived, i.score, i.survival_seconds,
                ROW_NUMBER() OVER (
                  PARTITION BY i.user_id
-                 ORDER BY i.waves_survived DESC, i.score DESC
+                 ORDER BY ${innerOrder}
                ) AS rn
         FROM inf_scores i
         INNER JOIN users u ON i.user_id = u.id
@@ -1173,20 +1186,17 @@ app.get('/leaderboard/endless', async (req, res) => {
           AND u.banned = FALSE AND u.is_admin = FALSE
       ) ranked
       WHERE rn = 1
-      ORDER BY waves_survived DESC, score DESC
+      ORDER BY ${outerOrder}
       LIMIT 20
     `, [Number(chapterId), controlType]);
 
-    return res.status(200).json({ entries: rows });
+    return res.status(200).json({ entries: rows, sortBy: mode });
   } catch (err) {
     console.error('Endless leaderboard fetch error:', err);
     return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// Legacy alias — redirect old /leaderboard/inf calls to /leaderboard/endless
-app.post('/leaderboard/inf', (req, res) => res.redirect(307, '/leaderboard/endless'));
-app.get('/leaderboard/inf', (req, res) => res.redirect(301, `/leaderboard/endless?${new URLSearchParams(req.query)}`));
 
 // Initialize database and start server
 initDb().then(database => {

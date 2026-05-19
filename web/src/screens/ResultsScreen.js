@@ -384,17 +384,28 @@ export const ResultsScreen = {
       });
       if (res.ok) {
         try {
-          const rankRes = await fetch(`/leaderboard/endless?chapterId=${result.chapterId}&controlType=${controlType}`);
-          if (rankRes.ok) {
-            const { entries } = await rankRes.json();
-            const username = state.get('user')?.username;
-            const rank = entries.findIndex(e => e.username === username) + 1;
-            if (rank > 0) {
-              const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '';
-              if (statusEl) statusEl.textContent = `✓ Submitted! Your rank: ${medal}#${rank} on Endless Mode leaderboard`;
-            } else {
-              if (statusEl) statusEl.textContent = '✓ Score submitted to Endless Mode leaderboard!';
-            }
+          const username = state.get('user')?.username;
+          const base = `/leaderboard/endless?chapterId=${result.chapterId}&controlType=${controlType}`;
+          const [wavesRes, scoreRes] = await Promise.all([
+            fetch(`${base}&sortBy=waves`),
+            fetch(`${base}&sortBy=score`)
+          ]);
+          let bestRank = 0;
+          if (wavesRes.ok) {
+            const { entries } = await wavesRes.json();
+            const r = entries.findIndex(e => e.username === username) + 1;
+            if (r > 0) bestRank = bestRank === 0 ? r : Math.min(bestRank, r);
+          }
+          if (scoreRes.ok) {
+            const { entries } = await scoreRes.json();
+            const r = entries.findIndex(e => e.username === username) + 1;
+            if (r > 0) bestRank = bestRank === 0 ? r : Math.min(bestRank, r);
+          }
+          if (bestRank > 0) {
+            const medal = bestRank === 1 ? '🥇' : bestRank === 2 ? '🥈' : bestRank === 3 ? '🥉' : '';
+            if (statusEl) statusEl.textContent = `✓ Submitted! Best rank: ${medal}#${bestRank} on Endless Mode leaderboard`;
+          } else {
+            if (statusEl) statusEl.textContent = '✓ Score submitted to Endless Mode leaderboard!';
           }
         } catch(_) {
           if (statusEl) statusEl.textContent = '✓ Score submitted to Endless Mode leaderboard!';

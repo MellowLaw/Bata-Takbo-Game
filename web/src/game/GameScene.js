@@ -690,8 +690,8 @@ export class GameScene extends Phaser.Scene {
         this.events.emit('damageTile:collected');
         this.boss.takeDamage();
 
-        // Add score for collecting golden tile (regular chapters)
-        if (!this.isInfMode) {
+        // Add score for collecting golden tile (regular chapters only)
+        if (!this.isEndless) {
           this.chapterScore += 1000; // 1000 points per golden tile
           const hud = this.scene.get('HUDScene');
           if (hud && hud.updateScore) hud.updateScore(this.chapterScore);
@@ -859,7 +859,6 @@ export class GameScene extends Phaser.Scene {
           { name: 'INVINCIBILITY', apply: () => this._applyBuff('invincible', 5000) },
           { name: 'TIME STOP', apply: () => this._applyBuff('timestop', 3000) },
           { name: 'BLINK', apply: () => this._applyBuff('blink', 0) },
-          { name: 'GHOST', apply: () => this._applyBuff('ghost', 4000) },
         ],
       ];
 
@@ -893,7 +892,6 @@ export class GameScene extends Phaser.Scene {
         this._horizontalProjectilesStarted = true;
         this.queueHorizontalProjectile();
       }
-
       // Revenge Ultimate: 2s after player damages boss
       if (this.chapterId === 1 && !this._ultCooldown && !this.isGameOver) {
         this._ultCooldown = true;
@@ -946,41 +944,33 @@ export class GameScene extends Phaser.Scene {
       this.showGameOver(true);
     });
 
-    // Endless mode: accumulate score each wave
-    this.events.on('inf:wave', (waveNum) => {
+    // Endless mode: accumulate score each wave (additive, never recalculates from scratch)
+    this.events.on('inf:wave', (waveNum, speed) => {
       if (!this.isEndless) return;
       this.endlessWaves = waveNum;
       const hud = this.scene.get('HUDScene');
-      const elapsedSecs = hud ? Math.floor(hud.elapsed / 1000) : 0;
-      // Perfect wave: player took no damage → grow combo streak (cap ×3.0)
-      if (this.player && this.player.hp === this._endlessLastPlayerHp) {
+      // Perfect wave: player took no damage this wave → grow combo streak (cap ×5.0)
+      if (this.player && this.player.hp >= this._endlessLastPlayerHp) {
         this.endlessPerfectWaves++;
-        this.endlessCombo = Math.min(3.0, 1.0 + this.endlessPerfectWaves * 0.1);
+        this.endlessCombo = Math.min(5.0, 1.0 + this.endlessPerfectWaves * 0.2);
       } else {
-        // Took damage — reset streak
+        // Took damage — reset streak back to 1x
         this.endlessCombo = 1.0;
         this.endlessPerfectWaves = 0;
       }
       this._endlessLastPlayerHp = this.player ? this.player.hp : 6;
-      const baseWave = this.endlessWaves * 100;
-      const baseTile = this.endlessTilesCollected * 500;
-      const baseTime = elapsedSecs * 2;
-      this.endlessScore = Math.floor((baseWave + baseTile + baseTime) * this.endlessCombo);
+      // Add 100 points per wave × combo — score only ever goes up
+      this.endlessScore += Math.floor(100 * this.endlessCombo);
       if (hud && hud.updateScore) hud.updateScore(this.endlessScore);
-      if (hud && hud.updateEndlessWave) hud.updateEndlessWave(waveNum);
-      else if (hud && hud.updateInfWave) hud.updateInfWave(waveNum);
+      if (hud && hud.updateInfWave) hud.updateInfWave(waveNum, this.endlessCombo, speed);
     });
 
-    // Endless mode: golden tile collected gives score bonus
+    // Endless mode: sword pickup gives flat bonus × combo — always additive
     this.events.on('damageTile:collected', () => {
       if (!this.isEndless) return;
       this.endlessTilesCollected++;
+      this.endlessScore += Math.floor(500 * this.endlessCombo);
       const hud = this.scene.get('HUDScene');
-      const elapsedSecs = hud ? Math.floor(hud.elapsed / 1000) : 0;
-      const baseWave = this.endlessWaves * 100;
-      const baseTile = this.endlessTilesCollected * 500;
-      const baseTime = elapsedSecs * 2;
-      this.endlessScore = Math.floor((baseWave + baseTile + baseTime) * this.endlessCombo);
       if (hud && hud.updateScore) hud.updateScore(this.endlessScore);
     });
 
@@ -1014,8 +1004,18 @@ export class GameScene extends Phaser.Scene {
     this._chapterParticleKey = chapterParticleKey;
     this._chapterParticleColor = chapterParticleColor;
 
+    // In endless mode, start horizontal projectiles on a timer (boss:damaged never fires since hp=Infinity)
+    if (this.isEndless && !this._horizontalProjectilesStarted) {
+      this.time.delayedCall(5000, () => {
+        if (!this.isGameOver && !this._horizontalProjectilesStarted) {
+          this._horizontalProjectilesStarted = true;
+          this.queueHorizontalProjectile();
+        }
+      });
+    }
+
     // Launch HUD
-    this.scene.launch('HUDScene', { chapterId: this.chapterId, character: this.character, control: this.control, isPracticeTutorial: this.isPracticeTutorial, isInfMode: this.isInfMode });
+    this.scene.launch('HUDScene', { chapterId: this.chapterId, character: this.character, control: this.control, isPracticeTutorial: this.isPracticeTutorial, isEndless: this.isEndless });
 
     // Gesture controller — only active when gesture control was selected
     if (this.control === 'gesture') {
@@ -1365,33 +1365,6 @@ export class GameScene extends Phaser.Scene {
         this.events.emit('player:moved', this.player.col, this.player.row);
       }
 
-    } else if (type === 'ghost') {
-      // Player becomes ethereal — standing on a telegraphed/red tile does NOT deal damage
-      this.player.isGhost = true;
-      this.player.sprite.setTint(0xaaffee);
-      this.player.sprite.setAlpha(0.55);
-      const ghostShim = this.tweens.add({ targets: this.player.sprite, alpha: 0.3, yoyo: true, repeat: -1, duration: 350 });
-      // Floating ghost particles
-      const ghostFx = this.time.addEvent({
-        delay: 120,
-        repeat: Math.floor(durationMs / 120),
-        callback: () => {
-          if (!this.player.sprite.active) return;
-          const p = this.add.ellipse(
-            this.player.sprite.x + Phaser.Math.Between(-12, 12),
-            this.player.sprite.y + Phaser.Math.Between(-12, 12),
-            8, 8, 0xaaffee, 0.6
-          ).setDepth(12);
-          this.tweens.add({ targets: p, alpha: 0, y: p.y - 18, duration: 500, onComplete: () => p.destroy() });
-        }
-      });
-      this.time.delayedCall(durationMs, () => {
-        this.player.isGhost = false;
-        this.player.sprite.clearTint();
-        this.player.sprite.alpha = 1;
-        ghostShim.stop();
-        ghostFx.remove();
-      });
     }
   }
 
@@ -1585,7 +1558,16 @@ export class GameScene extends Phaser.Scene {
       this._gestureHoldTimer = 0;
     }
 
-    if (this.chapterId === 1 && this.horizontalProjectiles) {
+    // Counter ring follows player
+    if (this._counterRing && this._counterRing.active && this.player) {
+      this._counterRing.setPosition(this.player.sprite.x, this.player.sprite.y);
+    }
+    // Sight aura follows player
+    if (this._sightAura && this._sightAura.active && this.player) {
+      this._sightAura.setPosition(this.player.sprite.x, this.player.sprite.y);
+    }
+
+    if ((this.chapterId === 1 || this.isEndless) && this.horizontalProjectiles) {
       this.horizontalProjectiles.getChildren().forEach(proj => {
         if (!proj.active) return;
         const dist = Phaser.Math.Distance.Between(proj.x, proj.y, this.player.sprite.x, this.player.sprite.y);
