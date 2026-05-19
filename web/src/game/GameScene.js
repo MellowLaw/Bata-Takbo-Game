@@ -116,7 +116,6 @@ export class GameScene extends Phaser.Scene {
     } else if (this.chapterId === 2) {
       // ===== CHAPTER 2: BUNGISNGIS ASSETS =====
       this.load.spritesheet('boss_idle', '/assets/entity/boss/chapter2/chapter-2-idle-sprite.png', { frameWidth: 672, frameHeight: 378 });
-      this.load.spritesheet('boss_cast', '/assets/entity/boss/chapter2/boss_idle.png', { frameWidth: 87, frameHeight: 110 });
       this.load.spritesheet('boss_ch2_ult_attack', '/assets/entity/boss/chapter2/chapter-2-attack-sprite.png', { frameWidth: 672, frameHeight: 378 });
 
       // Attack projectiles
@@ -144,7 +143,6 @@ export class GameScene extends Phaser.Scene {
     } else if (this.chapterId === 3) {
       // ===== CHAPTER 3: KATAW ASSETS =====
       this.load.spritesheet('boss_idle', '/assets/entity/boss/chapter3/chapter-3-idle-sprite.png', { frameWidth: 672, frameHeight: 378 });
-      this.load.spritesheet('boss_cast', '/assets/entity/boss/chapter2/boss_idle.png', { frameWidth: 87, frameHeight: 110 });
       this.load.spritesheet('boss_ch3_ult_attack', '/assets/entity/boss/chapter3/chapter-3-attack-sprite.png', { frameWidth: 672, frameHeight: 378 });
       
       // Blue FX (129x32 strip → 4 frames of 32x32)
@@ -255,9 +253,9 @@ export class GameScene extends Phaser.Scene {
       this.load.spritesheet('ch3_explosion_2d', '/assets/projectiles/chapter-3/EXPLOSIONS/explosion-2-d.png', { frameWidth: 128, frameHeight: 80 });
       this.load.spritesheet('ch3_explosion_3d', '/assets/projectiles/chapter-3/EXPLOSIONS/explosion-3-d.png', { frameWidth: 192, frameHeight: 192 });
       } else {
-        // Default fallback for future chapters
-        this.load.spritesheet('boss_idle', '/assets/entity/boss/chapter2/boss_idle.png', { frameWidth: 87, frameHeight: 110 });
-        this.load.spritesheet('boss_cast', '/assets/entity/boss/chapter2/boss_idle.png', { frameWidth: 87, frameHeight: 110 });
+        // Default fallback for future chapters - use Chapter 1 sprites
+        this.load.spritesheet('boss_idle', '/assets/entity/boss/chapter1/chapter-1-idle-sprite.png', { frameWidth: 672, frameHeight: 378 });
+        this.load.spritesheet('boss_cast', '/assets/entity/boss/chapter1/chapter-1-idle-sprite.png', { frameWidth: 672, frameHeight: 378 });
       }
     } // End of !isPracticeTutorial block - boss assets only needed for regular game
 
@@ -1006,8 +1004,8 @@ export class GameScene extends Phaser.Scene {
     this._chapterParticleKey = chapterParticleKey;
     this._chapterParticleColor = chapterParticleColor;
 
-    // In endless mode, start horizontal projectiles on a timer (boss:damaged never fires since hp=Infinity)
-    if (this.isEndless && !this._horizontalProjectilesStarted) {
+    // In endless mode, start horizontal projectiles on a timer for Chapter 1 only
+    if (this.isEndless && this.chapterId === 1 && !this._horizontalProjectilesStarted) {
       this.time.delayedCall(5000, () => {
         if (!this.isGameOver && !this._horizontalProjectilesStarted) {
           this._horizontalProjectilesStarted = true;

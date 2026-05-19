@@ -1260,6 +1260,93 @@ app.get('/leaderboard/endless', async (req, res) => {
 });
 
 
+// Get current user's rank and stats for a specific chapter/control (auth required)
+app.get('/leaderboard/my-rank', authMiddleware, async (req, res) => {
+  try {
+    const { chapterId, controlType, sortBy } = req.query;
+    if (!chapterId || ![1, 2, 3].includes(Number(chapterId))) return res.status(400).json({ error: 'Invalid or missing chapterId' });
+    if (!controlType || !['gesture', 'keyboard'].includes(controlType)) return res.status(400).json({ error: 'Invalid or missing controlType' });
+
+    const mode = sortBy === 'score' ? 'score' : 'waves';
+    const innerOrder = mode === 'score'
+      ? 'i.score DESC, i.waves_survived DESC, i.survival_seconds ASC'
+      : 'i.waves_survived DESC, i.survival_seconds ASC, i.score DESC';
+    const outerOrder = mode === 'score'
+      ? 'score DESC, waves_survived DESC, survival_seconds ASC'
+      : 'waves_survived DESC, survival_seconds ASC, score DESC';
+
+    // Get user's best run and avatar
+    const userBestRun = await db.get(`
+      SELECT waves_survived, score, survival_seconds, avatar_url
+      FROM (
+        SELECT i.waves_survived, i.score, i.survival_seconds,
+               u.avatar_url,
+               ROW_NUMBER() OVER (
+                 PARTITION BY i.user_id
+                 ORDER BY ${innerOrder}
+               ) AS rn
+        FROM inf_scores i
+        INNER JOIN users u ON i.user_id = u.id
+        WHERE i.chapter_id = $1 AND i.control_type = $2
+          AND i.user_id = $3
+          AND u.banned = FALSE
+      ) ranked
+      WHERE rn = 1
+    `, [Number(chapterId), controlType, req.user.id]);
+
+    if (!userBestRun) {
+      return res.status(200).json({ hasRecord: false });
+    }
+
+    // Calculate user's rank
+    const rankRow = await db.get(`
+      SELECT ranked_rank FROM (
+        SELECT username,
+               ROW_NUMBER() OVER (
+                 ORDER BY ${outerOrder}
+               ) AS ranked_rank
+        FROM (
+          SELECT i.user_id, i.username,
+                 i.waves_survived, i.score, i.survival_seconds,
+                 ROW_NUMBER() OVER (
+                   PARTITION BY i.user_id
+                   ORDER BY ${innerOrder}
+                 ) AS rn
+          FROM inf_scores i
+          INNER JOIN users u ON i.user_id = u.id
+          WHERE i.chapter_id = $1 AND i.control_type = $2
+            AND u.banned = FALSE AND u.is_admin = FALSE
+        ) ranked
+        WHERE rn = 1
+      ) final
+      WHERE username = (SELECT username FROM users WHERE id = $3)
+    `, [Number(chapterId), controlType, req.user.id]);
+
+    const rank = rankRow ? rankRow.ranked_rank : null;
+    const totalPlayers = (await db.get(`
+      SELECT COUNT(DISTINCT user_id) as count
+      FROM inf_scores i
+      INNER JOIN users u ON i.user_id = u.id
+      WHERE i.chapter_id = $1 AND i.control_type = $2
+        AND u.banned = FALSE AND u.is_admin = FALSE
+    `, [Number(chapterId), controlType])).count;
+
+    return res.status(200).json({
+      hasRecord: true,
+      rank,
+      totalPlayers,
+      wavesSurvived: userBestRun.waves_survived,
+      score: userBestRun.score,
+      survivalSeconds: userBestRun.survival_seconds,
+      avatarUrl: userBestRun.avatar_url
+    });
+  } catch (err) {
+    console.error('My rank fetch error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+
 // Initialize database and start server
 initDb().then(database => {
   db = database;

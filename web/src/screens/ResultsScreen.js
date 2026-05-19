@@ -36,11 +36,14 @@ export const ResultsScreen = {
             </svg>
           </a>
           ` : `
-          <img id="result-bg" src="/assets/ui/backgrounds/result_screen_dpad.png" style="
+          <img id="boss-static-bg" src="/assets/ui/backgrounds/result_screen_dpad.png" style="
             position: absolute; inset: 0; width: 100%; height: 100%;
-            object-fit: cover;
+            object-fit: cover; object-position: center;
+            filter: brightness(0.6);
             z-index: 0;
-          " />
+            opacity: 0.9;
+            animation: jumpscare 2.5s ease-out;
+          " onerror="this.style.display='none'" />
           `}
           <div style="
             position: absolute; inset: 0;
@@ -53,8 +56,7 @@ export const ResultsScreen = {
             display: flex; flex-direction: column; justify-content: center;
             padding: clamp(16px,4vw,40px) clamp(16px,3vw,40px) clamp(16px,4vw,40px) clamp(20px,8vw,100px);
           ">
-            <div style="font-family:'GigaSaturn',sans-serif; font-size:clamp(2.5rem,8vw,5rem); color:#ffd700; line-height:1; letter-spacing:2px; margin-bottom:4px;">∞</div>
-            <h1 style="font-family:'GigaSaturn',sans-serif; font-size:clamp(1.4rem,4vw,3.5rem); color:#ffd700; margin:0 0 clamp(12px,2vh,28px) 0; line-height:1; letter-spacing:2px;">${chapterLabel} ENDLESS MODE</h1>
+            <div id="results-placement" style="margin-bottom:clamp(16px,3vh,32px); text-align:left;"></div>
             <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:clamp(12px,2vh,24px);">
               <div style="display:flex; align-items:baseline; gap:0; flex-wrap:wrap;">
                 <span style="font-family:'GigaSaturn',sans-serif; font-size:clamp(0.75rem,1.8vw,1.4rem); color:rgba(255,255,255,0.9); min-width:clamp(120px,18vw,200px); letter-spacing:1px;">WAVES:</span>
@@ -70,10 +72,7 @@ export const ResultsScreen = {
               </div>
             </div>
             <hr style="border:0; border-top:2px solid rgba(255,215,0,0.5); margin:0 0 clamp(12px,3vh,32px) 0; width:60%;">
-            <div id="endless-lb-status" style="
-              font-family:'VCR',monospace; font-size:clamp(0.7rem,1.5vw,1rem);
-              color:rgba(255,215,0,0.8); margin-bottom:clamp(10px,2vh,20px); min-height:1.4em;
-            "></div>
+            <div id="endless-lb-status" style="display:none;"></div>
             <div style="display:flex; gap:clamp(16px,4vw,60px); align-items:center; flex-wrap:wrap;">
               <button class="menu-btn" id="btn-results-retry" style="
                 font-family:'GigaSaturn',sans-serif; font-size:clamp(1rem,2.5vw,2rem);
@@ -110,13 +109,11 @@ export const ResultsScreen = {
 
           ${isGesture ? `
           <!-- Full-screen kill cam background (gold/sepia tint) -->
-          <img id="kill-cam-bg" style="
+          <img id="kill-cam-bg" src="${imagesSrc[0] || ''}" style="
             position: absolute; inset: 0;
             width: 100%; height: 100%;
             object-fit: cover;
-            filter: sepia(60%) brightness(0.5) saturate(1.4);
-            transform: rotate(-5deg) scale(1.12);
-            transform-origin: center;
+            filter: sepia(0.6) saturate(1.2) brightness(0.9);
             z-index: 0;
           " />
 
@@ -141,6 +138,7 @@ export const ResultsScreen = {
             position: absolute; inset: 0;
             width: 100%; height: 100%;
             object-fit: cover;
+            filter: brightness(0.4);
             z-index: 0;
           " />
           `}
@@ -184,8 +182,7 @@ export const ResultsScreen = {
               </div>
             </div>
 
-            <!-- Ch3 completion: bonus level unlock banner -->
-            ${result.chapterId === 3 ? `
+            <!-- Endless mode unlock message -->
             <div style="
               display: flex; align-items: center; gap: 10px;
               margin-bottom: clamp(10px, 2vh, 20px);
@@ -197,8 +194,26 @@ export const ResultsScreen = {
             ">
               <span style="font-size: clamp(1.4rem,3vw,2rem); line-height:1;">∞</span>
               <div>
-                <div style="font-family:'GigaSaturn',sans-serif; font-size:clamp(0.6rem,1.4vw,1rem); color:#ffd700; letter-spacing:2px;">BONUS LEVEL UNLOCKED</div>
-                <div style="font-family:'VCR',monospace; font-size:clamp(0.5rem,1.1vw,0.8rem); color:rgba(255,255,255,0.55); margin-top:2px;">WALANG KATAPUSAN · ENDLESS BATTLE</div>
+                <div style="font-family:'GigaSaturn',sans-serif; font-size:clamp(0.6rem,1.4vw,1rem); color:#ffd700; letter-spacing:2px;">ENDLESS MODE UNLOCKED</div>
+                <div style="font-family:'VCR',monospace; font-size:clamp(0.5rem,1.1vw,0.8rem); color:rgba(255,255,255,0.55); margin-top:2px;">You've unlocked endless battle mode!</div>
+              </div>
+            </div>
+
+            <!-- Ch3 completion: bonus level text variant -->
+            ${result.chapterId === 3 ? `
+            <div style="
+              display: flex; align-items: center; gap: 10px;
+              margin-bottom: clamp(10px, 2vh, 20px);
+              padding: 10px 14px;
+              background: rgba(255,215,0,0.08);
+              border: 1px solid rgba(255,215,0,0.35);
+              border-radius: 4px;
+              max-width: clamp(260px, 45vw, 440px);
+            ">
+              <span style="font-size: clamp(1.4rem,3vw,2rem); line-height:1;">★</span>
+              <div>
+                <div style="font-family:'GigaSaturn',sans-serif; font-size:clamp(0.6rem,1.4vw,1rem); color:#ffd700; letter-spacing:2px;">ALL CHAPTERS COMPLETED</div>
+                <div style="font-family:'VCR',monospace; font-size:clamp(0.5rem,1.1vw,0.8rem); color:rgba(255,255,255,0.55); margin-top:2px;">The full story has been revealed</div>
               </div>
             </div>` : ''}
 
@@ -213,14 +228,14 @@ export const ResultsScreen = {
                 padding: 0; margin: 0; min-width: 0;
                 background: transparent; border: none; color: #ffd700;
                 letter-spacing: 2px; min-height: 44px; touch-action: manipulation;
-              ">NEXT</button>` : ''}
-              <button class="menu-btn" id="btn-results-retry" style="
+              ">NEXT CHAPTER</button>` : ''}
+              <button class="menu-btn" id="btn-results-endless" style="
                 font-family: 'GigaSaturn', sans-serif;
                 font-size: clamp(1rem, 2.5vw, 2rem);
                 padding: 0; margin: 0; min-width: 0;
-                background: transparent; border: none; color: white;
+                background: transparent; border: none; color: #ffd700;
                 letter-spacing: 2px; min-height: 44px; touch-action: manipulation;
-              ">RETRY</button>
+              ">ENDLESS</button>
               <button class="menu-btn" id="btn-results-menu" style="
                 font-family: 'GigaSaturn', sans-serif;
                 font-size: clamp(1rem, 2.5vw, 2rem);
@@ -376,13 +391,26 @@ export const ResultsScreen = {
       });
     }
 
-    el.querySelector('#btn-results-retry').addEventListener('click', () => {
-      window.__screenManager.navigate('game-screen', { chapterId: result.chapterId, character: result.character || 'male', control: result.control || 'keyboard' });
-    });
+    const btnRetry = el.querySelector('#btn-results-retry');
+    if (btnRetry) {
+      btnRetry.addEventListener('click', () => {
+        window.__screenManager.navigate('game-screen', { chapterId: result.chapterId, character: result.character || 'male', control: result.control || 'keyboard' });
+      });
+    }
 
-    el.querySelector('#btn-results-menu').addEventListener('click', () => {
-      window.__screenManager.navigate('main-menu');
-    });
+    const btnMenu = el.querySelector('#btn-results-menu');
+    if (btnMenu) {
+      btnMenu.addEventListener('click', () => {
+        window.__screenManager.navigate('main-menu');
+      });
+    }
+
+    const btnEndless = el.querySelector('#btn-results-endless');
+    if (btnEndless) {
+      btnEndless.addEventListener('click', () => {
+        window.__screenManager.navigate('game-screen', { chapterId: result.chapterId, isEndless: true, character: result.character || 'male', control: result.control || 'keyboard' });
+      });
+    }
 
     // Always generate collage (both victory and game over)
     this.generateCollage(el, isVictory);
@@ -402,6 +430,19 @@ export const ResultsScreen = {
       10: "TOP 10! You've earned your place among legends!"
     };
     return messages[rank] || null;
+  },
+
+  _getRankPhrase(rank) {
+    if (rank === 1) return "The last one standing. The darkness bowed.";
+    if (rank === 2) return "A single breath away from the top. Someone is still ahead of you.";
+    if (rank === 3) return "Power. Precision. Almost untouchable.";
+    if (rank >= 4 && rank <= 10) return "The shadows know your name. The top feels your presence.";
+    if (rank >= 11 && rank <= 20) return "You're climbing. The darkness is starting to notice.";
+    if (rank >= 21 && rank <= 50) return "Not forgotten. Not yet remembered. Keep running.";
+    if (rank >= 51 && rank <= 100) return "One of the brave few who made it this far.";
+    if (rank >= 101 && rank <= 500) return "You made the list. The crowd parts when you pass.";
+    if (rank >= 501) return "The road is long. But you are still walking it.";
+    return "You leave no mark yet. Return and carve your name.";
   },
 
   async _submitEndlessScore(el, result) {
@@ -442,28 +483,84 @@ export const ResultsScreen = {
 
         if (bestRank && bestRank <= 10) {
           console.log('[ResultsScreen] Showing TOP 10 message!');
-          // Top 10 - show prominent message with medal
-          const medal = bestRank === 1 ? '🥇' : bestRank === 2 ? '🥈' : bestRank === 3 ? '🥉' : '🏆';
-          const message = this._getRankMessage(bestRank);
-          console.log('[ResultsScreen] Medal:', medal, 'Message:', message);
-          if (statusEl) {
-            statusEl.innerHTML = `
+          const result = state.get('lastGameResult') || {};
+          const chapterLabel = result.chapterId === 1 ? 'Chapter 1: Manananggal' : result.chapterId === 2 ? 'Chapter 2: Bungisngis' : 'Chapter 3: Kataw';
+          const phrase = this._getRankPhrase(bestRank);
+          const placementEl = el.querySelector('#results-placement');
+          if (placementEl) {
+            placementEl.innerHTML = `
               <div style="
-                display: flex; align-items: center; gap: 8px;
-                padding: 8px 12px;
-                background: linear-gradient(135deg, rgba(255,215,0,0.15) 0%, rgba(255,215,0,0.05) 100%);
-                border: 1px solid rgba(255,215,0,0.5);
-                border-radius: 6px;
-                margin-bottom: 8px;
+                display: flex;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
               ">
-                <span style="font-size: clamp(1.2rem,2.5vw,1.8rem);">${medal}</span>
-                <span style="color:#ffd700;font-weight:bold;font-size:clamp(0.75rem,1.6vw,1rem);">${message}</span>
+                <span style="
+                  font-family: 'VCR', monospace;
+                  font-size: clamp(0.6rem, 1.2vw, 0.8rem);
+                  color: rgba(255,215,0,0.8);
+                  text-transform: uppercase;
+                  letter-spacing: 3px;
+                ">${chapterLabel}</span>
+                <span style="
+                  font-family: 'GigaSaturn', sans-serif;
+                  font-size: clamp(1.6rem, 4vw, 3rem);
+                  color: #ffd700;
+                  font-weight: bold;
+                  line-height: 1;
+                  letter-spacing: 1px;
+                ">YOUR NAME SITS AT #${bestRank}</span>
+                <span style="
+                  font-family: 'VCR', monospace;
+                  font-size: clamp(0.75rem, 1.6vw, 1.1rem);
+                  color: #ffd700;
+                  font-style: italic;
+                  line-height: 1.4;
+                  margin-top: 4px;
+                ">${phrase}</span>
               </div>
             `;
           }
-        } else if (bestRank && bestRank > 10) {
-          console.log('[ResultsScreen] Showing rank > 10 message');
-          if (statusEl) statusEl.textContent = `✓ Submitted! Rank #${bestRank} on Endless Mode leaderboard`;
+        } else if (bestRank) {
+          console.log('[ResultsScreen] Showing rank message with phrase');
+          const phrase = this._getRankPhrase(bestRank);
+          const result = state.get('lastGameResult') || {};
+          const chapterLabel = result.chapterId === 1 ? 'Chapter 1: Manananggal' : result.chapterId === 2 ? 'Chapter 2: Bungisngis' : 'Chapter 3: Kataw';
+          const placementEl = el.querySelector('#results-placement');
+          if (placementEl) {
+            placementEl.innerHTML = `
+              <div style="
+                display: flex;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+              ">
+                <span style="
+                  font-family: 'VCR', monospace;
+                  font-size: clamp(0.6rem, 1.2vw, 0.8rem);
+                  color: rgba(255,215,0,0.8);
+                  text-transform: uppercase;
+                  letter-spacing: 3px;
+                ">${chapterLabel}</span>
+                <span style="
+                  font-family: 'GigaSaturn', sans-serif;
+                  font-size: clamp(1.6rem, 4vw, 3rem);
+                  color: #ffd700;
+                  font-weight: bold;
+                  line-height: 1;
+                  letter-spacing: 1px;
+                ">YOUR NAME SITS AT #${bestRank}</span>
+                <span style="
+                  font-family: 'VCR', monospace;
+                  font-size: clamp(0.75rem, 1.6vw, 1.1rem);
+                  color: #ffd700;
+                  font-style: italic;
+                  line-height: 1.4;
+                  margin-top: 4px;
+                ">${phrase}</span>
+              </div>
+            `;
+          }
         } else {
           console.log('[ResultsScreen] No rank data, showing default message');
           if (statusEl) statusEl.textContent = '✓ Score submitted to Endless Mode leaderboard!';

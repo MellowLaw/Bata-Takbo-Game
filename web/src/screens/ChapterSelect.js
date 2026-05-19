@@ -10,7 +10,7 @@ export const ChapterSelect = {
     const completed = progress.chaptersCompleted || [];
 
     const chapters = [
-      { id: 1, img: '/assets/ui/chapter-selection/chapter1.png', idle: '/assets/ui/chapter-selection/chapter-select-idle/chapter1_idle.png', cover: '/assets/ui/chapter-selection/chapter1a.png', name: 'Duende' },
+      { id: 1, img: '/assets/ui/chapter-selection/chapter1.png', idle: '/assets/ui/chapter-selection/chapter-select-idle/chapter1_idle.png', cover: '/assets/ui/chapter-selection/chapter1a.png', name: 'Manananggal' },
       { id: 2, img: '/assets/ui/chapter-selection/chapter2.png', idle: '/assets/ui/chapter-selection/chapter-select-idle/chapter2_idle.png', cover: '/assets/ui/chapter-selection/chapter2a.png', name: 'Bungisngis' },
       { id: 3, img: '/assets/ui/chapter-selection/chapter3.png', idle: '/assets/ui/chapter-selection/chapter-select-idle/chapter3_idle.png', cover: '/assets/ui/chapter-selection/chapter3a.png', name: 'Kataw' },
     ];

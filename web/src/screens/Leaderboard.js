@@ -25,41 +25,69 @@ export const Leaderboard = {
           </div>
         </div>
 
-        <!-- Filter Groups Container - Bottom Position -->
-        <div class="lb-filters-container lb-filters-bottom" style="animation: fadeInUp 0.4s ease 0.2s forwards; opacity: 0;">
+        <!-- Bottom Bar: Personal Stats + Filters -->
+        <div class="lb-bottom-bar" style="animation: fadeInUp 0.4s ease 0.2s forwards; opacity: 0;">
           
-          <!-- Chapter Filter -->
-          <div class="lb-filter-group">
-            <span class="lb-filter-label">Chapter</span>
-            <div class="leaderboard-tabs" id="lb-chapter-tabs">
-              <button class="leaderboard-tab active" data-chapter="1">CH1</button>
-              <button class="leaderboard-tab" data-chapter="2">CH2</button>
-              <button class="leaderboard-tab" data-chapter="3">CH3</button>
+          <!-- Personal Stats Card -->
+          <div class="lb-personal-stats" id="lb-personal-stats" style="display: none;">
+            <img class="lb-personal-avatar" id="lb-personal-avatar" src="/assets/ui/User Profiles/Icons_01.png" alt="You" onerror="this.src='/assets/ui/User Profiles/Icons_01.png'" />
+            <div class="lb-personal-info">
+              <div class="lb-personal-label">YOUR BEST</div>
+              <div class="lb-personal-rank" id="lb-personal-rank">---</div>
+            </div>
+            <div class="lb-personal-divider-v"></div>
+            <div class="lb-personal-stats-col">
+              <div class="lb-personal-stat">
+                <span class="lb-personal-val" id="lb-personal-waves">-</span>
+                <span class="lb-personal-stat-label">waves</span>
+              </div>
+              <div class="lb-personal-stat">
+                <span class="lb-personal-val" id="lb-personal-time">--:--</span>
+                <span class="lb-personal-stat-label">time</span>
+              </div>
+              <div class="lb-personal-stat">
+                <span class="lb-personal-val" id="lb-personal-score">-</span>
+                <span class="lb-personal-stat-label">score</span>
+              </div>
             </div>
           </div>
 
-          <!-- Control Filter -->
-          <div class="lb-filter-group">
-            <span class="lb-filter-label">Control</span>
-            <div class="leaderboard-tabs" id="lb-control-tabs">
-              <button class="leaderboard-tab active" data-control="keyboard" id="tab-keyboard">
-                <span class="lb-tab-icon">[K]</span> Keyboard
-              </button>
-              <button class="leaderboard-tab" data-control="gesture" id="tab-gesture">
-                <span class="lb-tab-icon">[G]</span> Gesture
-              </button>
+          <!-- Filter Groups Container -->
+          <div class="lb-filters-container">
+            
+            <!-- Chapter Filter -->
+            <div class="lb-filter-group">
+              <span class="lb-filter-label">Chapter</span>
+              <div class="leaderboard-tabs" id="lb-chapter-tabs">
+                <button class="leaderboard-tab active" data-chapter="1">CH1</button>
+                <button class="leaderboard-tab" data-chapter="2">CH2</button>
+                <button class="leaderboard-tab" data-chapter="3">CH3</button>
+              </div>
             </div>
-          </div>
 
-          <!-- Sort Filter -->
-          <div class="lb-filter-group">
-            <span class="lb-filter-label">Sort By</span>
-            <div class="leaderboard-tabs" id="lb-sort-tabs">
-              <button class="leaderboard-tab active" data-sort="waves">WAVES</button>
-              <button class="leaderboard-tab" data-sort="score">SCORE</button>
+            <!-- Control Filter -->
+            <div class="lb-filter-group">
+              <span class="lb-filter-label">Control</span>
+              <div class="leaderboard-tabs" id="lb-control-tabs">
+                <button class="leaderboard-tab lb-icon-btn active" data-control="keyboard" id="tab-keyboard" title="Keyboard">
+                  <img src="/assets/ui/dpad.png" alt="Keyboard" class="lb-control-icon" />
+                </button>
+                <button class="leaderboard-tab lb-icon-btn" data-control="gesture" id="tab-gesture" title="Gesture">
+                  <img src="/assets/ui/hand.png" alt="Gesture" class="lb-control-icon" />
+                </button>
+              </div>
             </div>
-          </div>
 
+            <!-- Sort Filter -->
+            <div class="lb-filter-group">
+              <span class="lb-filter-label">Sort By</span>
+              <div class="leaderboard-tabs" id="lb-sort-tabs">
+                <button class="leaderboard-tab active" data-sort="waves">WAVES</button>
+                <button class="leaderboard-tab" data-sort="score">SCORE</button>
+              </div>
+            </div>
+
+          </div>
         </div>
 
         <div id="lb-guest-notice" class="lb-guest-notice" style="animation: fadeInUp 0.4s ease 0.3s forwards; opacity: 0;">
@@ -128,17 +156,35 @@ export const Leaderboard = {
     const controlType = this._activeControl;
     const sortBy = this._activeSort || 'waves';
     const container = el.querySelector('#leaderboard-container');
+    const personalStatsEl = el.querySelector('#lb-personal-stats');
     
     container.innerHTML = `
       <div class="lb-loading">
         <div class="lb-loading-spinner"></div>
         <span>Loading rankings...</span>
       </div>`;
+    if (personalStatsEl) personalStatsEl.style.display = 'none';
 
     try {
-      const res = await fetch(`/leaderboard/endless?chapterId=${chapterId}&controlType=${controlType}&sortBy=${sortBy}`);
-      if (!res.ok) throw new Error('fetch failed');
-      const { entries } = await res.json();
+      // Fetch both leaderboard and user's personal record in parallel
+      const isAuth = state.get('isAuthenticated');
+      const [lbRes, myRankRes] = await Promise.all([
+        fetch(`/leaderboard/endless?chapterId=${chapterId}&controlType=${controlType}&sortBy=${sortBy}`),
+        isAuth ? fetch(`/leaderboard/my-rank?chapterId=${chapterId}&controlType=${controlType}&sortBy=${sortBy}`, { credentials: 'include' }) : Promise.resolve(null)
+      ]);
+
+      if (!lbRes.ok) throw new Error('fetch failed');
+      const { entries } = await lbRes.json();
+
+      // Render personal stats (or no-record message)
+      if (myRankRes && myRankRes.ok) {
+        const myData = await myRankRes.json();
+        if (myData.hasRecord) {
+          this._renderPersonalStats(el, myData);
+        } else {
+          this._renderNoPersonalStats(el);
+        }
+      }
 
       if (!entries || entries.length === 0) {
         container.innerHTML = `
@@ -260,5 +306,69 @@ export const Leaderboard = {
     }
     const num = (Math.abs(hash) % 40 + 1).toString().padStart(2, '0');
     return `/assets/ui/User Profiles/Icons_${num}.png`;
+  },
+
+  _renderPersonalStats(el, data) {
+    const statsEl = el.querySelector('#lb-personal-stats');
+    if (!statsEl) return;
+
+    const currentUser = state.get('user')?.username;
+    console.log('[Leaderboard] Rendering personal stats for user:', currentUser, 'avatarUrl:', data.avatarUrl);
+    
+    const mm = Math.floor((data.survivalSeconds || 0) / 60).toString().padStart(2, '0');
+    const ss = ((data.survivalSeconds || 0) % 60).toString().padStart(2, '0');
+
+    // Update avatar - use avatarUrl from API if available, otherwise fall back to preset
+    const avatarEl = el.querySelector('#lb-personal-avatar');
+    if (avatarEl) {
+      const avatarUrl = data.avatarUrl 
+        ? data.avatarUrl 
+        : (currentUser ? this._getPresetAvatar(currentUser) : '/assets/ui/User Profiles/Icons_01.png');
+      console.log('[Leaderboard] Setting avatar URL:', avatarUrl);
+      avatarEl.src = avatarUrl;
+      avatarEl.style.display = 'block';
+    }
+
+    // Update individual elements
+    const rankEl = el.querySelector('#lb-personal-rank');
+    const wavesEl = el.querySelector('#lb-personal-waves');
+    const timeEl = el.querySelector('#lb-personal-time');
+    const scoreEl = el.querySelector('#lb-personal-score');
+
+    if (rankEl) rankEl.textContent = data.rank ? `#${data.rank.toLocaleString()}` : '---';
+    if (wavesEl) wavesEl.textContent = data.wavesSurvived || 0;
+    if (timeEl) timeEl.textContent = `${mm}:${ss}`;
+    if (scoreEl) scoreEl.textContent = data.score ? data.score.toLocaleString() : '0';
+
+    statsEl.style.display = 'flex';
+    statsEl.classList.remove('lb-personal-stats--empty');
+  },
+
+  _renderNoPersonalStats(el) {
+    const statsEl = el.querySelector('#lb-personal-stats');
+    if (!statsEl) return;
+
+    const currentUser = state.get('user')?.username;
+    console.log('[Leaderboard] Rendering no personal stats for user:', currentUser);
+    
+    const avatarEl = el.querySelector('#lb-personal-avatar');
+    if (avatarEl) {
+      const avatarUrl = currentUser ? this._getPresetAvatar(currentUser) : '/assets/ui/User Profiles/Icons_01.png';
+      avatarEl.src = avatarUrl;
+      avatarEl.style.display = 'block';
+    }
+
+    const rankEl = el.querySelector('#lb-personal-rank');
+    const wavesEl = el.querySelector('#lb-personal-waves');
+    const timeEl = el.querySelector('#lb-personal-time');
+    const scoreEl = el.querySelector('#lb-personal-score');
+
+    if (rankEl) rankEl.textContent = '---';
+    if (wavesEl) wavesEl.textContent = '-';
+    if (timeEl) timeEl.textContent = '--:--';
+    if (scoreEl) scoreEl.textContent = '-';
+
+    statsEl.style.display = 'flex';
+    statsEl.classList.add('lb-personal-stats--empty');
   }
 };

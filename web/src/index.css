@@ -1957,18 +1957,116 @@ a {
   text-transform: uppercase;
 }
 
+/* Bottom Bar: Personal Stats + Filters */
+.lb-bottom-bar {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: var(--space-md);
+  margin-top: auto;
+  margin-bottom: 0;
+  padding: var(--space-sm);
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: var(--radius-lg);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
+  flex-wrap: wrap;
+}
+
+/* Personal Stats Card - Clean Player Card Design */
+.lb-personal-stats {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  background: #1a1a1a;
+  border: 2px solid #333;
+  border-radius: 8px;
+  min-width: 280px;
+}
+
+.lb-personal-stats.lb-personal-stats--empty {
+  opacity: 0.5;
+}
+
+.lb-personal-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid #444;
+  object-fit: cover;
+  background: #2a2a2a;
+}
+
+.lb-personal-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.lb-personal-label {
+  font-family: var(--font-ui);
+  font-size: 0.6rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+}
+
+.lb-personal-rank {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  color: var(--accent-orange);
+  font-weight: bold;
+  line-height: 1;
+}
+
+.lb-personal-divider-v {
+  width: 1px;
+  height: 36px;
+  background: #333;
+  margin: 0 4px;
+}
+
+.lb-personal-stats-col {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.lb-personal-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.lb-personal-val {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  color: #fff;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.lb-personal-stat-label {
+  font-family: var(--font-ui);
+  font-size: 0.55rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
 /* Filter Groups Container */
 .lb-filters-container {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: var(--space-md) var(--space-xl);
-  margin-bottom: var(--space-md);
-  padding: var(--space-md) var(--space-lg);
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: var(--radius-lg);
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(4px);
+  padding: var(--space-xs) var(--space-sm);
+  background: transparent;
+  border-radius: 0;
+  border: none;
+  backdrop-filter: none;
 }
 
 .lb-filter-group {
@@ -1998,13 +2096,127 @@ a {
   border-width: 1px;
 }
 
-/* Bottom positioned filters */
-.lb-filters-bottom {
-  margin-top: auto;
-  margin-bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  border: 2px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
+/* Icon-only buttons for Control filter */
+.lb-icon-btn {
+  width: 32px;
+  height: 32px;
+  padding: 0 !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lb-control-icon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.lb-icon-btn.active .lb-control-icon,
+.lb-icon-btn:hover .lb-control-icon {
+  opacity: 1;
+}
+
+/* Mobile icon buttons - smaller */
+@media (max-width: 640px) {
+  .lb-icon-btn {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .lb-control-icon {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+/* Mobile responsive for bottom bar - force single horizontal row */
+@media (max-width: 640px) {
+  .lb-bottom-bar {
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    justify-content: space-between;
+  }
+  
+  .lb-personal-stats {
+    min-width: fit-content;
+    padding: 6px 10px;
+    gap: 8px;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+  }
+  
+  .lb-personal-avatar {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .lb-personal-info {
+    align-items: flex-start;
+  }
+  
+  .lb-personal-label {
+    font-size: 0.5rem;
+  }
+  
+  .lb-personal-rank {
+    font-size: 1rem;
+  }
+  
+  .lb-personal-divider-v {
+    display: block;
+    height: 28px;
+  }
+  
+  .lb-personal-stats-col {
+    gap: 8px;
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+    width: auto;
+  }
+  
+  .lb-personal-val {
+    font-size: 0.8rem;
+  }
+  
+  .lb-personal-stat-label {
+    font-size: 0.45rem;
+  }
+  
+  .lb-filters-container {
+    gap: 6px;
+    padding: 0;
+    justify-content: flex-end;
+    flex-shrink: 1;
+    min-width: 0;
+  }
+  
+  .lb-filter-group {
+    gap: 2px;
+  }
+  
+  .lb-filter-label {
+    font-size: 0.5rem;
+  }
+  
+  .lb-filter-group .leaderboard-tab {
+    padding: 4px 8px;
+    font-size: 0.6rem;
+  }
+  
+  .lb-tab-icon {
+    font-size: 0.7em;
+  }
 }
 
 /* === LEADERBOARD CONTAINER === */
@@ -2107,6 +2319,14 @@ a {
   box-shadow: 
     0 0 15px rgba(255, 107, 26, 0.2),
     inset 0 0 20px rgba(255, 107, 26, 0.05) !important;
+}
+
+.lb-rank-total {
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 /* === RANK BADGE === */
