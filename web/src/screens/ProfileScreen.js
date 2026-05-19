@@ -363,38 +363,40 @@ export const ProfileScreen = {
   },
 
   async _loadEndlessRanks(username, el) {
-    const formatSeconds = (totalSeconds) => {
-      const minutes = Math.floor(totalSeconds / 60);
-      const seconds = totalSeconds % 60;
-      return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-    };
-
     for (let ch = 1; ch <= 3; ch++) {
       const timeEl = el.querySelector(`#inf-ch${ch}-time`);
       const rankEl = el.querySelector(`#inf-ch${ch}-rank`);
       
       try {
-        // Fetch keyboard leaderboard as standard
-        const res = await fetch(`/leaderboard/endless?chapterId=${ch}&controlType=keyboard`);
-        const data = await res.json();
-        
-        let found = false;
-        if (data.entries) {
-          const rankIndex = data.entries.findIndex(e => e.username === username);
-          if (rankIndex !== -1) {
-            const entry = data.entries[rankIndex];
-            timeEl.textContent = entry.score != null ? Number(entry.score).toLocaleString() : '—';
-            rankEl.textContent = `#${rankIndex + 1}`;
-            rankEl.style.fontWeight = 'bold';
-            if (rankIndex === 0) rankEl.style.color = '#d4af37'; // Gold
-            else if (rankIndex === 1) rankEl.style.color = '#71706e'; // Silver
-            else if (rankIndex === 2) rankEl.style.color = '#cd7f32'; // Bronze
-            else rankEl.style.color = '#111';
-            found = true;
+        // Check all 4 combinations: keyboard+gesture × waves+score — show best rank
+        const urls = [
+          `/leaderboard/endless?chapterId=${ch}&controlType=keyboard&sortBy=waves`,
+          `/leaderboard/endless?chapterId=${ch}&controlType=keyboard&sortBy=score`,
+          `/leaderboard/endless?chapterId=${ch}&controlType=gesture&sortBy=waves`,
+          `/leaderboard/endless?chapterId=${ch}&controlType=gesture&sortBy=score`,
+        ];
+        const responses = await Promise.all(urls.map(u => fetch(u).catch(() => null)));
+        let bestRankIndex = -1;
+        let bestScore = null;
+        for (const r of responses) {
+          if (!r || !r.ok) continue;
+          const data = await r.json();
+          if (!data.entries) continue;
+          const idx = data.entries.findIndex(e => e.username === username);
+          if (idx !== -1 && (bestRankIndex === -1 || idx < bestRankIndex)) {
+            bestRankIndex = idx;
+            bestScore = data.entries[idx].score;
           }
         }
-        
-        if (!found) {
+        if (bestRankIndex !== -1) {
+          timeEl.textContent = bestScore != null ? Number(bestScore).toLocaleString() : '—';
+          rankEl.textContent = `#${bestRankIndex + 1}`;
+          rankEl.style.fontWeight = 'bold';
+          if (bestRankIndex === 0) rankEl.style.color = '#d4af37';
+          else if (bestRankIndex === 1) rankEl.style.color = '#71706e';
+          else if (bestRankIndex === 2) rankEl.style.color = '#cd7f32';
+          else rankEl.style.color = '#111';
+        } else {
           timeEl.textContent = 'Unranked';
           rankEl.textContent = '> 20';
         }

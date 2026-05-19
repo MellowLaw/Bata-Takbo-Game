@@ -1,7 +1,7 @@
 /**
  * Leaderboard — Endless Mode per-chapter leaderboard
- * Tabs: Chapter (CH1 / CH2 / CH3) × Control (Keyboard / Gesture)
- * Fetches from /leaderboard/inf (inf_scores table)
+ * Tabs: Chapter (CH1/CH2/CH3) × Control (Keyboard/Gesture) × Sort (Waves/Score)
+ * Fetches from /leaderboard/endless?chapterId&controlType&sortBy
  */
 import { state } from '../utils/StateManager.js';
 
@@ -42,6 +42,12 @@ export const Leaderboard = {
           </button>
         </div>
 
+        <!-- Sort-by tabs (WAVES / SCORE) -->
+        <div class="leaderboard-tabs" id="lb-sort-tabs" style="animation: fadeInUp 0.4s ease 0.16s forwards; opacity: 0; margin-top: 0;">
+          <button class="leaderboard-tab active" data-sort="waves">★ WAVES</button>
+          <button class="leaderboard-tab" data-sort="score">◆ SCORE</button>
+        </div>
+
         <div class="leaderboard-list scrollable" id="leaderboard-list" style="animation: fadeInUp 0.4s ease 0.18s forwards; opacity: 0;">
           <div style="text-align:center; padding: var(--space-xl); color: rgba(255,255,255,0.4); font-family: var(--font-display); font-size: var(--text-sm);">
             Loading...
@@ -73,6 +79,7 @@ export const Leaderboard = {
   onEnter(el) {
     this._activeChapter = 1;
     this._activeControl = 'keyboard';
+    this._activeSort = 'waves';
 
     el.querySelector('#btn-lb-back').addEventListener('click', () => {
       window.__screenManager.back();
@@ -108,6 +115,16 @@ export const Leaderboard = {
       });
     });
 
+    // Sort-by tab switching (WAVES / SCORE)
+    el.querySelectorAll('#lb-sort-tabs .leaderboard-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        el.querySelectorAll('#lb-sort-tabs .leaderboard-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        this._activeSort = tab.dataset.sort;
+        this._loadBoard(el);
+      });
+    });
+
     // Initial load
     this._loadBoard(el);
   },
@@ -115,11 +132,12 @@ export const Leaderboard = {
   async _loadBoard(el) {
     const chapterId = this._activeChapter;
     const controlType = this._activeControl;
+    const sortBy = this._activeSort || 'waves';
     const list = el.querySelector('#leaderboard-list');
     list.innerHTML = `<div style="text-align:center; padding: var(--space-xl); color: rgba(255,255,255,0.4); font-family: var(--font-display); font-size: var(--text-sm);">Loading...</div>`;
 
     try {
-      const res = await fetch(`/leaderboard/inf?chapterId=${chapterId}&controlType=${controlType}`);
+      const res = await fetch(`/leaderboard/endless?chapterId=${chapterId}&controlType=${controlType}&sortBy=${sortBy}`);
       if (!res.ok) throw new Error('fetch failed');
       const { entries } = await res.json();
 
@@ -145,14 +163,17 @@ export const Leaderboard = {
         const isMe = currentUser && entry.username === currentUser;
         const mm = Math.floor((entry.survival_seconds||0) / 60).toString().padStart(2,'0');
         const ss = ((entry.survival_seconds||0) % 60).toString().padStart(2,'0');
+        // Highlight the active sort metric, dim the secondary metric
+        const wavesStyle = sortBy === 'waves' ? 'color:#ffd700;font-weight:bold;' : 'color:#e67e22;';
+        const scoreStyle = sortBy === 'score' ? 'color:#ffd700;font-weight:bold;' : 'opacity:0.85;';
         return `
           <div class="leaderboard-entry ${rank <= 3 ? 'leaderboard-entry--top' : ''} ${isMe ? 'leaderboard-entry--me' : ''}"
                style="animation: slideInLeft 0.3s ease forwards; animation-delay: ${i * 0.05}s; opacity: 0;${isMe ? ' outline: 1px solid rgba(255,215,0,0.5); background: rgba(255,215,0,0.06);' : ''}">
             <span class="leaderboard-entry__rank ${rank <= 3 ? 'top-3' : ''}">${rankDisplay}</span>
             <span class="leaderboard-entry__name">${entry.username}${isMe ? ' <span style="font-size:0.75em;color:rgba(255,215,0,0.7);">(you)</span>' : ''}</span>
             <span class="leaderboard-entry__score" style="display:flex;gap:clamp(8px,2vw,24px);align-items:center;">
-              <span title="Waves" style="color:#e67e22;">&#9733; ${entry.waves_survived||0} waves</span>
-              <span title="Score">${Number(entry.score).toLocaleString()} pts</span>
+              <span title="Waves" style="${wavesStyle}">&#9733; ${entry.waves_survived||0} waves</span>
+              <span title="Score" style="${scoreStyle}">${Number(entry.score).toLocaleString()} pts</span>
               <span title="Time" style="opacity:0.6;font-size:0.85em;">${mm}:${ss}</span>
             </span>
           </div>

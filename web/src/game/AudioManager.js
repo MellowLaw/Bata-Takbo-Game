@@ -51,7 +51,7 @@ class AudioManager {
     
     // Update Phaser sound volume if scene exists
     if (this.scene && this.scene.sound) {
-      this.scene.sound.volume = this.muted ? 0 : this.masterVolume;
+      try { this.scene.sound.volume = this.muted ? 0 : this.masterVolume; } catch (_) {}
       if (this.currentMusic) {
         try {
           this.currentMusic.setVolume(this.muted ? 0 : this.musicVolume * 0.25); // Lower BGM for clearer VO
@@ -197,7 +197,7 @@ class AudioManager {
     const bgmPath = '/assets/audio';
     
     // Load background music
-    if (scene.isInfMode || chapterId === 4) {
+    if (scene.isEndless || scene.isInfMode || chapterId === 4) {
       scene.load.audio('bg_music', `${bgmPath}/bg-inf.mp3`);
     } else if (chapterId === 1) {
       scene.load.audio('bg_music', `${bgmPath}/chapter-1-bg.mp3`);

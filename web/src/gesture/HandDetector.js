@@ -117,6 +117,7 @@ export class HandDetector {
         HAND_CONNECTIONS.forEach(pair => {
           const pt1 = landmarks[pair[0]];
           const pt2 = landmarks[pair[1]];
+          if (!pt1 || !pt2) return;
           
           this.ctx.beginPath();
           // Map normalized coords back to canvas resolution
@@ -128,6 +129,7 @@ export class HandDetector {
         // Draw Landmarks
         this.ctx.fillStyle = '#ffd700';
         landmarks.forEach(pt => {
+          if (!pt) return;
           this.ctx.beginPath();
           this.ctx.arc(pt.x * this.canvas.width, pt.y * this.canvas.height, 4, 0, 2 * Math.PI);
           this.ctx.fill();
