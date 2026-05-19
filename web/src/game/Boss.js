@@ -150,6 +150,29 @@ export class Boss {
       this.infSpeedMultiplier = Math.min(1.0 + (this.waveCount * 0.015), 2.5);
       this.infPerfectWave = true;
       this.scene.events.emit('inf:wave', this.waveCount, this.infSpeedMultiplier);
+
+      // Infinite Mode: Ultimate every 10 waves
+      if (this.waveCount % 10 === 0) {
+        if (this.attackTimer) this.attackTimer.remove();
+        let ultimateDuration = 0;
+
+        if (this.scene.chapterId === 1) {
+          ultimateDuration = this.ch1AttackBloodVortexPull();
+        } else if (this.scene.chapterId === 2) {
+          // Alternate between the two Chapter 2 ultimates
+          this._ch2UltimateCount = (this._ch2UltimateCount || 0) + 1;
+          ultimateDuration = this._ch2UltimateCount % 2 === 0
+            ? this.ch2AttackBunnyStampedeUltimate()
+            : this.ch2AttackNoteBurstUltimate();
+        } else if (this.scene.chapterId === 3) {
+          ultimateDuration = this.ch3UltimateRotatingBarrage();
+        }
+
+        if (ultimateDuration > 0) {
+          this.attackTimer = this.scene.time.delayedCall(ultimateDuration + 3000, this.executeAttack, [], this);
+          return; // Skip normal attack this wave
+        }
+      }
     } else {
       // Progressive difficulty for regular chapters
       // Scales from 1.0 (wave 1) to 1.5 (wave 20+) - attacks become 50% faster
@@ -172,8 +195,8 @@ export class Boss {
       const targets = [];
       this.attackCycleCount++;
 
-      // Every 6th attack cycle, spawn a bawang (lives up) loot
-      if (this.attackCycleCount % 6 === 0) {
+      // Every 5th attack cycle, spawn a bawang (lives up) loot
+      if (this.attackCycleCount % 5 === 0) {
         this._spawnBawangLoot();
       }
 
@@ -1635,8 +1658,7 @@ export class Boss {
         burst.once('animationcomplete', () => burst.destroy());
         // Play note burst sound (with rate limiting for performance)
         if (index % 3 === 0) {
-          const burstVariant = Phaser.Math.Between(1, 2);
-          audioManager.play(`ch2_note_burst${burstVariant === 1 ? '' : '_' + burstVariant}`, { volume: 0.7 });
+          audioManager.play('ch2_note_burst', { volume: 0.7 });
         }
         // Mini screen shake on each burst
         this.scene.cameras.main.shake(80, 0.008);

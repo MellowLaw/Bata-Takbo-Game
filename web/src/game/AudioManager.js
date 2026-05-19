@@ -638,7 +638,7 @@ class AudioManager {
     } else if (chapterId === 2) {
       variants.push('ch2_nature_magic', 'ch2_plant_grow', 'ch2_bee_swarm');
     } else if (chapterId === 3) {
-      variants.push('ch3_underwater', 'ch3_bubble_pop', 'ch3_water_laser');
+      variants.push('ch3_underwater', 'ch3_bubble_pop', 'ch3_watery_laser');
     }
     
     if (variants.length > 0) {

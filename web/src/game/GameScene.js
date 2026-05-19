@@ -112,19 +112,6 @@ export class GameScene extends Phaser.Scene {
       this.load.spritesheet('ult_loop', '/assets/projectiles/chapter-1/ultimate/loop.png', { frameWidth: 128, frameHeight: 128 });
       this.load.spritesheet('ult_end', '/assets/projectiles/chapter-1/ultimate/end.png', { frameWidth: 128, frameHeight: 128 });
 
-      // Loot and FX
-      this.load.image('ruby_loot', '/assets/projectiles/shared/ruby.png');
-      this.load.image('diamond_loot', '/assets/projectiles/shared/diamond.png');
-      this.load.image('bawang_loot', '/assets/projectiles/shared/bawang.png');
-      this.load.spritesheet('bawang_effects', '/assets/fx/bawang_effects.png', { frameWidth: 64, frameHeight: 64 });
-      // Chest loot - 5 different chest variations (single column, 4 frames each ~32x32)
-      this.load.spritesheet('chest1_loot', '/assets/projectiles/shared/chest1.png', { frameWidth: 32, frameHeight: 32 });
-      this.load.spritesheet('chest2_loot', '/assets/projectiles/shared/chest2.png', { frameWidth: 32, frameHeight: 32 });
-      this.load.spritesheet('chest3_loot', '/assets/projectiles/shared/chest3.png', { frameWidth: 32, frameHeight: 32 });
-      this.load.spritesheet('chest4_loot', '/assets/projectiles/shared/chest4.png', { frameWidth: 31, frameHeight: 32 });
-      this.load.spritesheet('chest5_loot', '/assets/projectiles/shared/chest5.png', { frameWidth: 32, frameHeight: 32 });
-      this.load.spritesheet('chest_effects', '/assets/fx/chest2.png', { frameWidth: 64, frameHeight: 64 });
-
     } else if (this.chapterId === 2) {
       // ===== CHAPTER 2: BUNGISNGIS ASSETS =====
       this.load.spritesheet('boss_idle', '/assets/entity/boss/chapter2/chapter-2-idle-sprite.png', { frameWidth: 672, frameHeight: 378 });
@@ -152,19 +139,6 @@ export class GameScene extends Phaser.Scene {
       this.load.spritesheet('ch2_acid_charge', '/assets/projectiles/chapter-2/Acid-01.png', { frameWidth: 32, frameHeight: 32 });
       this.load.spritesheet('ch2_acid_travel', '/assets/projectiles/chapter-2/Acid-02Repeatable.png', { frameWidth: 56, frameHeight: 32 });
       this.load.spritesheet('ch2_acid_end', '/assets/projectiles/chapter-2/Acid-02Ending.png', { frameWidth: 56, frameHeight: 32 });
-
-      // Loot and FX
-      this.load.image('ruby_loot', '/assets/projectiles/shared/ruby.png');
-      this.load.image('diamond_loot', '/assets/projectiles/shared/diamond.png');
-      this.load.image('bawang_loot', '/assets/projectiles/shared/bawang.png');
-      this.load.spritesheet('bawang_effects', '/assets/fx/bawang_effects.png', { frameWidth: 64, frameHeight: 64 });
-      // Chest loot - 5 different chest variations (single column, 4 frames each ~32x32)
-      this.load.spritesheet('chest1_loot', '/assets/projectiles/shared/chest1.png', { frameWidth: 32, frameHeight: 32 });
-      this.load.spritesheet('chest2_loot', '/assets/projectiles/shared/chest2.png', { frameWidth: 32, frameHeight: 32 });
-      this.load.spritesheet('chest3_loot', '/assets/projectiles/shared/chest3.png', { frameWidth: 32, frameHeight: 32 });
-      this.load.spritesheet('chest4_loot', '/assets/projectiles/shared/chest4.png', { frameWidth: 31, frameHeight: 32 });
-      this.load.spritesheet('chest5_loot', '/assets/projectiles/shared/chest5.png', { frameWidth: 32, frameHeight: 32 });
-      this.load.spritesheet('chest_effects', '/assets/fx/chest2.png', { frameWidth: 64, frameHeight: 64 });
 
     } else if (this.chapterId === 3) {
       // ===== CHAPTER 3: KATAW ASSETS =====
@@ -285,6 +259,19 @@ export class GameScene extends Phaser.Scene {
         this.load.spritesheet('boss_cast', '/assets/entity/boss/chapter2/boss_idle.png', { frameWidth: 87, frameHeight: 110 });
       }
     } // End of !isPracticeTutorial block - boss assets only needed for regular game
+
+    // Shared loot items and effects (needed for all chapters)
+    this.load.image('ruby_loot', '/assets/projectiles/shared/ruby.png');
+    this.load.image('diamond_loot', '/assets/projectiles/shared/diamond.png');
+    this.load.image('bawang_loot', '/assets/projectiles/shared/bawang.png');
+    this.load.spritesheet('bawang_effects', '/assets/fx/bawang_effects.png', { frameWidth: 64, frameHeight: 64 });
+    // Chest loot - 5 different chest variations (single column, 4 frames each ~32x32)
+    this.load.spritesheet('chest1_loot', '/assets/projectiles/shared/chest1.png', { frameWidth: 32, frameHeight: 32 });
+    this.load.spritesheet('chest2_loot', '/assets/projectiles/shared/chest2.png', { frameWidth: 32, frameHeight: 32 });
+    this.load.spritesheet('chest3_loot', '/assets/projectiles/shared/chest3.png', { frameWidth: 32, frameHeight: 32 });
+    this.load.spritesheet('chest4_loot', '/assets/projectiles/shared/chest4.png', { frameWidth: 31, frameHeight: 32 });
+    this.load.spritesheet('chest5_loot', '/assets/projectiles/shared/chest5.png', { frameWidth: 32, frameHeight: 32 });
+    this.load.spritesheet('chest_effects', '/assets/fx/chest2.png', { frameWidth: 64, frameHeight: 64 });
 
     // UI elements like Hearts (needed for all modes)
     this.load.spritesheet('ui_buttons', '/assets/ui/buttons.png', { frameWidth: 16, frameHeight: 16 });
@@ -741,41 +728,6 @@ export class GameScene extends Phaser.Scene {
         this.events.emit('bawang:collected');
       }
 
-      // Check for chest collision (power-ups)
-      if (this.grid.hasChestAt(col, row)) {
-        this.grid.removeChestAt(col, row);
-        this.events.emit('chest:collected');
-      }
-    });
-
-    this.events.on('chest:collected', () => {
-      // Random power-up (1-5)
-      const powerUp = Phaser.Math.Between(1, 5);
-      const px = this.player.sprite.x;
-      const py = this.player.sprite.y;
-
-      switch (powerUp) {
-        case 1: // TIME FREEZE - Everything stops for 3 seconds
-          this._activateTimeFreeze();
-          this._showPowerUpText(px, py, 'TIME FREEZE!', '#00ffff');
-          break;
-        case 2: // INVISIBILITY - Player becomes invisible for 3 seconds
-          this._activateInvisibility();
-          this._showPowerUpText(px, py, 'INVISIBILITY!', '#ff00ff');
-          break;
-        case 3: // SPEED BOOST - Player moves 2x faster for 5 seconds
-          this._activateSpeedBoost();
-          this._showPowerUpText(px, py, 'SPEED BOOST!', '#ffff00');
-          break;
-        case 4: // SHIELD - Invincibility for 5 seconds
-          this._activateShield();
-          this._showPowerUpText(px, py, 'SHIELD UP!', '#00ff00');
-          break;
-        case 5: // REVERSE DAMAGE - Boss takes damage for 3 seconds
-          this._activateReverseDamage();
-          this._showPowerUpText(px, py, 'REVENGE!', '#ff4444');
-          break;
-      }
     });
 
     this.events.on('bawang:collected', () => {
@@ -895,14 +847,12 @@ export class GameScene extends Phaser.Scene {
         [
           { name: 'SPEED BOOST', apply: () => this._applyBuff('speed', 5000) },
           { name: 'SIGHT', apply: () => this._applyBuff('sight', 7000) },
-          { name: 'DECOY', apply: () => this._applyBuff('decoy', 0) },
           { name: 'COUNTER', apply: () => this._applyBuff('counter', 0) },
         ],
         // Rare (rarity 1) — blue
         [
-          { name: 'THE ANCHOR', apply: () => this._applyBuff('anchor', 5000) },
           { name: 'TRIPLE DASH', apply: () => this._applyBuff('dash', 3) },
-          { name: 'OVERCLOCK', apply: () => this._applyBuff('overclock', 3000) },
+          { name: 'OVERCLOCK', apply: () => this._applyBuff('overclock', 8000) },
         ],
         // Legendary (rarity 2) — gold
         [
@@ -1323,22 +1273,6 @@ export class GameScene extends Phaser.Scene {
       // Update aura position each frame
       this._sightAura = aura;
 
-    } else if (type === 'decoy') {
-      // Drop a decoy ghost on current tile — any attack hitting that tile this wave is blocked
-      const col = this.player.col;
-      const row = this.player.row;
-      const pos = this.grid.getPixelPosition(col, row);
-      const decoy = this.add.ellipse(pos.x, pos.y, this.grid.tileSize * 0.7, this.grid.tileSize * 0.7, 0xffffff, 0.35)
-        .setDepth(8);
-      this.tweens.add({ targets: decoy, alpha: 0.1, scaleX: 1.2, scaleY: 1.2, yoyo: true, repeat: -1, duration: 400 });
-      this._decoys = this._decoys || [];
-      this._decoys.push({ col, row, sprite: decoy });
-      // Despawn after one wave or 6 seconds
-      this.time.delayedCall(6000, () => {
-        this._decoys = (this._decoys || []).filter(d => d.sprite !== decoy);
-        decoy.destroy();
-      });
-
     } else if (type === 'counter') {
       // Absorb the next single hit — a shield that blocks exactly one damage instance
       this.player.hasCounter = true;
@@ -1360,7 +1294,7 @@ export class GameScene extends Phaser.Scene {
       });
 
     } else if (type === 'overclock') {
-      // Triple move speed — much faster than regular speed boost
+      // Enhanced speed boost — 3x speed for 8 seconds (longer and faster than regular speed boost)
       this.player.isSpeedBoosted = true;
       this.player.isOverclocked = true;
       this.player.sprite.setTint(0xff4400);
@@ -1371,14 +1305,6 @@ export class GameScene extends Phaser.Scene {
         this.player.sprite.clearTint();
         shim.stop();
         this.player.sprite.setScale(this.player.sprite.scaleX);
-      });
-
-    } else if (type === 'anchor') {
-      this.player.isAnchored = true;
-      this.player.sprite.setTint(0x4488ff);
-      this.time.delayedCall(durationMs, () => {
-        this.player.isAnchored = false;
-        this.player.sprite.clearTint();
       });
 
     } else if (type === 'dash') {
@@ -1615,30 +1541,31 @@ export class GameScene extends Phaser.Scene {
     const HOLD_REPEAT_INTERVAL = 160; // ms between repeated moves while held
 
     // Keyboard: tap = JustDown (1 tile), hold = isDown after initial delay
-    const dirs = ['up', 'down', 'left', 'right'];
-    dirs.forEach(dir => {
-      if (Phaser.Input.Keyboard.JustDown(this.cursors[dir])) {
-        this.player.move(dir);
-        this._keyHoldTimers = this._keyHoldTimers || {};
-        this._keyHoldTimers[dir] = -HOLD_INITIAL_DELAY; // negative = in delay phase
-        if (this.control === 'keyboard') {
+    // Only active when control type is keyboard (not gesture)
+    if (this.control === 'keyboard') {
+      const dirs = ['up', 'down', 'left', 'right'];
+      dirs.forEach(dir => {
+        if (Phaser.Input.Keyboard.JustDown(this.cursors[dir])) {
+          this.player.move(dir);
+          this._keyHoldTimers = this._keyHoldTimers || {};
+          this._keyHoldTimers[dir] = -HOLD_INITIAL_DELAY; // negative = in delay phase
           const btn = document.querySelector(`.dpad-${dir}`);
           if (btn) {
             btn.classList.add('dpad-btn--active');
             setTimeout(() => btn.classList.remove('dpad-btn--active'), 150);
           }
+        } else if (this.cursors[dir].isDown) {
+          this._keyHoldTimers = this._keyHoldTimers || {};
+          this._keyHoldTimers[dir] = (this._keyHoldTimers[dir] || 0) + delta;
+          if (this._keyHoldTimers[dir] >= HOLD_REPEAT_INTERVAL) {
+            this._keyHoldTimers[dir] = 0;
+            this.player.move(dir);
+          }
+        } else {
+          if (this._keyHoldTimers) this._keyHoldTimers[dir] = 0;
         }
-      } else if (this.cursors[dir].isDown) {
-        this._keyHoldTimers = this._keyHoldTimers || {};
-        this._keyHoldTimers[dir] = (this._keyHoldTimers[dir] || 0) + delta;
-        if (this._keyHoldTimers[dir] >= HOLD_REPEAT_INTERVAL) {
-          this._keyHoldTimers[dir] = 0;
-          this.player.move(dir);
-        }
-      } else {
-        if (this._keyHoldTimers) this._keyHoldTimers[dir] = 0;
-      }
-    });
+      });
+    }
 
     // Gesture hold: if a gesture direction is held, repeat movement
     if (this._heldGesture) {
