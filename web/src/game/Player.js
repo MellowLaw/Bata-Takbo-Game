@@ -133,11 +133,6 @@ export class Player {
         this.scene.events.emit('player:moved', this.col, this.row);
         state.emit('player:moved', direction);
 
-        // Keep sight aura centred on player
-        if (this.scene._sightAura && this.scene._sightAura.active) {
-          this.scene._sightAura.setPosition(this.sprite.x, this.sprite.y);
-        }
-
         // Grid Hazard Effects
         if (this.grid.cells[this.row][this.col].status === 'mud') {
           // Slide in the same direction!

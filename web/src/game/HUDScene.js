@@ -12,7 +12,7 @@ export class HUDScene extends Phaser.Scene {
     this.character = data.character || 'male';
     this.control = data.control || 'keyboard';
     this.isPracticeTutorial = data.isPracticeTutorial || false;
-    this.isInfMode = data.isInfMode || false;
+    this.isInfMode = data.isEndless || data.isInfMode || false;
     this.elapsed = 0;
   }
 
@@ -83,7 +83,7 @@ export class HUDScene extends Phaser.Scene {
       fontFamily: 'VCR', fontSize: valueFontSize, color: '#ffd700'
     }).setDepth(20);
 
-    // WAVE + SPEED — INF mode only, in top bar
+    // WAVE + COMBO — INF/Endless mode only, in top bar
     if (this.isInfMode) {
       this.add.text(topBarX + waveOffsetX, topBarY - 12, 'WAVE:', {
         fontFamily: 'VCR', fontSize: labelFontSize, color: '#a89b8c'
@@ -92,11 +92,11 @@ export class HUDScene extends Phaser.Scene {
         fontFamily: 'VCR', fontSize: valueFontSize, color: '#00cfff'
       }).setDepth(20);
 
-      this.add.text(topBarX + speedOffsetX, topBarY - 12, 'SPEED:', {
+      this.add.text(topBarX + speedOffsetX, topBarY - 12, 'COMBO:', {
         fontFamily: 'VCR', fontSize: labelFontSize, color: '#a89b8c'
       }).setDepth(20);
-      this.infSpeedText = this.add.text(topBarX + speedOffsetX, topBarY + 6, '1.00x', {
-        fontFamily: 'VCR', fontSize: valueFontSize, color: '#ffd700'
+      this.infComboText = this.add.text(topBarX + speedOffsetX, topBarY + 6, '1.0x', {
+        fontFamily: 'VCR', fontSize: valueFontSize, color: '#ff9900'
       }).setDepth(20);
     }
 
@@ -117,7 +117,10 @@ export class HUDScene extends Phaser.Scene {
     let bossName = `CHAPTER ${this.chapterId}`;
     let bossTitle = "";
 
-    if (this.chapterId == 1) {
+    if (this.isInfMode) {
+      bossName = "\u221e";
+      bossTitle = "ENDLESS MODE";
+    } else if (this.chapterId == 1) {
       bossName = "SI IMELDA";
       bossTitle = "ANG UNANG MANANANGGAL";
     } else if (this.chapterId == 2) {
@@ -126,9 +129,6 @@ export class HUDScene extends Phaser.Scene {
     } else if (this.chapterId == 3) {
       bossName = "KATAW";
       bossTitle = "ABYSSAL SIREN";
-    } else if (this.isInfMode) {
-      bossName = "∞";
-      bossTitle = "INF MODE";
     }
 
     // Scale boss name/subtitle to fit bossBoxW (actual usable text width) - BIGGER sizes
@@ -826,10 +826,21 @@ export class HUDScene extends Phaser.Scene {
     if (this.scoreText) this.scoreText.setText(`${score}`);
   }
 
-  updateInfWave(waveNum) {
+  updateInfWave(waveNum, combo, speed) {
     if (this.infWaveText) this.infWaveText.setText(`${waveNum}`);
-    const speed = Math.min(1.0 + (waveNum * 0.015), 2.5);
-    if (this.infSpeedText) this.infSpeedText.setText(`${speed.toFixed(2)}x`);
+    // Update combo + speed display
+    if (this.infComboText) {
+      const comboStr = combo !== undefined ? `${combo.toFixed(1)}x` : '1.0x';
+      const speedStr = speed !== undefined ? ` [${speed.toFixed(2)}x spd]` : '';
+      this.infComboText.setText(`${comboStr}${speedStr}`);
+      const comboColor = (combo || 1) >= 4.0 ? '#ff2200' : (combo || 1) >= 3.0 ? '#ff6600' : (combo || 1) >= 2.0 ? '#ffcc00' : '#ff9900';
+      this.infComboText.setColor(comboColor);
+      this.tweens.add({
+        targets: this.infComboText,
+        scaleX: 1.3, scaleY: 1.3,
+        duration: 100, yoyo: true, ease: 'Back.easeOut'
+      });
+    }
     // Subtle pop on the wave counter
     if (this.infWaveText) {
       this.tweens.add({
