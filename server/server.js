@@ -1143,7 +1143,68 @@ app.post('/leaderboard/endless', authMiddleware, async (req, res) => {
       'INSERT INTO inf_scores (user_id, username, chapter_id, score, waves_survived, survival_seconds, control_type, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
       [req.user.id, user.username, Number(chapterId), Math.floor(score), Math.floor(wavesSurvived) || 0, Math.floor(survivalSeconds) || 0, controlType, Date.now()]
     );
-    return res.status(200).json({ success: true });
+
+    // Calculate user's best rank for waves leaderboard
+    const wavesRankRow = await db.get(`
+      SELECT ranked_rank FROM (
+        SELECT username,
+               ROW_NUMBER() OVER (
+                 ORDER BY waves_survived DESC, survival_seconds ASC, score DESC
+               ) AS ranked_rank
+        FROM (
+          SELECT i.user_id, i.username,
+                 i.waves_survived, i.score, i.survival_seconds,
+                 ROW_NUMBER() OVER (
+                   PARTITION BY i.user_id
+                   ORDER BY i.waves_survived DESC, i.survival_seconds ASC, i.score DESC
+                 ) AS rn
+          FROM inf_scores i
+          INNER JOIN users u ON i.user_id = u.id
+          WHERE i.chapter_id = ? AND i.control_type = ?
+            AND u.banned = FALSE AND u.is_admin = FALSE
+        ) ranked
+        WHERE rn = 1
+      ) final
+      WHERE username = ?
+    `, [Number(chapterId), controlType, user.username]);
+
+    // Calculate user's best rank for score leaderboard
+    const scoreRankRow = await db.get(`
+      SELECT ranked_rank FROM (
+        SELECT username,
+               ROW_NUMBER() OVER (
+                 ORDER BY score DESC, waves_survived DESC, survival_seconds ASC
+               ) AS ranked_rank
+        FROM (
+          SELECT i.user_id, i.username,
+                 i.waves_survived, i.score, i.survival_seconds,
+                 ROW_NUMBER() OVER (
+                   PARTITION BY i.user_id
+                   ORDER BY i.score DESC, i.waves_survived DESC, i.survival_seconds ASC
+                 ) AS rn
+          FROM inf_scores i
+          INNER JOIN users u ON i.user_id = u.id
+          WHERE i.chapter_id = ? AND i.control_type = ?
+            AND u.banned = FALSE AND u.is_admin = FALSE
+        ) ranked
+        WHERE rn = 1
+      ) final
+      WHERE username = ?
+    `, [Number(chapterId), controlType, user.username]);
+
+    const wavesRank = wavesRankRow ? wavesRankRow.ranked_rank : null;
+    const scoreRank = scoreRankRow ? scoreRankRow.ranked_rank : null;
+    const bestRank = Math.min(
+      wavesRank || Infinity,
+      scoreRank || Infinity
+    );
+
+    return res.status(200).json({
+      success: true,
+      wavesRank,
+      scoreRank,
+      bestRank: bestRank === Infinity ? null : bestRank
+    });
   } catch (err) {
     console.error('Endless score submit error:', err);
     return res.status(500).json({ error: 'Internal server error' });
@@ -1172,10 +1233,11 @@ app.get('/leaderboard/endless', async (req, res) => {
       : 'waves_survived DESC, survival_seconds ASC, score DESC';
 
     const rows = await db.all(`
-      SELECT username, waves_survived, score, survival_seconds
+      SELECT username, waves_survived, score, survival_seconds, avatar_url
       FROM (
         SELECT i.user_id, i.username,
                i.waves_survived, i.score, i.survival_seconds,
+               u.avatar_url,
                ROW_NUMBER() OVER (
                  PARTITION BY i.user_id
                  ORDER BY ${innerOrder}

@@ -25,6 +25,7 @@ export class GameScene extends Phaser.Scene {
     this.endlessTilesCollected = 0;
     this.endlessCombo = 1;         // combo multiplier, grows on perfect waves
     this._endlessLastPlayerHp = 6; // track for perfect wave
+    this._cheatWaveBonus = 0;      // track 444 cheat bonus separately
   }
 
   preload() {
@@ -948,6 +949,7 @@ export class GameScene extends Phaser.Scene {
     this.events.on('inf:wave', (waveNum, speed) => {
       if (!this.isEndless) return;
       this.endlessWaves = waveNum;
+      const displayWaves = this.endlessWaves + this._cheatWaveBonus;
       const hud = this.scene.get('HUDScene');
       // Perfect wave: player took no damage this wave → grow combo streak (cap ×5.0)
       if (this.player && this.player.hp >= this._endlessLastPlayerHp) {
@@ -962,7 +964,7 @@ export class GameScene extends Phaser.Scene {
       // Add 100 points per wave × combo — score only ever goes up
       this.endlessScore += Math.floor(100 * this.endlessCombo);
       if (hud && hud.updateScore) hud.updateScore(this.endlessScore);
-      if (hud && hud.updateInfWave) hud.updateInfWave(waveNum, this.endlessCombo, speed);
+      if (hud && hud.updateInfWave) hud.updateInfWave(displayWaves, this.endlessCombo, speed);
     });
 
     // Endless mode: sword pickup gives flat bonus × combo — always additive
@@ -1043,6 +1045,78 @@ export class GameScene extends Phaser.Scene {
       }
     };
     window.addEventListener('keydown', this._cheatKeyHandler);
+
+    // --- HIDDEN CHEAT CODE: "0999" — Normal Clear ---
+    this._normalClearBuffer = '';
+    this._normalClearCode = '0999';
+    this._normalClearTimeout = null; // auto-reset timer
+    this._normalClearKeyHandler = (e) => {
+      // Only digits (single printable char)
+      if (e.key.length !== 1) return;
+      // Clear the buffer if the player pauses >3 s between keypresses
+      if (this._normalClearTimeout) clearTimeout(this._normalClearTimeout);
+      this._normalClearTimeout = setTimeout(() => {
+        this._normalClearBuffer = '';
+      }, 3000);
+      this._normalClearBuffer += e.key;
+      // Keep only the last N chars (N = cheat code length)
+      if (this._normalClearBuffer.length > this._normalClearCode.length) {
+        this._normalClearBuffer = this._normalClearBuffer.slice(-this._normalClearCode.length);
+      }
+      if (this._normalClearBuffer === this._normalClearCode) {
+        this._normalClearBuffer = '';
+        clearTimeout(this._normalClearTimeout);
+        this._normalClearTimeout = null;
+        this.ActivateNormalClearCheat();
+      }
+    };
+    window.addEventListener('keydown', this._normalClearKeyHandler);
+
+    // --- HIDDEN CHEAT CODE: "444" — Endless Score Boost (+5000 pts, +1 wave) ---
+    this._infBoostBuffer = '';
+    this._infBoostCode = '444';
+    this._infBoostTimeout = null; // auto-reset timer
+    this._infBoostKeyHandler = (e) => {
+      if (e.key.length !== 1) return;
+      if (this._infBoostTimeout) clearTimeout(this._infBoostTimeout);
+      this._infBoostTimeout = setTimeout(() => {
+        this._infBoostBuffer = '';
+      }, 3000);
+      this._infBoostBuffer += e.key;
+      if (this._infBoostBuffer.length > this._infBoostCode.length) {
+        this._infBoostBuffer = this._infBoostBuffer.slice(-this._infBoostCode.length);
+      }
+      if (this._infBoostBuffer === this._infBoostCode) {
+        this._infBoostBuffer = '';
+        clearTimeout(this._infBoostTimeout);
+        this._infBoostTimeout = null;
+        this._activateInfBoostCheat();
+      }
+    };
+    window.addEventListener('keydown', this._infBoostKeyHandler);
+
+    // --- HIDDEN CHEAT CODE: "111" — Instant Game Over ---
+    this._gameOverBuffer = '';
+    this._gameOverCode = '111';
+    this._gameOverTimeout = null;
+    this._gameOverKeyHandler = (e) => {
+      if (e.key.length !== 1) return;
+      if (this._gameOverTimeout) clearTimeout(this._gameOverTimeout);
+      this._gameOverTimeout = setTimeout(() => {
+        this._gameOverBuffer = '';
+      }, 3000);
+      this._gameOverBuffer += e.key;
+      if (this._gameOverBuffer.length > this._gameOverCode.length) {
+        this._gameOverBuffer = this._gameOverBuffer.slice(-this._gameOverCode.length);
+      }
+      if (this._gameOverBuffer === this._gameOverCode) {
+        this._gameOverBuffer = '';
+        clearTimeout(this._gameOverTimeout);
+        this._gameOverTimeout = null;
+        this._activateGameOverCheat();
+      }
+    };
+    window.addEventListener('keydown', this._gameOverKeyHandler);
 
     this.horizontalProjectiles = this.add.group();
     this._horizontalProjectilesStarted = false;
@@ -1408,6 +1482,104 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
+  // ── Instant Game Over Cheat ("111") ──────────────────────────────
+  _activateGameOverCheat() {
+    if (this.isGameOver) return;
+    this.showGameOver(false);
+  }
+
+  // ── Endless Boost Cheat ("444") ───────────────────────────────────
+  _activateInfBoostCheat() {
+    // Only active in endless mode and while the game is still running
+    if (!this.isEndless || this.isGameOver) return;
+
+    const SCORE_BONUS = 5000;
+    const WAVE_BONUS  = 500;
+
+    // Add score
+    this.endlessScore += SCORE_BONUS;
+
+    // Add to cheat wave bonus (tracked separately so real waves don't overwrite it)
+    this._cheatWaveBonus += WAVE_BONUS;
+
+    // Sync both displays on the HUD
+    const hud = this.scene.get('HUDScene');
+    const displayWaves = this.endlessWaves + this._cheatWaveBonus;
+    if (hud && hud.updateScore) hud.updateScore(this.endlessScore);
+    if (hud && hud.updateInfWave) hud.updateInfWave(displayWaves, this.endlessCombo, null);
+
+    // Brief green flash + toast
+    const { width, height } = this.scale;
+    const flash = this.add.graphics().setDepth(998);
+    flash.fillStyle(0x00ff88, 0.18);
+    flash.fillRect(0, 0, width, height);
+    this.tweens.add({ targets: flash, alpha: 0, duration: 500, onComplete: () => flash.destroy() });
+
+    const toast = this.add.text(width / 2, height * 0.18, `+${SCORE_BONUS.toLocaleString()} • WAVE +${WAVE_BONUS}`, {
+      fontFamily: 'VCR',
+      fontSize: '18px',
+      color: '#00ff88',
+      stroke: '#000000',
+      strokeThickness: 5,
+      shadow: { offsetX: 0, offsetY: 0, color: '#00aa44', blur: 14, fill: true }
+    }).setOrigin(0.5).setAlpha(0).setDepth(999);
+
+    this.tweens.add({
+      targets: toast, alpha: 1, y: height * 0.15,
+      duration: 300, ease: 'Back.easeOut',
+      onComplete: () => {
+        this.time.delayedCall(1600, () => {
+          this.tweens.add({
+            targets: toast, alpha: 0, y: height * 0.12,
+            duration: 350, onComplete: () => toast.destroy()
+          });
+        });
+      }
+    });
+  }
+
+  // ── Normal Clear Cheat ("0999") ───────────────────────────────────
+  ActivateNormalClearCheat() {
+    // Guard: only usable once per session, not in tutorial/endless, not after game over
+    if (this._normalClearUsed || this.isGameOver || this.isTutorial || this.isPracticeTutorial || this.isEndless) return;
+    this._normalClearUsed = true;
+
+    // Flash the screen blue briefly to signal activation
+    const { width, height } = this.scale;
+    const flash = this.add.graphics().setDepth(998);
+    flash.fillStyle(0x00aaff, 0.22);
+    flash.fillRect(0, 0, width, height);
+    this.tweens.add({ targets: flash, alpha: 0, duration: 600, onComplete: () => flash.destroy() });
+
+    // On-screen toast
+    const toast = this.add.text(width / 2, height * 0.18, '✦ NORMAL CLEAR ✦', {
+      fontFamily: 'VCR',
+      fontSize: '20px',
+      color: '#00ccff',
+      stroke: '#000000',
+      strokeThickness: 5,
+      shadow: { offsetX: 0, offsetY: 0, color: '#0044ff', blur: 16, fill: true }
+    }).setOrigin(0.5).setAlpha(0).setDepth(999);
+
+    this.tweens.add({
+      targets: toast, alpha: 1, y: height * 0.15,
+      duration: 350, ease: 'Back.easeOut',
+      onComplete: () => {
+        this.time.delayedCall(1800, () => {
+          this.tweens.add({
+            targets: toast, alpha: 0, y: height * 0.12,
+            duration: 400, onComplete: () => {
+              toast.destroy();
+              // Mark completion as Normal mode (not full-HP / perfect) then trigger victory
+              this._cheatCompletionMode = 'normal';
+              this.showGameOver(true);
+            }
+          });
+        });
+      }
+    });
+  }
+
   getProjectileDifficulty() {
     const hud = this.scene.get('HUDScene');
     const elapsedSecs = hud ? Math.floor(hud.elapsed / 1000) : 0;
@@ -1747,7 +1919,7 @@ export class GameScene extends Phaser.Scene {
         state.set('lastGameResult', {
           chapterId: this.chapterId, isVictory: false,
           timeSurvived: elapsedSecs, score: this.endlessScore,
-          wavesSurvived: this.endlessWaves,
+          wavesSurvived: this.endlessWaves + this._cheatWaveBonus,
           isEndless: true,
           control: this.control,
           character: this.character
@@ -1810,7 +1982,8 @@ export class GameScene extends Phaser.Scene {
         timeSurvived: elapsedSecs, score: finalScore,
         isEndless: false,
         control: this.control,
-        character: this.character
+        character: this.character,
+        completionMode: this._cheatCompletionMode || 'normal'
       });
       if (window.__screenManager) {
         window.__screenManager.navigate('results-screen', {}, false);
@@ -2136,8 +2309,14 @@ export class GameScene extends Phaser.Scene {
 
   shutdown() {
     if (this.unsubGesture) this.unsubGesture();
-    // Remove cheat listener to prevent memory leaks across scene restarts
+    // Remove cheat listeners to prevent memory leaks across scene restarts
     if (this._cheatKeyHandler) window.removeEventListener('keydown', this._cheatKeyHandler);
+    if (this._normalClearKeyHandler) window.removeEventListener('keydown', this._normalClearKeyHandler);
+    if (this._normalClearTimeout) { clearTimeout(this._normalClearTimeout); this._normalClearTimeout = null; }
+    if (this._infBoostKeyHandler) window.removeEventListener('keydown', this._infBoostKeyHandler);
+    if (this._infBoostTimeout) { clearTimeout(this._infBoostTimeout); this._infBoostTimeout = null; }
+    if (this._gameOverKeyHandler) window.removeEventListener('keydown', this._gameOverKeyHandler);
+    if (this._gameOverTimeout) { clearTimeout(this._gameOverTimeout); this._gameOverTimeout = null; }
     // Cleanup persistent entities
     if (this.persistentEntities) {
       this.persistentEntities.forEach(ent => {

@@ -25,13 +25,15 @@ export const ProfileScreen = {
           <div id="panel-stats" class="profile-panel active">
             
 
-            <div class="id-card-header">
-              <div class="id-card-avatar" id="id-card-avatar" style="flex-shrink: 0;">?</div>
-              <div class="id-card-info" style="min-width: 0; display: flex; flex-direction: column; gap: 2px; padding-bottom:0;">
-                <h2 id="profile-username" style="font-size: var(--text-xl); word-break: break-word;">Loading...</h2>
-                <div class="id-card-badge" id="profile-account-type" style="align-self: flex-start;">GUEST</div>
-                <p id="profile-bio" style="font-family:'VCR',sans-serif;font-size:var(--text-xs);color:#666;margin-top:2px;font-style:italic;max-width:200px;word-wrap:break-word;min-height:1.2em;"></p>
+            <div class="id-card-header" style="justify-content: space-between; align-items: flex-start;">
+              <div style="display: flex; gap: var(--space-sm); align-items: center; min-width: 0;">
+                <div class="id-card-avatar" id="id-card-avatar" style="flex-shrink: 0;">?</div>
+                <div class="id-card-info" style="min-width: 0; display: flex; flex-direction: column; gap: 2px; padding-bottom:0;">
+                  <h2 id="profile-username" style="font-size: var(--text-xl); word-break: break-word;">Loading...</h2>
+                  <p id="profile-bio" style="font-family:'VCR',sans-serif;font-size:var(--text-xs);color:#666;margin-top:2px;font-style:italic;max-width:200px;word-wrap:break-word;min-height:1.2em;"></p>
+                </div>
               </div>
+              <div class="id-card-badge" id="profile-account-type">GUEST</div>
             </div>
 
             <div id="profile-stats-container" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-md); margin-bottom: var(--space-md);">
@@ -58,17 +60,17 @@ export const ProfileScreen = {
                 <div>RANK</div>
               </div>
               <div class="inf-stat-row">
-                <div class="inf-stat-chapter">1: Suburbs</div>
+                <div class="inf-stat-chapter">1: MANANANGGAL</div>
                 <div class="inf-stat-time" id="inf-ch1-time">Loading...</div>
                 <div class="inf-stat-rank" id="inf-ch1-rank">-</div>
               </div>
               <div class="inf-stat-row">
-                <div class="inf-stat-chapter">2: Old Manila</div>
+                <div class="inf-stat-chapter">2: BUNGISNGIS</div>
                 <div class="inf-stat-time" id="inf-ch2-time">Loading...</div>
                 <div class="inf-stat-rank" id="inf-ch2-rank">-</div>
               </div>
               <div class="inf-stat-row">
-                <div class="inf-stat-chapter">3: Underworld</div>
+                <div class="inf-stat-chapter">3: KATAW</div>
                 <div class="inf-stat-time" id="inf-ch3-time">Loading...</div>
                 <div class="inf-stat-rank" id="inf-ch3-rank">-</div>
               </div>
@@ -398,7 +400,7 @@ export const ProfileScreen = {
           else rankEl.style.color = '#111';
         } else {
           timeEl.textContent = 'Unranked';
-          rankEl.textContent = '> 20';
+          rankEl.textContent = '###';
         }
       } catch (err) {
         if (timeEl) timeEl.textContent = 'Error';
@@ -717,97 +719,58 @@ export const ProfileScreen = {
     }
     
     overlay.innerHTML = `
-      <div class="profile-modal-box" style="max-width: 700px; width: 90vw; max-height: 90vh; overflow-y: auto;">
-        <h3 style="color:#e4cfc0;font-family:'VCR',sans-serif;font-size:var(--text-xl);text-transform:uppercase;margin:0 0 var(--space-md);text-align:center;letter-spacing:2px;">Choose Profile</h3>
+      <div class="profile-modal-box avatar-modal">
+        <h3 style="color:#e4cfc0;font-family:'VCR',sans-serif;font-size:var(--text-xl);text-transform:uppercase;margin:0;text-align:center;letter-spacing:2px;">Choose Profile</h3>
         
-        <!-- Current Preview -->
-        <div id="avatar-preview-box" style="
-          width: 150px; height: 150px;
-          margin: 0 auto var(--space-lg);
-          border: 4px solid #e4cfc0;
-          border-radius: 12px;
-          background: #222;
-          display: flex; align-items: center; justify-content: center;
-          overflow: hidden;
-          font-size: 3rem; color: #e4cfc0;
-        ">?</div>
+        <div class="avatar-modal-content">
+          <!-- Left: Current Preview -->
+          <div class="avatar-preview-column">
+            <div id="avatar-preview-box" class="avatar-preview-box">?</div>
+          </div>
 
-        <!-- Upload from File -->
-        <div style="display:flex;align-items:center;gap:var(--space-md);margin-bottom:var(--space-md);">
-          <button id="modal-avatar-upload-btn" style="flex:1;background:#333;border:2px solid #666;color:#e4cfc0;font-family:'VCR',sans-serif;padding:10px;cursor:pointer;border-radius:4px;font-size:var(--text-sm);">UPLOAD FROM FILE</button>
-          <input id="modal-avatar-file-input" type="file" accept="image/*" style="display:none;" />
-          <span style="font-family:'VCR',sans-serif;font-size:10px;color:#666;">or pick a preset below</span>
-        </div>
-
-        <!-- Preset Grid -->
-        <div id="avatar-preset-grid" class="avatar-preset-grid" style="
-          display: grid;
-          grid-template-columns: repeat(10, 1fr);
-          grid-auto-rows: 55px;
-          gap: 12px;
-          margin-bottom: var(--space-lg);
-          padding: var(--space-md);
-          background: rgba(0,0,0,0.3);
-          border-radius: 12px;
-          max-height: 55vh;
-          overflow-y: auto;
-          scrollbar-width: thin;
-          scrollbar-color: #e4cfc0 #333;
-        ">
-          <style>
-            #avatar-preset-grid::-webkit-scrollbar { width: 10px; }
-            #avatar-preset-grid::-webkit-scrollbar-track { background: #333; border-radius: 5px; }
-            #avatar-preset-grid::-webkit-scrollbar-thumb { background: #e4cfc0; border-radius: 5px; border: 2px solid #333; }
-            #avatar-preset-grid::-webkit-scrollbar-thumb:hover { background: #d4bfa0; }
-            
-            /* Mobile responsive */
-            @media (max-width: 900px) {
-              #avatar-preset-grid {
-                grid-template-columns: repeat(6, 1fr) !important;
-                grid-auto-rows: 60px !important;
-              }
-            }
-            @media (max-width: 600px) {
-              #avatar-preset-grid {
-                grid-template-columns: repeat(5, 1fr) !important;
-                grid-auto-rows: 50px !important;
-                gap: 10px !important;
-              }
-            }
-            @media (max-width: 480px) {
-              #avatar-preset-grid {
-                grid-template-columns: repeat(4, 1fr) !important;
-                grid-auto-rows: 45px !important;
-                gap: 8px !important;
-                padding: 12px !important;
-              }
-            }
-          </style>
-          ${presetIcons.map((src, idx) => `
-            <div class="preset-avatar-option" data-src="${src}" style="
-              width: 100%;
-              height: 100%;
-              border: 2px solid #444;
-              border-radius: 8px;
-              cursor: pointer;
-              overflow: hidden;
-              transition: all 0.2s ease;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              background: #333;
-            " title="Profile ${idx + 1}">
-              <img src="${src}" style="width: 100%; height: 100%; object-fit: contain; display: block; image-rendering: pixelated;" />
+          <!-- Right: Selection area -->
+          <div class="avatar-selection-column">
+            <!-- Upload from File -->
+            <div class="avatar-upload-row">
+              <button id="modal-avatar-upload-btn" style="flex:1;background:#333;border:2px solid #666;color:#e4cfc0;font-family:'VCR',sans-serif;padding:10px;cursor:pointer;border-radius:4px;font-size:var(--text-sm);">UPLOAD FROM FILE</button>
+              <input id="modal-avatar-file-input" type="file" accept="image/*" style="display:none;" />
+              <span style="font-family:'VCR',sans-serif;font-size:10px;color:#666;">or pick a preset</span>
             </div>
-          `).join('')}
-        </div>
 
-        <p id="modal-avatar-msg" style="font-family:'VCR',sans-serif;font-size:var(--text-sm);font-weight:bold;min-height:1.2em;text-align:center;margin:0 0 var(--space-md);color:var(--accent-red);"></p>
+            <!-- Preset Grid -->
+            <div id="avatar-preset-grid" class="avatar-preset-grid">
+              <style>
+                #avatar-preset-grid::-webkit-scrollbar { width: 6px; }
+                #avatar-preset-grid::-webkit-scrollbar-track { background: #333; border-radius: 5px; }
+                #avatar-preset-grid::-webkit-scrollbar-thumb { background: #e4cfc0; border-radius: 5px; }
+                #avatar-preset-grid::-webkit-scrollbar-thumb:hover { background: #d4bfa0; }
+              </style>
+              ${presetIcons.map((src, idx) => `
+                <div class="preset-avatar-option" data-src="${src}" style="
+                  width: 100%;
+                  border: 2px solid #444;
+                  border-radius: 8px;
+                  cursor: pointer;
+                  overflow: hidden;
+                  transition: all 0.2s ease;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  background: #333;
+                " title="Profile ${idx + 1}">
+                  <img src="${src}" style="width: 100%; height: 100%; object-fit: contain; display: block; image-rendering: pixelated;" />
+                </div>
+              `).join('')}
+            </div>
 
-        <div style="display:flex;gap:var(--space-md);">
-          <button id="modal-avatar-cancel" style="flex:1;background:transparent;border:2px solid #555;color:#aaa;font-family:'VCR',sans-serif;padding:12px;cursor:pointer;border-radius:4px;font-size:var(--text-sm);">CANCEL</button>
-          <button id="modal-avatar-remove" style="flex:1;background:#444;border:2px solid #666;color:#aaa;font-family:'VCR',sans-serif;padding:12px;cursor:pointer;border-radius:4px;font-size:var(--text-sm);">RESET</button>
-          <button id="modal-avatar-confirm" style="flex:1;background:#e4cfc0;border:2px solid #111;color:#111;font-family:'VCR',sans-serif;font-weight:bold;padding:12px;cursor:pointer;border-radius:4px;font-size:var(--text-sm);" disabled>SAVE</button>
+            <p id="modal-avatar-msg" style="font-family:'VCR',sans-serif;font-size:var(--text-sm);font-weight:bold;min-height:1em;text-align:center;margin:0;color:var(--accent-red);"></p>
+
+            <div class="avatar-modal-actions">
+              <button id="modal-avatar-cancel" style="flex:1;background:transparent;border:2px solid #555;color:#aaa;font-family:'VCR',sans-serif;padding:12px;cursor:pointer;border-radius:4px;font-size:var(--text-sm);">CANCEL</button>
+              <button id="modal-avatar-remove" style="flex:1;background:#444;border:2px solid #666;color:#aaa;font-family:'VCR',sans-serif;padding:12px;cursor:pointer;border-radius:4px;font-size:var(--text-sm);">RESET</button>
+              <button id="modal-avatar-confirm" style="flex:1;background:#e4cfc0;border:2px solid #111;color:#111;font-family:'VCR',sans-serif;font-weight:bold;padding:12px;cursor:pointer;border-radius:4px;font-size:var(--text-sm);" disabled>SAVE</button>
+            </div>
+          </div>
         </div>
       </div>
     `;

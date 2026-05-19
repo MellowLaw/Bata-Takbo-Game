@@ -12,22 +12,19 @@ export const ResultsScreen = {
     const isEndless = result.isEndless === true;
     const wavesSurvived = result.wavesSurvived || 0;
     const chapterLabel = result.chapterId === 1 ? 'CH1' : result.chapterId === 2 ? 'CH2' : 'CH3';
+    const isGesture = result.control === 'gesture';
 
     if (isEndless) {
       return `
         <div class="results-screen screen results-screen--endless" style="
           position: relative; display: flex; align-items: stretch; background: #000; overflow: hidden;
         ">
+          ${isGesture ? `
           <img id="kill-cam-bg" style="
             position: absolute; inset: 0; width: 100%; height: 100%;
             object-fit: cover; filter: sepia(80%) brightness(0.4) saturate(1.6) hue-rotate(20deg);
             transform: rotate(-5deg) scale(1.12); transform-origin: center; z-index: 0;
           " />
-          <div style="
-            position: absolute; inset: 0;
-            background: linear-gradient(to right, rgba(0,0,0,0.97) 30%, rgba(0,0,0,0.6) 60%, transparent 100%);
-            z-index: 1;
-          "></div>
           <a id="btn-download-killcam" href="#" download="bata_takbo_endless.png" style="
             position: absolute; top: 20px; right: 24px; z-index: 10; color: white;
             text-decoration: none; opacity: 0; transition: opacity 0.4s;
@@ -38,6 +35,18 @@ export const ResultsScreen = {
               <line x1="12" y1="15" x2="12" y2="3"></line>
             </svg>
           </a>
+          ` : `
+          <img id="result-bg" src="/assets/ui/backgrounds/result_screen_dpad.png" style="
+            position: absolute; inset: 0; width: 100%; height: 100%;
+            object-fit: cover;
+            z-index: 0;
+          " />
+          `}
+          <div style="
+            position: absolute; inset: 0;
+            background: linear-gradient(to right, rgba(0,0,0,0.97) 30%, rgba(0,0,0,0.6) 60%, transparent 100%);
+            z-index: 1;
+          "></div>
           <div style="
             position: relative; z-index: 2;
             width: clamp(60%, 65%, 70%);
@@ -97,8 +106,9 @@ export const ResultsScreen = {
       ">
 
         ${isVictory ? `
-          <!-- Victory Layout: Kill Cam as full BG (warm gold tint), stats panel on left -->
+          <!-- Victory Layout -->
 
+          ${isGesture ? `
           <!-- Full-screen kill cam background (gold/sepia tint) -->
           <img id="kill-cam-bg" style="
             position: absolute; inset: 0;
@@ -109,13 +119,6 @@ export const ResultsScreen = {
             transform-origin: center;
             z-index: 0;
           " />
-
-          <!-- Dark gradient overlay: heavy on left, transparent on right -->
-          <div style="
-            position: absolute; inset: 0;
-            background: linear-gradient(to right, rgba(0,0,0,0.97) 30%, rgba(0,0,0,0.6) 60%, transparent 100%);
-            z-index: 1;
-          "></div>
 
           <!-- Download button — top right -->
           <a id="btn-download-killcam" href="#" download="bata_takbo_victory.png" style="
@@ -133,6 +136,21 @@ export const ResultsScreen = {
               <line x1="12" y1="15" x2="12" y2="3"></line>
             </svg>
           </a>
+          ` : `
+          <img id="result-bg" src="/assets/ui/backgrounds/result_screen_dpad.png" style="
+            position: absolute; inset: 0;
+            width: 100%; height: 100%;
+            object-fit: cover;
+            z-index: 0;
+          " />
+          `}
+
+          <!-- Dark gradient overlay: heavy on left, transparent on right -->
+          <div style="
+            position: absolute; inset: 0;
+            background: linear-gradient(to right, rgba(0,0,0,0.97) 30%, rgba(0,0,0,0.6) 60%, transparent 100%);
+            z-index: 1;
+          "></div>
 
           <!-- Left stats panel -->
           <div style="
@@ -213,8 +231,9 @@ export const ResultsScreen = {
             </div>
           </div>
         ` : `
-          <!-- Game Over Layout: Kill Cam as full BG (B&W), stats panel on left -->
+          <!-- Game Over Layout -->
 
+          ${isGesture ? `
           <!-- Full-screen B&W collage background -->
           <img id="kill-cam-bg" style="
             position: absolute; inset: 0;
@@ -225,13 +244,6 @@ export const ResultsScreen = {
             transform-origin: center;
             z-index: 0;
           " />
-
-          <!-- Dark gradient overlay: heavy on left, transparent on right -->
-          <div style="
-            position: absolute; inset: 0;
-            background: linear-gradient(to right, rgba(0,0,0,0.97) 30%, rgba(0,0,0,0.6) 60%, transparent 100%);
-            z-index: 1;
-          "></div>
 
           <!-- Download button — top right -->
           <a id="btn-download-killcam" href="#" download="bata_takbo_killcam.png" style="
@@ -249,6 +261,21 @@ export const ResultsScreen = {
               <line x1="12" y1="15" x2="12" y2="3"></line>
             </svg>
           </a>
+          ` : `
+          <img id="result-bg" src="/assets/ui/backgrounds/result_screen_dpad.png" style="
+            position: absolute; inset: 0;
+            width: 100%; height: 100%;
+            object-fit: cover;
+            z-index: 0;
+          " />
+          `}
+
+          <!-- Dark gradient overlay: heavy on left, transparent on right -->
+          <div style="
+            position: absolute; inset: 0;
+            background: linear-gradient(to right, rgba(0,0,0,0.97) 30%, rgba(0,0,0,0.6) 60%, transparent 100%);
+            z-index: 1;
+          "></div>
 
           <!-- Left stats panel -->
           <div style="
@@ -361,14 +388,37 @@ export const ResultsScreen = {
     this.generateCollage(el, isVictory);
   },
 
+  _getRankMessage(rank) {
+    const messages = {
+      1: "LEGENDARY! You've claimed the TOP SPOT!",
+      2: "SO CLOSE! Silver medal - 2nd place!",
+      3: "BRONZE GLORY! 3rd place podium finish!",
+      4: "INCREDIBLE! You're 4th - almost on the podium!",
+      5: "TOP 5! You're among the elite survivors!",
+      6: "RANK 6! You're climbing the ranks fast!",
+      7: "LUCKY 7! Keep pushing for the top!",
+      8: "RANK 8! You're a rising star!",
+      9: "SO CLOSE TO TOP 5! Rank 9 - impressive!",
+      10: "TOP 10! You've earned your place among legends!"
+    };
+    return messages[rank] || null;
+  },
+
   async _submitEndlessScore(el, result) {
     const statusEl = el.querySelector('#endless-lb-status');
+    console.log('[ResultsScreen] _submitEndlessScore called, statusEl:', statusEl);
+    console.log('[ResultsScreen] isAuthenticated:', state.get('isAuthenticated'));
+    console.log('[ResultsScreen] result:', result);
+
     if (!state.get('isAuthenticated')) {
+      console.log('[ResultsScreen] User not authenticated');
       if (statusEl) statusEl.textContent = 'Sign in to submit your score to the Endless Mode leaderboard!';
       return;
     }
     if (statusEl) statusEl.textContent = 'Submitting score...';
     const controlType = result.control === 'gesture' ? 'gesture' : 'keyboard';
+    console.log('[ResultsScreen] Submitting with controlType:', controlType);
+
     try {
       const res = await fetch('/leaderboard/endless', {
         method: 'POST',
@@ -382,38 +432,48 @@ export const ResultsScreen = {
           controlType
         })
       });
+      console.log('[ResultsScreen] Server response status:', res.status);
+
       if (res.ok) {
-        try {
-          const username = state.get('user')?.username;
-          const base = `/leaderboard/endless?chapterId=${result.chapterId}&controlType=${controlType}`;
-          const [wavesRes, scoreRes] = await Promise.all([
-            fetch(`${base}&sortBy=waves`),
-            fetch(`${base}&sortBy=score`)
-          ]);
-          let bestRank = 0;
-          if (wavesRes.ok) {
-            const { entries } = await wavesRes.json();
-            const r = entries.findIndex(e => e.username === username) + 1;
-            if (r > 0) bestRank = bestRank === 0 ? r : Math.min(bestRank, r);
+        const data = await res.json();
+        console.log('[ResultsScreen] Server response data:', data);
+        const bestRank = data.bestRank;
+        console.log('[ResultsScreen] bestRank:', bestRank);
+
+        if (bestRank && bestRank <= 10) {
+          console.log('[ResultsScreen] Showing TOP 10 message!');
+          // Top 10 - show prominent message with medal
+          const medal = bestRank === 1 ? '🥇' : bestRank === 2 ? '🥈' : bestRank === 3 ? '🥉' : '🏆';
+          const message = this._getRankMessage(bestRank);
+          console.log('[ResultsScreen] Medal:', medal, 'Message:', message);
+          if (statusEl) {
+            statusEl.innerHTML = `
+              <div style="
+                display: flex; align-items: center; gap: 8px;
+                padding: 8px 12px;
+                background: linear-gradient(135deg, rgba(255,215,0,0.15) 0%, rgba(255,215,0,0.05) 100%);
+                border: 1px solid rgba(255,215,0,0.5);
+                border-radius: 6px;
+                margin-bottom: 8px;
+              ">
+                <span style="font-size: clamp(1.2rem,2.5vw,1.8rem);">${medal}</span>
+                <span style="color:#ffd700;font-weight:bold;font-size:clamp(0.75rem,1.6vw,1rem);">${message}</span>
+              </div>
+            `;
           }
-          if (scoreRes.ok) {
-            const { entries } = await scoreRes.json();
-            const r = entries.findIndex(e => e.username === username) + 1;
-            if (r > 0) bestRank = bestRank === 0 ? r : Math.min(bestRank, r);
-          }
-          if (bestRank > 0) {
-            const medal = bestRank === 1 ? '🥇' : bestRank === 2 ? '🥈' : bestRank === 3 ? '🥉' : '';
-            if (statusEl) statusEl.textContent = `✓ Submitted! Best rank: ${medal}#${bestRank} on Endless Mode leaderboard`;
-          } else {
-            if (statusEl) statusEl.textContent = '✓ Score submitted to Endless Mode leaderboard!';
-          }
-        } catch(_) {
+        } else if (bestRank && bestRank > 10) {
+          console.log('[ResultsScreen] Showing rank > 10 message');
+          if (statusEl) statusEl.textContent = `✓ Submitted! Rank #${bestRank} on Endless Mode leaderboard`;
+        } else {
+          console.log('[ResultsScreen] No rank data, showing default message');
           if (statusEl) statusEl.textContent = '✓ Score submitted to Endless Mode leaderboard!';
         }
       } else {
+        console.log('[ResultsScreen] Server returned error');
         if (statusEl) statusEl.textContent = 'Could not submit score.';
       }
     } catch (e) {
+      console.error('[ResultsScreen] Error submitting score:', e);
       if (statusEl) statusEl.textContent = 'Offline — score not submitted.';
     }
   },

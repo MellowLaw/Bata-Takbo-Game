@@ -11,66 +11,60 @@ export const Leaderboard = {
       <div class="leaderboard-screen screen">
         <button class="back-btn" id="btn-lb-back">Back</button>
 
-        <h1 class="screen-title" style="animation: fadeInUp 0.4s ease forwards;">
-          Leaderboard
+        <h1 class="screen-title" style="animation: fadeInUp 0.4s ease forwards; margin-bottom: var(--space-sm);">
+          LEADERBOARD
         </h1>
 
-        <p class="lb-subtitle" style="
-          text-align: center;
-          font-family: var(--font-display);
-          font-size: var(--text-xs);
-          color: rgba(255,215,0,0.7);
-          letter-spacing: 2px;
-          margin: 0 0 var(--space-md) 0;
-          animation: fadeInUp 0.4s ease 0.08s forwards; opacity: 0;
-        ">ENDLESS MODE &nbsp;·&nbsp; WALANG KATAPUSAN</p>
+        <p class="lb-subtitle">ENDLESS MODE - WALANG KATAPUSAN</p>
 
-        <!-- Chapter tabs -->
-        <div class="leaderboard-tabs" id="lb-chapter-tabs" style="animation: fadeInUp 0.4s ease 0.1s forwards; opacity: 0;">
-          <button class="leaderboard-tab active" data-chapter="1">CH1</button>
-          <button class="leaderboard-tab" data-chapter="2">CH2</button>
-          <button class="leaderboard-tab" data-chapter="3">CH3</button>
-        </div>
-
-        <!-- Control type tabs -->
-        <div class="leaderboard-tabs" id="lb-control-tabs" style="animation: fadeInUp 0.4s ease 0.14s forwards; opacity: 0; margin-top: 0;">
-          <button class="leaderboard-tab active" data-control="keyboard" id="tab-keyboard">
-            <span class="lb-tab-icon">🎮</span> D-Pad / Keyboard
-          </button>
-          <button class="leaderboard-tab" data-control="gesture" id="tab-gesture">
-            <span class="lb-tab-icon">✋</span> Hand Gesture
-          </button>
-        </div>
-
-        <!-- Sort-by tabs (WAVES / SCORE) -->
-        <div class="leaderboard-tabs" id="lb-sort-tabs" style="animation: fadeInUp 0.4s ease 0.16s forwards; opacity: 0; margin-top: 0;">
-          <button class="leaderboard-tab active" data-sort="waves">★ WAVES</button>
-          <button class="leaderboard-tab" data-sort="score">◆ SCORE</button>
-        </div>
-
-        <div class="leaderboard-list scrollable" id="leaderboard-list" style="animation: fadeInUp 0.4s ease 0.18s forwards; opacity: 0;">
-          <div style="text-align:center; padding: var(--space-xl); color: rgba(255,255,255,0.4); font-family: var(--font-display); font-size: var(--text-sm);">
-            Loading...
+        <!-- Leaderboard List with Top 3 Special Styling -->
+        <div class="leaderboard-container" id="leaderboard-container" style="animation: fadeInUp 0.4s ease 0.1s forwards; opacity: 0;">
+          <div class="lb-loading" id="lb-loading-state">
+            <div class="lb-loading-spinner"></div>
+            <span>Loading rankings...</span>
           </div>
         </div>
 
-        <div id="lb-guest-notice" style="
-          margin-top: var(--space-md);
-          display: none;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          text-align: center;
-          width: 100%;
-          padding: 0 var(--space-md);
-          animation: fadeInUp 0.4s ease 0.3s forwards; opacity: 0;
-        ">
-          <p style="font-family: var(--font-display); font-size: var(--text-xs); color: rgba(255,255,255,0.5); margin-bottom: var(--space-sm);">
-            Sign in &amp; complete a chapter to submit your score!
-          </p>
-          <button class="menu-btn" id="btn-lb-signin" style="font-size: var(--text-sm);">
-            Sign In / Register
-          </button>
+        <!-- Filter Groups Container - Bottom Position -->
+        <div class="lb-filters-container lb-filters-bottom" style="animation: fadeInUp 0.4s ease 0.2s forwards; opacity: 0;">
+          
+          <!-- Chapter Filter -->
+          <div class="lb-filter-group">
+            <span class="lb-filter-label">Chapter</span>
+            <div class="leaderboard-tabs" id="lb-chapter-tabs">
+              <button class="leaderboard-tab active" data-chapter="1">CH1</button>
+              <button class="leaderboard-tab" data-chapter="2">CH2</button>
+              <button class="leaderboard-tab" data-chapter="3">CH3</button>
+            </div>
+          </div>
+
+          <!-- Control Filter -->
+          <div class="lb-filter-group">
+            <span class="lb-filter-label">Control</span>
+            <div class="leaderboard-tabs" id="lb-control-tabs">
+              <button class="leaderboard-tab active" data-control="keyboard" id="tab-keyboard">
+                <span class="lb-tab-icon">[K]</span> Keyboard
+              </button>
+              <button class="leaderboard-tab" data-control="gesture" id="tab-gesture">
+                <span class="lb-tab-icon">[G]</span> Gesture
+              </button>
+            </div>
+          </div>
+
+          <!-- Sort Filter -->
+          <div class="lb-filter-group">
+            <span class="lb-filter-label">Sort By</span>
+            <div class="leaderboard-tabs" id="lb-sort-tabs">
+              <button class="leaderboard-tab active" data-sort="waves">WAVES</button>
+              <button class="leaderboard-tab" data-sort="score">SCORE</button>
+            </div>
+          </div>
+
+        </div>
+
+        <div id="lb-guest-notice" class="lb-guest-notice" style="animation: fadeInUp 0.4s ease 0.3s forwards; opacity: 0;">
+          <p>Sign in and complete a chapter to submit your score!</p>
+          <button class="menu-btn" id="btn-lb-signin">Sign In / Register</button>
         </div>
       </div>
     `;
@@ -133,8 +127,13 @@ export const Leaderboard = {
     const chapterId = this._activeChapter;
     const controlType = this._activeControl;
     const sortBy = this._activeSort || 'waves';
-    const list = el.querySelector('#leaderboard-list');
-    list.innerHTML = `<div style="text-align:center; padding: var(--space-xl); color: rgba(255,255,255,0.4); font-family: var(--font-display); font-size: var(--text-sm);">Loading...</div>`;
+    const container = el.querySelector('#leaderboard-container');
+    
+    container.innerHTML = `
+      <div class="lb-loading">
+        <div class="lb-loading-spinner"></div>
+        <span>Loading rankings...</span>
+      </div>`;
 
     try {
       const res = await fetch(`/leaderboard/endless?chapterId=${chapterId}&controlType=${controlType}&sortBy=${sortBy}`);
@@ -142,49 +141,124 @@ export const Leaderboard = {
       const { entries } = await res.json();
 
       if (!entries || entries.length === 0) {
-        list.innerHTML = `
-          <div style="text-align:center; padding: var(--space-xl); color: rgba(255,255,255,0.3); font-family: var(--font-display); font-size: var(--text-sm);">
-            No scores yet. Be the first!
+        container.innerHTML = `
+          <div class="lb-empty-state">
+            <div class="lb-empty-icon">[FLAG]</div>
+            <p>No scores yet for this chapter.</p>
+            <p class="lb-empty-sub">Be the first to survive!</p>
           </div>`;
         return;
       }
 
-      const medals = [
-        '<img src="/assets/ui/gold.png" alt="1st" style="height:1.2em;vertical-align:middle;" />',
-        '<img src="/assets/ui/silver.png" alt="2nd" style="height:1.2em;vertical-align:middle;" />',
-        '<img src="/assets/ui/bronze.png" alt="3rd" style="height:1.2em;vertical-align:middle;" />'
-      ];
-
       const currentUser = state.get('user')?.username;
 
-      list.innerHTML = entries.map((entry, i) => {
+      // Render all entries with special styling for top 3
+      container.innerHTML = entries.map((entry, i) => {
         const rank = i + 1;
-        const rankDisplay = rank <= 3 ? medals[rank - 1] : `#${rank}`;
         const isMe = currentUser && entry.username === currentUser;
         const mm = Math.floor((entry.survival_seconds||0) / 60).toString().padStart(2,'0');
         const ss = ((entry.survival_seconds||0) % 60).toString().padStart(2,'0');
-        // Highlight the active sort metric, dim the secondary metric
-        const wavesStyle = sortBy === 'waves' ? 'color:#ffd700;font-weight:bold;' : 'color:#e67e22;';
-        const scoreStyle = sortBy === 'score' ? 'color:#ffd700;font-weight:bold;' : 'opacity:0.85;';
+        
+        // Get ordinal suffix (1st, 2nd, 3rd, 4th...)
+        const getOrdinal = (n) => {
+          if (n > 3 && n < 21) return 'th';
+          switch (n % 10) {
+            case 1: return 'st';
+            case 2: return 'nd';
+            case 3: return 'rd';
+            default: return 'th';
+          }
+        };
+        const ordinal = getOrdinal(rank);
+        
+        // Get medal image for top 3 + ordinal text
+        let rankBadge = '';
+        let rowClass = '';
+        if (rank === 1) {
+          rankBadge = `
+            <img src="/assets/ui/gold.png" alt="1st" class="lb-medal" />
+            <span class="lb-place">1<span class="lb-ordinal">st</span></span>
+          `;
+          rowClass = 'lb-row-gold';
+        } else if (rank === 2) {
+          rankBadge = `
+            <img src="/assets/ui/silver.png" alt="2nd" class="lb-medal" />
+            <span class="lb-place">2<span class="lb-ordinal">nd</span></span>
+          `;
+          rowClass = 'lb-row-silver';
+        } else if (rank === 3) {
+          rankBadge = `
+            <img src="/assets/ui/bronze.png" alt="3rd" class="lb-medal" />
+            <span class="lb-place">3<span class="lb-ordinal">rd</span></span>
+          `;
+          rowClass = 'lb-row-bronze';
+        } else {
+          rankBadge = `<span class="lb-place">${rank}<span class="lb-ordinal">${ordinal}</span></span>`;
+        }
+        
+        // Get avatar image - use avatar_url if available, otherwise fallback to preset based on username
+        const avatarUrl = entry.avatar_url || this._getPresetAvatar(entry.username);
+        const fallbackAvatar = this._getPresetAvatar(entry.username);
+        const avatarHtml = `<img src="${avatarUrl}" alt="${entry.username}" class="lb-avatar-img" onerror="this.src='${fallbackAvatar}'" />`;
+        
+        const wavesDisplay = sortBy === 'waves' 
+          ? `<span class="lb-val-highlight">${entry.waves_survived||0}</span>`
+          : `<span class="lb-val-normal">${entry.waves_survived||0}</span>`;
+          
+        const scoreDisplay = sortBy === 'score'
+          ? `<span class="lb-val-highlight">${Number(entry.score).toLocaleString()}</span>`
+          : `<span class="lb-val-normal">${Number(entry.score).toLocaleString()}</span>`;
+        
         return `
-          <div class="leaderboard-entry ${rank <= 3 ? 'leaderboard-entry--top' : ''} ${isMe ? 'leaderboard-entry--me' : ''}"
-               style="animation: slideInLeft 0.3s ease forwards; animation-delay: ${i * 0.05}s; opacity: 0;${isMe ? ' outline: 1px solid rgba(255,215,0,0.5); background: rgba(255,215,0,0.06);' : ''}">
-            <span class="leaderboard-entry__rank ${rank <= 3 ? 'top-3' : ''}">${rankDisplay}</span>
-            <span class="leaderboard-entry__name">${entry.username}${isMe ? ' <span style="font-size:0.75em;color:rgba(255,215,0,0.7);">(you)</span>' : ''}</span>
-            <span class="leaderboard-entry__score" style="display:flex;gap:clamp(8px,2vw,24px);align-items:center;">
-              <span title="Waves" style="${wavesStyle}">&#9733; ${entry.waves_survived||0} waves</span>
-              <span title="Score" style="${scoreStyle}">${Number(entry.score).toLocaleString()} pts</span>
-              <span title="Time" style="opacity:0.6;font-size:0.85em;">${mm}:${ss}</span>
-            </span>
+          <div class="lb-entry ${rowClass} ${isMe ? 'lb-entry--me' : ''}"
+               style="animation: slideInLeft 0.3s ease forwards; animation-delay: ${i * 0.06}s; opacity: 0;">
+            <div class="lb-rank">${rankBadge}</div>
+            <div class="lb-avatar">
+              ${avatarHtml}
+            </div>
+            <div class="lb-player">
+              <span class="lb-player-name">${entry.username}${isMe ? ' <span class="lb-you">(you)</span>' : ''}</span>
+            </div>
+            <div class="lb-stats">
+              <div class="lb-stat">
+                <span class="lb-stat-label">WAVES</span>
+                <span class="lb-stat-val">${wavesDisplay}</span>
+              </div>
+              <div class="lb-stat">
+                <span class="lb-stat-label">TIME</span>
+                <span class="lb-stat-val">${mm}:${ss}</span>
+              </div>
+              <div class="lb-stat">
+                <span class="lb-stat-label">SCORE</span>
+                <span class="lb-stat-val">${scoreDisplay}</span>
+              </div>
+            </div>
           </div>
         `;
-      }).join('');
+      }).join('') + `
+        <div class="lb-list-end">
+          <span>--- End of Rankings ---</span>
+        </div>
+      `;
 
     } catch (e) {
-      list.innerHTML = `
-        <div style="text-align:center; padding: var(--space-xl); color: rgba(255,100,100,0.6); font-family: var(--font-display); font-size: var(--text-sm);">
-          Could not load leaderboard.
+      container.innerHTML = `
+        <div class="lb-error">
+          <div class="lb-error-icon">[X]</div>
+          <p>Could not load leaderboard.</p>
+          <button class="lb-retry-btn" onclick="location.reload()">Try Again</button>
         </div>`;
     }
+  },
+
+  _getPresetAvatar(username) {
+    // Generate a consistent preset avatar based on username hash
+    let hash = 0;
+    for (let i = 0; i < username.length; i++) {
+      hash = ((hash << 5) - hash) + username.charCodeAt(i);
+      hash = hash & hash;
+    }
+    const num = (Math.abs(hash) % 40 + 1).toString().padStart(2, '0');
+    return `/assets/ui/User Profiles/Icons_${num}.png`;
   }
 };

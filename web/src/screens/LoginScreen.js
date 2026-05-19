@@ -12,7 +12,7 @@ export const LoginScreen = {
   renderWelcomeCard() {
     return `
       <div class="login-reference-layout" id="welcome-card" style="width: 100%; height: 100%; position: relative;">
-        <img src="/assets/ui/main-title.png" alt="Bata, Takbo!" style="position: absolute; left: 3%; top: 5%; width: clamp(60px, 12vw, 150px); height: auto; pointer-events: none; z-index: 1;" />
+        <img src="/assets/ui/main-title.png" alt="Bata, Takbo!" class="login-logo" />
 
         <div style="position: absolute; right: 8%; bottom: 10%; display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-end; width: 45%; min-width: 280px; max-width: 500px;">
           
@@ -37,7 +37,7 @@ export const LoginScreen = {
   renderLoginCard() {
     return `
       <div class="login-reference-layout" id="login-card" style="width: 100%; height: 100%; position: relative;">
-        <img src="/assets/ui/main-title.png" alt="Bata, Takbo!" style="position: absolute; left: 3%; top: 5%; width: clamp(60px, 10vw, 150px); height: auto; pointer-events: none; z-index: 1;" />
+        <img src="/assets/ui/main-title.png" alt="Bata, Takbo!" class="login-logo" />
 
         <div class="login-ref-panel">
           <h1 class="login-ref-panel__title">LOGIN</h1>
@@ -86,7 +86,7 @@ export const LoginScreen = {
   renderRegisterCard() {
     return `
       <div class="login-reference-layout" id="register-card" style="width: 100%; height: 100%; position: relative;">
-        <img src="/assets/ui/main-title.png" alt="Bata, Takbo!" style="position: absolute; left: 3%; top: 5%; width: clamp(60px, 10vw, 150px); height: auto; pointer-events: none; z-index: 1;" />
+        <img src="/assets/ui/main-title.png" alt="Bata, Takbo!" class="login-logo" />
 
         <div class="login-ref-panel">
           <h1 class="login-ref-panel__title">CREATE ACCOUNT</h1>
@@ -110,7 +110,7 @@ export const LoginScreen = {
               maxlength="255"
               id="reg-email"
             />
-            <div style="width: 100%; text-align: left; font-family: 'VCR', sans-serif; font-size: clamp(0.6rem, 1.1vw, 0.75rem); color: #a89b8c; margin-top: -0.2rem; padding-left: 2px; line-height: 1.4;">Use an email you can access — needed to recover your account if you forget your password.</div>
+            <div style="width: 100%; text-align: center; font-family: 'VCR', sans-serif; font-size: clamp(0.6rem, 1.1vw, 0.75rem); color: #a89b8c; margin-top: -0.2rem; line-height: 1.4;">Use an email you can access — needed to recover your account if you forget your password.</div>
 
             <div class="login-ref-input-wrap">
               <input
@@ -125,11 +125,11 @@ export const LoginScreen = {
                 <img src="/assets/ui/eye_closed.png" style="width: 22px; height: 22px; opacity: 0.8;" alt="Toggle" />
               </button>
             </div>
-            <div id="pw-requirements" style="width: 100%; text-align: left; font-family: 'VCR', sans-serif; font-size: clamp(0.6rem, 1.1vw, 0.8rem); color: #a89b8c; margin-top: 0.1rem; margin-bottom: 0.1rem; display: grid; grid-template-columns: 1fr 1fr; gap: 2px 8px;">
+            <div id="pw-requirements" class="pw-requirements-grid">
               <span id="req-length">✗ 8 CHARACTERS MINIMUM</span>
-              <span id="req-number">✗ 1 NUMBER</span>
+              <span id="req-number" class="pw-req-right">✗ 1 NUMBER</span>
               <span id="req-special">✗ 1 SPECIAL CHARACTER</span>
-              <span id="req-upper">✗ 1 UPPERCASE LETTER</span>
+              <span id="req-upper" class="pw-req-right">✗ 1 UPPERCASE LETTER</span>
             </div>
             <div style="width: 100%; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; margin-bottom: 0.3rem; overflow: hidden;">
               <div id="pw-strength-bar" style="height: 100%; width: 0%; border-radius: 2px; transition: width 0.3s ease, background 0.3s ease;"></div>
@@ -150,10 +150,11 @@ export const LoginScreen = {
             </div>
             <div id="reg-confirm-match" style="width: 100%; text-align: right; font-family: 'GigaSaturn', sans-serif; font-size: 0.6rem; margin-top: -0.3rem; min-height: 0; line-height: 1; transition: opacity 0.2s;"></div>
 
-            <label style="display: flex; gap: var(--space-sm); align-items: flex-start; font-size: clamp(0.48rem, 0.9vw, 0.65rem); color: white; text-align: left; cursor: pointer; margin-top: 0.2rem; font-family: 'VCR', sans-serif; letter-spacing: 0.5px; line-height: 1.4;">
-              <input type="checkbox" id="reg-privacy" style="accent-color: var(--accent-orange); margin-top: 2px; flex-shrink: 0;" />
-              <span>I HAVE READ AND AGREE TO THE <a href="#" id="link-terms-register" style="color: var(--accent-orange); text-decoration: underline;">PRIVACY POLICY AND TERMS OF SERVICE</a>. <button type="button" id="btn-goto-login-from-reg" style="background: transparent; border: none; color: var(--accent-orange); font-family: 'VCR', sans-serif; font-size: inherit; cursor: pointer; text-decoration: underline; text-transform: uppercase; letter-spacing: 1px; padding: 0;">ALREADY HAVE AN ACCOUNT? LOGIN</button></span>
+            <label class="reg-terms-label">
+              <input type="checkbox" id="reg-privacy" style="accent-color: var(--accent-orange);" />
+              <span>I HAVE READ AND AGREE TO THE <a href="#" id="link-terms-register" style="color: var(--accent-orange); text-decoration: underline;">PRIVACY POLICY AND TERMS OF SERVICE</a>.</span>
             </label>
+            <button type="button" id="btn-goto-login-from-reg" class="reg-login-link">ALREADY HAVE AN ACCOUNT? LOGIN</button>
             <p class="login-card__privacy text-red hidden" id="reg-error-msg" style="margin-top: 0.2rem; font-family: 'GigaSaturn', sans-serif; font-size: 0.85rem; font-weight: bold; text-align: center; margin-bottom: 0; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);"></p>
           </div>
 
@@ -169,7 +170,7 @@ export const LoginScreen = {
   renderForgotPasswordCard() {
     return `
       <div class="login-reference-layout" id="forgot-pw-card" style="width: 100%; height: 100%; position: relative;">
-        <img src="/assets/ui/main-title.png" alt="Bata, Takbo!" style="position: absolute; left: 3%; top: 5%; width: clamp(60px, 10vw, 150px); height: auto; pointer-events: none; z-index: 1;" />
+        <img src="/assets/ui/main-title.png" alt="Bata, Takbo!" class="login-logo" />
         <div class="login-ref-panel">
 
           <!-- STEP 1: EMAIL -->
@@ -232,10 +233,28 @@ export const LoginScreen = {
     `;
   },
 
+  renderForgotUsernameCard() {
+    return `
+      <div class="login-reference-layout" id="forgot-username-card" style="width: 100%; height: 100%; position: relative;">
+        <img src="/assets/ui/main-title.png" alt="Bata, Takbo!" class="login-logo" />
+        <div class="login-ref-panel">
+          <h1 class="login-ref-panel__title">FORGOT USERNAME</h1>
+          <p style="font-family: 'VCR', sans-serif; font-size: clamp(0.6rem, 1.2vw, 0.85rem); color: #a89b8c; text-align: center; margin-bottom: 1rem; line-height: 1.6; letter-spacing: 1px;">Enter the email you used when you created your account.<br>We'll send your username to that address.</p>
+          <input class="login-ref-input" type="email" id="fu-email" placeholder="ENTER YOUR EMAIL" maxlength="255" autocomplete="off" style="margin-bottom: 0.4rem;" />
+          <p id="fu-msg" style="font-family: 'GigaSaturn', sans-serif; font-size: 0.75rem; font-weight: bold; min-height: 1.2em; text-align: center; margin: 0.3rem 0;"></p>
+          <div class="login-ref-actions">
+            <button id="fu-back" class="login-ref-action-btn">BACK</button>
+            <button id="fu-send" class="login-ref-action-btn">SEND</button>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
   renderResetPasswordCard() {
     return `
       <div class="login-reference-layout" id="reset-pw-card" style="width: 100%; height: 100%; position: relative;">
-        <img src="/assets/ui/main-title.png" alt="Bata, Takbo!" style="position: absolute; left: 3%; top: 5%; width: clamp(60px, 10vw, 150px); height: auto; pointer-events: none; z-index: 1;" />
+        <img src="/assets/ui/main-title.png" alt="Bata, Takbo!" class="login-logo" />
         <div class="login-ref-panel">
           <h1 class="login-ref-panel__title">RESET PASSWORD</h1>
           <div style="display: flex; flex-direction: column; gap: 0.5rem; width: 100%;">
@@ -367,52 +386,8 @@ export const LoginScreen = {
     const forgotUsernameBtn = this.container.querySelector('#btn-forgot-username');
     if (forgotUsernameBtn) {
       forgotUsernameBtn.addEventListener('click', () => {
-        const existing = document.getElementById('fu-modal-overlay');
-        if (existing) existing.remove();
-        const overlay = document.createElement('div');
-        overlay.id = 'fu-modal-overlay';
-        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);display:flex;align-items:center;justify-content:center;z-index:9999;';
-        overlay.innerHTML = `
-          <div style="background:#1a1408;border:2px solid rgba(255,255,255,0.2);border-radius:8px;padding:2rem;min-width:280px;max-width:380px;width:90%;text-align:center;">
-            <h3 style="color:white;font-family:'VCR',sans-serif;font-size:1.3rem;letter-spacing:2px;margin-bottom:1rem;text-transform:uppercase;">Forgot Username?</h3>
-            <p style="color:#a89b8c;font-family:'VCR',sans-serif;font-size:0.85rem;margin-bottom:1rem;line-height:1.5;letter-spacing:1px;">Enter your email and we'll send you your username.</p>
-            <input id="fu-email" type="email" placeholder="YOUR EMAIL" maxlength="255" style="width:100%;height:42px;background:rgba(0,0,0,0.4);border:2px solid white;color:white;font-family:'GigaSaturn',sans-serif;font-size:1rem;text-align:center;outline:none;box-sizing:border-box;margin-bottom:0.5rem;" />
-            <p id="fu-msg" style="font-family:'GigaSaturn',sans-serif;font-size:0.75rem;font-weight:bold;min-height:1.2em;margin-bottom:1rem;"></p>
-            <div style="display:flex;gap:0.5rem;">
-              <button id="fu-cancel" style="flex:1;font-family:'GigaSaturn',sans-serif;font-size:1rem;color:white;background:transparent;border:none;cursor:pointer;letter-spacing:1px;">CANCEL</button>
-              <button id="fu-submit" style="flex:1;font-family:'GigaSaturn',sans-serif;font-size:1rem;color:white;background:transparent;border:none;cursor:pointer;letter-spacing:1px;">SEND</button>
-            </div>
-          </div>
-        `;
-        document.body.appendChild(overlay);
-        const emailIn = overlay.querySelector('#fu-email');
-        const msg = overlay.querySelector('#fu-msg');
-        const submitBtn = overlay.querySelector('#fu-submit');
-        const cancelBtn = overlay.querySelector('#fu-cancel');
-        setTimeout(() => emailIn.focus(), 50);
-        const close = () => overlay.remove();
-        cancelBtn.addEventListener('click', close);
-        overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
-        const submit = async () => {
-          const email = emailIn.value.trim();
-          if (!email) { msg.textContent = 'Email is required.'; msg.style.color = '#ef4444'; return; }
-          submitBtn.textContent = 'SENDING...'; submitBtn.disabled = true; msg.textContent = '';
-          try {
-            const res = await fetch('/auth/forgot-username', {
-              method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ email })
-            });
-            const data = await res.json();
-            msg.textContent = data.message || 'Sent!';
-            msg.style.color = '#4ade80';
-            submitBtn.textContent = 'SENT';
-          } catch (e) {
-            msg.textContent = 'Network error. Try again.'; msg.style.color = '#ef4444';
-            submitBtn.textContent = 'SEND'; submitBtn.disabled = false;
-          }
-        };
-        submitBtn.addEventListener('click', submit);
-        emailIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') close(); });
+        this.container.innerHTML = this.renderForgotUsernameCard();
+        this.bindForgotUsernameEvents();
       });
     }
 
@@ -823,6 +798,63 @@ export const LoginScreen = {
 
     if (submitBtn) submitBtn.addEventListener('click', doReset);
     if (confirmIn) confirmIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') doReset(); });
+  },
+
+  bindForgotUsernameEvents() {
+    const backBtn = this.container.querySelector('#fu-back');
+    const sendBtn = this.container.querySelector('#fu-send');
+    const emailIn = this.container.querySelector('#fu-email');
+    const msg = this.container.querySelector('#fu-msg');
+
+    const goBack = () => {
+      this.container.innerHTML = this.renderLoginCard();
+      this.bindLoginEvents();
+    };
+
+    backBtn.addEventListener('click', goBack);
+
+    const sendEmail = async () => {
+      const email = emailIn.value.trim();
+      if (!email) {
+        msg.textContent = 'Email is required.';
+        msg.style.color = '#ef4444';
+        return;
+      }
+      sendBtn.textContent = 'SENDING...';
+      sendBtn.disabled = true;
+      msg.textContent = '';
+      try {
+        const res = await fetch('/auth/forgot-username', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          msg.textContent = data.message || 'Username sent to your email!';
+          msg.style.color = '#4ade80';
+          sendBtn.textContent = 'SENT';
+        } else {
+          msg.textContent = data.error || 'Failed to send. Try again.';
+          msg.style.color = '#ef4444';
+          sendBtn.textContent = 'SEND';
+          sendBtn.disabled = false;
+        }
+      } catch (e) {
+        msg.textContent = 'Network error. Try again.';
+        msg.style.color = '#ef4444';
+        sendBtn.textContent = 'SEND';
+        sendBtn.disabled = false;
+      }
+    };
+
+    sendBtn.addEventListener('click', sendEmail);
+    emailIn.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') sendEmail();
+      if (e.key === 'Escape') goBack();
+    });
+
+    setTimeout(() => emailIn.focus(), 50);
   },
 
   bindResetPasswordEvents(resetToken) {

@@ -189,7 +189,6 @@ document.addEventListener('keydown', (e) => {
         animation: fsFadeIn 0.5s ease forwards;
         pointer-events: none;
       ">
-        <span style="font-size: clamp(2rem,6vw,3rem);">👆👆</span>
         <p style="
           font-family: 'GigaSaturn', sans-serif;
           font-size: clamp(1rem, 3vw, 1.4rem);
