@@ -438,7 +438,14 @@ export const LoginScreen = {
 
         const data = await res.json();
 
-        if (res.ok && data.success) {
+        if (res.ok && data.success && data.mfaRequired) {
+          // MFA challenge — show verification card
+          this._mfaTempToken = data.tempToken;
+          this._mfaUsername = data.username || username;
+          this.container.innerHTML = this.renderMfaVerifyCard();
+          this.bindMfaVerifyEvents();
+          return;
+        } else if (res.ok && data.success) {
           localStorage.setItem('guest_session', JSON.stringify({ is_guest: false, username }));
           await state.hydrateFromServer();
           if (window.__screenManager) {
@@ -1274,7 +1281,146 @@ export const LoginScreen = {
     setTimeout(() => userIn.focus(), 50);
   },
 
+  renderMfaVerifyCard() {
+    return `
+      <div class="login-reference-layout" id="mfa-verify-card" style="width: 100%; height: 100%; position: relative;">
+        <img src="/assets/ui/main-title.png" alt="Bata, Takbo!" class="login-logo" />
+        <div class="login-ref-panel">
+          <h1 class="login-ref-panel__title">VERIFY YOUR IDENTITY</h1>
+          <p style="font-family: 'VCR', sans-serif; font-size: clamp(0.6rem, 1.2vw, 0.85rem); color: #a89b8c; text-align: center; margin-bottom: 1rem; line-height: 1.6; letter-spacing: 1px;">A 6-digit verification code was sent to your email.<br>Enter it below to complete login.</p>
+          <input type="text" id="mfa-code-input" placeholder="6-DIGIT CODE" maxlength="6" autocomplete="off" inputmode="numeric" style="width: 100%; height: clamp(46px, 7vh, 58px); margin-bottom: 0.4rem; background: rgba(0,0,0,0.3); border: 2px solid white; color: white; font-family: 'GigaSaturn', sans-serif; font-size: clamp(1.4rem, 3vw, 2rem); text-align: center; letter-spacing: 8px; outline: none; box-shadow: 0 4px 6px rgba(0,0,0,0.5); box-sizing: border-box;" />
+          <p id="mfa-verify-msg" style="font-family: 'GigaSaturn', sans-serif; font-size: 0.75rem; font-weight: bold; min-height: 1.2em; text-align: center; margin: 0.3rem 0;"></p>
+          <button id="mfa-resend-btn" style="background: transparent; border: none; color: #a89b8c; font-family: 'GigaSaturn', sans-serif; font-size: 0.7rem; cursor: pointer; text-decoration: underline; letter-spacing: 1px; margin-bottom: 0.5rem;">RESEND CODE</button>
+          <div class="login-ref-actions">
+            <button id="mfa-back-btn" class="login-ref-action-btn">BACK</button>
+            <button id="mfa-submit-btn" class="login-ref-action-btn">VERIFY</button>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  bindMfaVerifyEvents() {
+    const codeInput = this.container.querySelector('#mfa-code-input');
+    const msg = this.container.querySelector('#mfa-verify-msg');
+    const submitBtn = this.container.querySelector('#mfa-submit-btn');
+    const backBtn = this.container.querySelector('#mfa-back-btn');
+    const resendBtn = this.container.querySelector('#mfa-resend-btn');
+
+    if (!codeInput || !submitBtn || !backBtn) return;
+
+    setTimeout(() => codeInput.focus(), 50);
+
+    // Only allow digits
+    codeInput.addEventListener('input', () => {
+      codeInput.value = codeInput.value.replace(/\D/g, '').slice(0, 6);
+    });
+
+    backBtn.addEventListener('click', () => {
+      this._mfaTempToken = null;
+      this._mfaUsername = null;
+      this.container.innerHTML = this.renderLoginCard();
+      this.bindLoginEvents();
+    });
+
+    // Resend code
+    if (resendBtn) {
+      resendBtn.addEventListener('click', async () => {
+        resendBtn.disabled = true;
+        resendBtn.textContent = 'SENDING...';
+        msg.textContent = '';
+        try {
+          const res = await fetch('/auth/login/resend-mfa', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tempToken: this._mfaTempToken })
+          });
+          const data = await res.json();
+          if (res.ok && data.success) {
+            msg.textContent = 'New code sent to your email.';
+            msg.style.color = '#4ade80';
+          } else if (res.status === 401) {
+            msg.textContent = 'Session expired. Please log in again.';
+            msg.style.color = '#ef4444';
+            setTimeout(() => {
+              this._mfaTempToken = null;
+              this.container.innerHTML = this.renderLoginCard();
+              this.bindLoginEvents();
+            }, 2000);
+            return;
+          } else {
+            msg.textContent = data.error || 'Failed to resend code.';
+            msg.style.color = '#ef4444';
+          }
+        } catch (err) {
+          msg.textContent = 'Network error.';
+          msg.style.color = '#ef4444';
+        } finally {
+          resendBtn.disabled = false;
+          resendBtn.textContent = 'RESEND CODE';
+        }
+      });
+    }
+
+    const handleVerify = async () => {
+      const code = codeInput.value.trim();
+      if (!code || code.length !== 6) {
+        msg.textContent = 'Enter the 6-digit code.';
+        msg.style.color = '#ef4444';
+        return;
+      }
+
+      submitBtn.textContent = 'VERIFYING...';
+      submitBtn.disabled = true;
+      msg.textContent = '';
+
+      try {
+        const res = await fetch('/auth/login/verify-mfa', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code, tempToken: this._mfaTempToken })
+        });
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+          localStorage.setItem('guest_session', JSON.stringify({ is_guest: false, username: this._mfaUsername }));
+          this._mfaTempToken = null;
+          this._mfaUsername = null;
+          await state.hydrateFromServer();
+          if (window.__screenManager) {
+            window.__screenManager.navigate('loading-screen', { target: 'main-menu' });
+          }
+        } else if (res.status === 401) {
+          msg.textContent = 'Session expired. Please log in again.';
+          msg.style.color = '#ef4444';
+          setTimeout(() => {
+            this._mfaTempToken = null;
+            this.container.innerHTML = this.renderLoginCard();
+            this.bindLoginEvents();
+          }, 2000);
+        } else {
+          msg.textContent = data.error || 'Verification failed.';
+          msg.style.color = '#ef4444';
+          submitBtn.textContent = 'VERIFY';
+          submitBtn.disabled = false;
+        }
+      } catch (err) {
+        msg.textContent = 'Network error. Try again.';
+        msg.style.color = '#ef4444';
+        submitBtn.textContent = 'VERIFY';
+        submitBtn.disabled = false;
+      }
+    };
+
+    submitBtn.addEventListener('click', handleVerify);
+    codeInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') handleVerify();
+    });
+  },
+
   onLeave() {
-    // Cleanup if needed
+    this._mfaTempToken = null;
+    this._mfaUsername = null;
   }
 };

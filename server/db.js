@@ -129,6 +129,9 @@ export async function initDb() {
   // ─── Migrations ───────────────────────────────────────────────────────────
   await db.exec(`ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT`);
   await db.exec(`ALTER TABLE users ADD COLUMN IF NOT EXISTS push_subscription TEXT`);
+  await db.exec(`ALTER TABLE users ADD COLUMN IF NOT EXISTS mfa_enabled BOOLEAN NOT NULL DEFAULT FALSE`);
+  await db.exec(`ALTER TABLE users ADD COLUMN IF NOT EXISTS mfa_code TEXT`);
+  await db.exec(`ALTER TABLE users ADD COLUMN IF NOT EXISTS mfa_code_expiry BIGINT`);
 
   // ─── Indexes ──────────────────────────────────────────────────────────────
   await db.exec(`CREATE INDEX IF NOT EXISTS idx_users_username      ON users(LOWER(username))`);

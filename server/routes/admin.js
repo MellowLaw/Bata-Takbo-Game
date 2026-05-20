@@ -24,7 +24,7 @@ router.get('/users', authMiddleware, adminMiddleware, async (req, res) => {
   try {
     const db = getDb();
     const users = await db.all(`
-      SELECT u.id, u.username, u.email, u.is_admin, u.banned, u.ban_reason, u.ban_appeal, u.cheat_score, u.last_login, u.created_at,
+      SELECT u.id, u.username, u.email, u.is_admin, u.banned, u.ban_reason, u.ban_appeal, u.cheat_score, u.last_login, u.created_at, u.mfa_enabled,
              CASE WHEN u.game_data IS NOT NULL THEN 1 ELSE 0 END as has_game_data,
              (SELECT COUNT(*) FROM inf_scores WHERE user_id = u.id) as games_played,
              (SELECT COALESCE(SUM(score), 0) FROM inf_scores WHERE user_id = u.id) as total_score

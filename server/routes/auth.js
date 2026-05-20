@@ -178,6 +178,47 @@ router.post('/login', loginLimiter, async (req, res) => {
         });
       }
 
+      if (user.mfa_enabled) {
+        if (!user.email) {
+          return res.status(400).json({ error: 'MFA is enabled but no email address is registered to this account. Please contact an admin.' });
+        }
+
+        const code = String(crypto.randomInt(100000, 1000000));
+        const expiry = Date.now() + 5 * 60 * 1000; // 5 minutes
+
+        await db.run('UPDATE users SET failed_attempts = 0, lockout_time = 0, mfa_code = ?, mfa_code_expiry = ? WHERE id = ?', [code, expiry, user.id]);
+
+        const mailOptions = {
+          from: process.env.EMAIL_USER || '"Bata Takbo Support" <noreply@batatakbo.com>',
+          to: user.email,
+          subject: 'Your Login Verification Code — Bata, Takbo!',
+          html: `
+            <div style="font-family: monospace; background: #130f04; color: #f0e6d3; padding: 32px; max-width: 480px; margin: 0 auto; border-radius: 8px; border: 2px solid #ff6b1a;">
+              <h2 style="color: #ff6b1a; letter-spacing: 2px; margin-bottom: 0.5rem; text-shadow: 0 0 10px rgba(255,107,26,0.3);">BATA, TAKBO!</h2>
+              <h3 style="color: #e4cfc0; margin-top: 0; font-size: 1.1rem;">Security Verification Code</h3>
+              <p style="color: #a89b8c; font-size: 0.9rem; line-height: 1.6;">Enter this verification code to complete your login:</p>
+              <div style="background: #201c11; border: 2px solid #ff6b1a; border-radius: 4px; padding: 20px; text-align: center; font-size: 2.5rem; letter-spacing: 8px; margin: 20px 0; color: #fff; font-weight: bold; box-shadow: inset 0 0 10px rgba(0,0,0,0.8);">${code}</div>
+              <p style="color: #a89b8c; font-size: 0.8rem;">This code will expire in <b style="color:#f0e6d3;">5 minutes</b>.</p>
+              <p style="color: #5a5068; font-size: 0.75rem; margin-top: 24px;">If you did not request this, please change your password immediately.</p>
+            </div>
+          `
+        };
+
+        if (transporter) {
+          try {
+            await transporter.sendMail(mailOptions);
+          } catch (mailErr) {
+            console.error('[EMAIL] Login MFA mail error:', mailErr);
+            return res.status(500).json({ error: 'Failed to send MFA verification email. Please check SMTP configuration.' });
+          }
+        } else {
+          console.log(`[EMAIL] Login MFA code to: ${user.email} (code: ${code})`);
+        }
+
+        const tempToken = jwt.sign({ id: user.id, mfa_pending: true }, JWT_SECRET, { expiresIn: '10m' });
+        return res.status(200).json({ success: true, mfaRequired: true, tempToken, username: user.username });
+      }
+
       await db.run('UPDATE users SET failed_attempts = 0, lockout_time = 0, last_login = ? WHERE id = ?', [Date.now(), user.id]);
       const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '30d' });
       
@@ -223,6 +264,134 @@ router.post('/login', loginLimiter, async (req, res) => {
     }
   } catch (err) {
     console.error('Login error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Verify MFA code during login
+router.post('/login/verify-mfa', async (req, res) => {
+  try {
+    const { code, tempToken } = req.body;
+    if (!code || !tempToken) {
+      return res.status(400).json({ error: 'Verification code and temporary token are required.' });
+    }
+
+    let payload;
+    try {
+      payload = jwt.verify(tempToken, JWT_SECRET);
+    } catch (jwtErr) {
+      return res.status(401).json({ error: 'Session expired. Please log in again.' });
+    }
+
+    if (!payload.mfa_pending) {
+      return res.status(400).json({ error: 'Invalid authentication request.' });
+    }
+
+    const db = getDb();
+    const user = await db.get('SELECT * FROM users WHERE id = ?', [payload.id]);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    if (user.mfa_code !== String(code).trim()) {
+      return res.status(400).json({ error: 'Incorrect verification code.' });
+    }
+    if (Date.now() > user.mfa_code_expiry) {
+      return res.status(400).json({ error: 'Verification code has expired. Please request a new one.' });
+    }
+
+    // Success! Clear the MFA code and issue standard JWT session cookie
+    await db.run('UPDATE users SET mfa_code = NULL, mfa_code_expiry = NULL, last_login = ? WHERE id = ?', [Date.now(), user.id]);
+
+    const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '30d' });
+    res.cookie('jwt', token, {
+      httpOnly: true,
+      maxAge: 2592000000,
+      secure: IS_PROD,
+      sameSite: 'lax'
+    });
+
+    let gameData = null;
+    try {
+      if (user.game_data) {
+        const decrypted = decryptData(user.game_data);
+        if (decrypted) gameData = JSON.parse(decrypted);
+      }
+    } catch (e) {
+      console.error('Failed to parse game data on login:', e);
+    }
+
+    const modelRow = await db.get('SELECT model_data FROM user_gesture_models WHERE user_id = ?', [user.id]);
+    if (modelRow && modelRow.model_data) {
+      try {
+        if (!gameData) gameData = {};
+        const decryptedModel = decryptData(modelRow.model_data);
+        if (decryptedModel) gameData.gestureModel = JSON.parse(decryptedModel);
+      } catch (e) { /* ignore */ }
+    }
+
+    return res.status(200).json({ success: true, gameData });
+  } catch (err) {
+    console.error('Login MFA verification error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Resend MFA code during login
+router.post('/login/resend-mfa', async (req, res) => {
+  try {
+    const { tempToken } = req.body;
+    if (!tempToken) return res.status(400).json({ error: 'Temporary token is required.' });
+
+    let payload;
+    try {
+      payload = jwt.verify(tempToken, JWT_SECRET);
+    } catch (jwtErr) {
+      return res.status(401).json({ error: 'Session expired. Please log in again.' });
+    }
+
+    if (!payload.mfa_pending) {
+      return res.status(400).json({ error: 'Invalid authentication request.' });
+    }
+
+    const db = getDb();
+    const user = await db.get('SELECT email, username FROM users WHERE id = ?', [payload.id]);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (!user.email) return res.status(400).json({ error: 'No email address registered for this user.' });
+
+    const code = String(crypto.randomInt(100000, 1000000));
+    const expiry = Date.now() + 5 * 60 * 1000; // 5 minutes
+
+    await db.run('UPDATE users SET mfa_code = ?, mfa_code_expiry = ? WHERE id = ?', [code, expiry, payload.id]);
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER || '"Bata Takbo Support" <noreply@batatakbo.com>',
+      to: user.email,
+      subject: 'New Login Verification Code — Bata, Takbo!',
+      html: `
+        <div style="font-family: monospace; background: #130f04; color: #f0e6d3; padding: 32px; max-width: 480px; margin: 0 auto; border-radius: 8px; border: 2px solid #ff6b1a;">
+          <h2 style="color: #ff6b1a; letter-spacing: 2px; margin-bottom: 0.5rem; text-shadow: 0 0 10px rgba(255,107,26,0.3);">BATA, TAKBO!</h2>
+          <h3 style="color: #e4cfc0; margin-top: 0; font-size: 1.1rem;">Security Verification Code</h3>
+          <p style="color: #a89b8c; font-size: 0.9rem; line-height: 1.6;">Enter this verification code to complete your login:</p>
+          <div style="background: #201c11; border: 2px solid #ff6b1a; border-radius: 4px; padding: 20px; text-align: center; font-size: 2.5rem; letter-spacing: 8px; margin: 20px 0; color: #fff; font-weight: bold; box-shadow: inset 0 0 10px rgba(0,0,0,0.8);">${code}</div>
+          <p style="color: #a89b8c; font-size: 0.8rem;">This code will expire in <b style="color:#f0e6d3;">5 minutes</b>.</p>
+          <p style="color: #5a5068; font-size: 0.75rem; margin-top: 24px;">If you did not request this, please change your password immediately.</p>
+        </div>
+      `
+    };
+
+    if (transporter) {
+      try {
+        await transporter.sendMail(mailOptions);
+      } catch (mailErr) {
+        console.error('[EMAIL] Resend login MFA mail error:', mailErr);
+        return res.status(500).json({ error: 'Failed to send MFA verification email. Please check SMTP settings.' });
+      }
+    } else {
+      console.log(`[EMAIL] Resend Login MFA code to: ${user.email} (code: ${code})`);
+    }
+
+    return res.status(200).json({ success: true, message: 'New verification code sent to your email.' });
+  } catch (err) {
+    console.error('Login MFA resend error:', err);
     return res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -281,7 +450,8 @@ router.get('/profile', authMiddleware, async (req, res) => {
       accountType: 'Registered',
       registeredAt: registeredAt,
       avatar_url: user.avatar_url || null,
-      bio: user.bio || null
+      bio: user.bio || null,
+      mfa_enabled: !!user.mfa_enabled
     });
   } catch (err) {
     console.error('Profile error:', err);
@@ -622,6 +792,99 @@ router.delete('/delete-account', authMiddleware, async (req, res) => {
   }
 });
 
+// Setup MFA (Generate & send code to verify email before enabling)
+router.post('/mfa/setup', authMiddleware, async (req, res) => {
+  try {
+    const db = getDb();
+    const user = await db.get('SELECT email, username FROM users WHERE id = ?', [req.user.id]);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (!user.email) return res.status(400).json({ error: 'Please set an email address first to enable MFA.' });
+
+    const code = String(crypto.randomInt(100000, 1000000));
+    const expiry = Date.now() + 5 * 60 * 1000; // 5 minutes
+
+    await db.run('UPDATE users SET mfa_code = ?, mfa_code_expiry = ? WHERE id = ?', [code, expiry, req.user.id]);
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER || '"Bata Takbo Support" <noreply@batatakbo.com>',
+      to: user.email,
+      subject: 'Enable Multi-Factor Authentication — Bata, Takbo!',
+      html: `
+        <div style="font-family: monospace; background: #130f04; color: #f0e6d3; padding: 32px; max-width: 480px; margin: 0 auto; border-radius: 8px; border: 2px solid #ff6b1a;">
+          <h2 style="color: #ff6b1a; letter-spacing: 2px; margin-bottom: 0.5rem; text-shadow: 0 0 10px rgba(255,107,26,0.3);">BATA, TAKBO!</h2>
+          <h3 style="color: #e4cfc0; margin-top: 0; font-size: 1.1rem;">Enable Multi-Factor Authentication</h3>
+          <p style="color: #a89b8c; font-size: 0.9rem; line-height: 1.6;">Use the following verification code to enable MFA on your account:</p>
+          <div style="background: #201c11; border: 2px solid #ff6b1a; border-radius: 4px; padding: 20px; text-align: center; font-size: 2.5rem; letter-spacing: 8px; margin: 20px 0; color: #fff; font-weight: bold; box-shadow: inset 0 0 10px rgba(0,0,0,0.8);">${code}</div>
+          <p style="color: #a89b8c; font-size: 0.8rem;">This code will expire in <b style="color:#f0e6d3;">5 minutes</b>.</p>
+          <p style="color: #5a5068; font-size: 0.75rem; margin-top: 24px;">If you did not request this, you can safely ignore this email.</p>
+        </div>
+      `
+    };
+
+    if (transporter) {
+      try {
+        await transporter.sendMail(mailOptions);
+      } catch (mailErr) {
+        console.error('[EMAIL] Setup MFA mail error:', mailErr);
+        return res.status(500).json({ error: 'Failed to send verification email. Please check your SMTP settings.' });
+      }
+    } else {
+      console.log(`[EMAIL] Would send MFA setup code to: ${user.email} (code: ${code})`);
+    }
+
+    return res.status(200).json({ success: true, message: 'Verification code sent to your registered email.' });
+  } catch (err) {
+    console.error('MFA setup error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Enable MFA after verifying code
+router.post('/mfa/enable', authMiddleware, async (req, res) => {
+  try {
+    const { code } = req.body;
+    if (!code) return res.status(400).json({ error: 'Verification code is required.' });
+
+    const db = getDb();
+    const user = await db.get('SELECT mfa_code, mfa_code_expiry FROM users WHERE id = ?', [req.user.id]);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    if (user.mfa_code !== String(code).trim()) {
+      return res.status(400).json({ error: 'Incorrect verification code.' });
+    }
+    if (Date.now() > user.mfa_code_expiry) {
+      return res.status(400).json({ error: 'Verification code has expired. Please request a new one.' });
+    }
+
+    await db.run('UPDATE users SET mfa_enabled = TRUE, mfa_code = NULL, mfa_code_expiry = NULL WHERE id = ?', [req.user.id]);
+    return res.status(200).json({ success: true, message: 'MFA enabled successfully!' });
+  } catch (err) {
+    console.error('MFA enable error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Disable MFA (requires password confirmation)
+router.post('/mfa/disable', authMiddleware, async (req, res) => {
+  try {
+    const { password } = req.body;
+    if (!password) return res.status(400).json({ error: 'Password is required to disable MFA.' });
+
+    const db = getDb();
+    const user = await db.get('SELECT * FROM users WHERE id = ?', [req.user.id]);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const isValid = await bcrypt.compare(password, user.password_hash);
+    if (!isValid) return res.status(401).json({ error: 'Incorrect password.' });
+
+    await db.run('UPDATE users SET mfa_enabled = FALSE, mfa_code = NULL, mfa_code_expiry = NULL WHERE id = ?', [req.user.id]);
+    return res.status(200).json({ success: true, message: 'MFA disabled successfully.' });
+  } catch (err) {
+    console.error('MFA disable error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Forgot username
 router.post('/forgot-username', forgotPasswordLimiter, async (req, res) => {
   try {
@@ -772,6 +1035,109 @@ router.post('/reset-password', async (req, res) => {
     return res.status(200).json({ success: true, message: 'Password has been successfully reset.' });
   } catch (err) {
     console.error('Reset password error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// MFA SETUP - Send verification code to user's email
+router.post('/mfa/setup', authMiddleware, async (req, res) => {
+  try {
+    const db = getDb();
+    const user = await db.get('SELECT id, email, username, mfa_enabled FROM users WHERE id = ?', [req.user.id]);
+
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (!user.email) return res.status(400).json({ error: 'No email address on file. Please add an email first.' });
+    if (user.mfa_enabled) return res.status(400).json({ error: 'MFA is already enabled.' });
+
+    const code = String(crypto.randomInt(100000, 1000000));
+    const expiry = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+    await db.run('UPDATE users SET mfa_setup_code = ?, mfa_setup_expiry = ? WHERE id = ?', [code, expiry, user.id]);
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER || '"Bata Takbo Support" <noreply@batatakbo.com>',
+      to: user.email,
+      subject: 'MFA Setup Verification Code — Bata, Takbo!',
+      html: `
+        <div style="font-family: monospace; background: #130f04; color: #f0e6d3; padding: 32px; max-width: 480px; margin: 0 auto; border-radius: 8px; border: 2px solid #ff6b1a;">
+          <h2 style="color: #ff6b1a; letter-spacing: 2px; margin-bottom: 0.5rem; text-shadow: 0 0 10px rgba(255,107,26,0.3);">BATA, TAKBO!</h2>
+          <h3 style="color: #e4cfc0; margin-top: 0; font-size: 1.1rem;">MFA Setup Code</h3>
+          <p style="color: #a89b8c; font-size: 0.9rem; line-height: 1.6;">Enter this verification code to enable Two-Factor Authentication:</p>
+          <div style="background: #201c11; border: 2px solid #ff6b1a; border-radius: 4px; padding: 20px; text-align: center; font-size: 2.5rem; letter-spacing: 8px; margin: 20px 0; color: #fff; font-weight: bold; box-shadow: inset 0 0 10px rgba(0,0,0,0.8);">${code}</div>
+          <p style="color: #a89b8c; font-size: 0.8rem;">This code will expire in <b style="color:#f0e6d3;">10 minutes</b>.</p>
+          <p style="color: #5a5068; font-size: 0.75rem; margin-top: 24px;">If you did not request this, please change your password immediately.</p>
+        </div>
+      `
+    };
+
+    if (transporter) {
+      try {
+        await transporter.sendMail(mailOptions);
+      } catch (mailErr) {
+        console.error('[EMAIL] MFA setup mail error:', mailErr);
+        return res.status(500).json({ error: 'Failed to send verification email. Please check SMTP configuration.' });
+      }
+    } else {
+      console.log(`[EMAIL] MFA setup code to: ${user.email} (code: ${code})`);
+    }
+
+    return res.status(200).json({ success: true, message: 'Verification code sent to your email.' });
+  } catch (err) {
+    console.error('MFA setup error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// MFA ENABLE - Verify code and enable MFA
+router.post('/mfa/enable', authMiddleware, async (req, res) => {
+  try {
+    const { code } = req.body;
+    if (!code) return res.status(400).json({ error: 'Verification code is required.' });
+
+    const db = getDb();
+    const user = await db.get('SELECT id, email, mfa_enabled, mfa_setup_code, mfa_setup_expiry FROM users WHERE id = ?', [req.user.id]);
+
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (user.mfa_enabled) return res.status(400).json({ error: 'MFA is already enabled.' });
+    if (!user.mfa_setup_code || !user.mfa_setup_expiry) {
+      return res.status(400).json({ error: 'No MFA setup in progress. Please request a new code.' });
+    }
+    if (user.mfa_setup_code !== String(code).trim()) {
+      return res.status(400).json({ error: 'Incorrect verification code.' });
+    }
+    if (Date.now() > user.mfa_setup_expiry) {
+      return res.status(400).json({ error: 'Verification code has expired. Please request a new one.' });
+    }
+
+    await db.run('UPDATE users SET mfa_enabled = 1, mfa_setup_code = NULL, mfa_setup_expiry = NULL WHERE id = ?', [user.id]);
+
+    return res.status(200).json({ success: true, message: 'Two-Factor Authentication has been enabled.' });
+  } catch (err) {
+    console.error('MFA enable error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// MFA DISABLE - Turn off MFA with password verification
+router.post('/mfa/disable', authMiddleware, async (req, res) => {
+  try {
+    const { password } = req.body;
+    if (!password) return res.status(400).json({ error: 'Password is required.' });
+
+    const db = getDb();
+    const user = await db.get('SELECT id, password_hash, mfa_enabled FROM users WHERE id = ?', [req.user.id]);
+
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (!user.mfa_enabled) return res.status(400).json({ error: 'MFA is not enabled.' });
+
+    const isValid = await bcrypt.compare(password, user.password_hash);
+    if (!isValid) return res.status(401).json({ error: 'Incorrect password.' });
+
+    await db.run('UPDATE users SET mfa_enabled = 0, mfa_code = NULL, mfa_code_expiry = NULL WHERE id = ?', [user.id]);
+
+    return res.status(200).json({ success: true, message: 'Two-Factor Authentication has been disabled.' });
+  } catch (err) {
+    console.error('MFA disable error:', err);
     return res.status(500).json({ error: 'Internal server error' });
   }
 });

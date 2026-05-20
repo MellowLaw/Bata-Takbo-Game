@@ -230,4 +230,39 @@ export class DialogueBox {
       this.overlay = null;
     }
   }
+
+  /**
+   * Static helper for simple alert-style dialogues.
+   * Usage: DialogueBox.show('Message text', 'Optional Title')
+   * @param {string} text - Main message text
+   * @param {string} title - Optional title/subtext
+   */
+  static show(text, title = '') {
+    const container = document.createElement('div');
+    container.id = 'dialogue-box-static-' + Date.now();
+    container.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999;pointer-events:none;';
+    document.body.appendChild(container);
+
+    const dialogue = new DialogueBox(container.id);
+    dialogue.show({
+      text,
+      subtext: title,
+      position: 'center',
+      buttons: [{ label: 'OK', action: 'close', style: 'primary' }]
+    }, (action) => {
+      if (action === 'close') {
+        dialogue.hide();
+        container.remove();
+      }
+    });
+
+    // Auto-remove container after hide
+    const originalHide = dialogue.hide.bind(dialogue);
+    dialogue.hide = () => {
+      originalHide();
+      setTimeout(() => container.remove(), 100);
+    };
+
+    return dialogue;
+  }
 }

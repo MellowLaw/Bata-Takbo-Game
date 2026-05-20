@@ -105,11 +105,12 @@ export const AdminDashboard = {
               <input id="user-search" type="text" placeholder="Search by username..." class="login-card__input" style="width:100%; margin-bottom:var(--space-md); background: rgba(0,0,0,0.05); color:#111; border-color:#111;" />
               
               <div class="inf-stats-container">
-                <div class="inf-stats-header" style="grid-template-columns: 2fr 3fr 1fr 1fr 2.5fr;">
+                <div class="inf-stats-header" style="grid-template-columns: 2fr 3fr 1fr 1fr 1fr 2.5fr;">
                   <div>USER</div>
                   <div>EMAIL</div>
                   <div>JOINED</div>
                   <div>GAMES</div>
+                  <div>MFA</div>
                   <div>ACTIONS</div>
                 </div>
                 <div id="users-list">
@@ -384,11 +385,12 @@ export const AdminDashboard = {
           : 'Unknown';
         const bannedStyle = u.banned ? 'text-decoration:line-through;color:#e74c3c;' : '';
         html += `
-          <div class="inf-stat-row admin-user-row" data-username="${u.username.toLowerCase()}" style="grid-template-columns: 2fr 3fr 1fr 1fr 2.5fr; background:${u.banned?'rgba(231,76,60,0.1)':'transparent'}">
+          <div class="inf-stat-row admin-user-row" data-username="${u.username.toLowerCase()}" style="grid-template-columns: 2fr 3fr 1fr 1fr 1fr 2.5fr; background:${u.banned?'rgba(231,76,60,0.1)':'transparent'}">
             <div style="font-weight:bold;${bannedStyle}">${u.username} ${u.is_admin ? '<span style="color:#f39c12">*</span>' : ''}</div>
             <div style="font-size:0.85em;word-break:break-all;">${u.email || '-'}</div>
             <div style="font-size:0.85em;">${joinDate}</div>
             <div style="font-weight:bold;">${u.games_played || 0}</div>
+            <div>${u.mfa_enabled ? '<span style="color:#2ecc71;font-size:0.8em;border:1px solid #2ecc71;padding:2px 4px;border-radius:3px;font-weight:bold;">ON</span>' : '<span style="color:#e74c3c;font-size:0.8em;border:1px solid #e74c3c;padding:2px 4px;border-radius:3px;">OFF</span>'}</div>
             <div style="display:flex;gap:4px;align-items:center;">
               ${u.ban_appeal ? `<button class="admin-btn appeal" data-id="${u.id}" data-appeal="${u.ban_appeal.replace(/"/g, '&quot;')}" style="font-size:14px;padding:4px 8px;background:#f39c12;color:#fff;border:1px solid #111;cursor:pointer;" title="View Appeal"><i class="fas fa-envelope-open-text"></i></button>` : ''}
               <button class="admin-btn ${u.banned?'unban':'ban'}" data-id="${u.id}" data-banned="${u.banned?'1':'0'}" ${u.is_admin?'disabled':''} style="font-size:14px;padding:4px 8px;background:${u.banned?'#27ae60':'#e67e22'};color:#fff;border:1px solid #111;cursor:pointer;" title="${u.banned?'Unban User':'Ban User'}"><i class="fas ${u.banned?'fa-unlock':'fa-ban'}"></i></button>

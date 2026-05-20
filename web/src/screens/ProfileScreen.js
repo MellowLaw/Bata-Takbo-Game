@@ -106,6 +106,14 @@ export const ProfileScreen = {
               <button id="btn-modal-email" style="padding: var(--space-sm) var(--space-md); font-family:'VCR',sans-serif; font-size: var(--text-sm);">CHANGE</button>
             </div>
 
+            <div id="mfa-group" class="profile-card" style="display: none;">
+              <div>
+                <h3>Multi-Factor Authentication (MFA)</h3>
+                <p id="mfa-status-desc" style="font-family:'VCR',sans-serif;font-size:12px;margin-top:4px;">Require a verification code on login</p>
+              </div>
+              <button id="btn-toggle-mfa" style="padding: var(--space-sm) var(--space-md); font-family:'VCR',sans-serif; font-size: var(--text-sm);">ENABLE</button>
+            </div>
+
             <div class="profile-card" id="cp-group">
               <div>
                 <h3>Password</h3>
@@ -238,8 +246,10 @@ export const ProfileScreen = {
     let profileEmail = null;
     let avatarUrl = null;
     let bio = null;
+    let mfaEnabled = false;
 
-    if (isRegistered) {
+    // Fetch profile for registered users (including JWT cookie auth without localStorage session)
+    if (!isGuest) {
       try {
         const res = await fetch('/auth/profile', {
           method: 'GET',
@@ -254,6 +264,11 @@ export const ProfileScreen = {
           profileEmail = data.email || null;
           avatarUrl = data.avatar_url || null;
           bio = data.bio || null;
+          mfaEnabled = !!data.mfa_enabled;
+          isRegistered = true;
+        } else if (res.status === 401) {
+          // Not authenticated - treat as guest
+          isGuest = true;
         }
       } catch (err) {}
     }
@@ -314,17 +329,89 @@ export const ProfileScreen = {
     const cuGroup = el.querySelector('#cu-group');
     const cpGroup = el.querySelector('#cp-group');
     const ceGroup = el.querySelector('#ce-group');
+    const mfaGroup = el.querySelector('#mfa-group');
     const tabAccountBtn = el.querySelector('#tab-btn-account');
+
+    const mfaStatusDesc = el.querySelector('#mfa-status-desc');
+    const btnToggleMfa = el.querySelector('#btn-toggle-mfa');
+
+    const updateMfaUI = () => {
+      if (mfaEnabled) {
+        if (mfaStatusDesc) {
+          mfaStatusDesc.textContent = 'Enabled — Require code on login';
+          mfaStatusDesc.style.color = '#2ecc71';
+        }
+        if (btnToggleMfa) {
+          btnToggleMfa.textContent = 'DISABLE';
+          btnToggleMfa.style.background = '#e74c3c';
+          btnToggleMfa.style.color = '#fff';
+        }
+      } else {
+        if (mfaStatusDesc) {
+          mfaStatusDesc.textContent = 'Disabled — Require verification code on login';
+          mfaStatusDesc.style.color = '#e74c3c';
+        }
+        if (btnToggleMfa) {
+          btnToggleMfa.textContent = 'ENABLE';
+          btnToggleMfa.style.background = 'var(--accent-orange)';
+          btnToggleMfa.style.color = '#111';
+        }
+      }
+    };
 
     if (isGuest) {
       if (guestPromoContainer) guestPromoContainer.style.display = 'flex';
       if (cuGroup) cuGroup.style.display = 'none';
       if (cpGroup) cpGroup.style.display = 'none';
       if (ceGroup) ceGroup.style.display = 'none';
+      if (mfaGroup) mfaGroup.style.display = 'none';
       if (tabAccountBtn) tabAccountBtn.style.display = 'none';
     } else {
       if (guestPromoContainer) guestPromoContainer.style.display = 'none';
+      if (mfaGroup) {
+        mfaGroup.style.display = 'flex';
+        updateMfaUI();
+      }
       this._loadEndlessRanks(username, el);
+    }
+
+    if (btnToggleMfa) {
+      btnToggleMfa.addEventListener('click', async () => {
+        if (mfaEnabled) {
+          this._showMfaDisableModal((newStatus) => {
+            mfaEnabled = newStatus;
+            updateMfaUI();
+          });
+        } else {
+          if (!profileEmail) {
+            DialogueBox.show('Please register or update your email address before enabling MFA.', 'MFA ERROR');
+            return;
+          }
+          btnToggleMfa.textContent = 'SENDING...';
+          btnToggleMfa.disabled = true;
+          try {
+            const res = await fetch('/auth/mfa/setup', {
+              method: 'POST',
+              credentials: 'include',
+              headers: { 'Content-Type': 'application/json' }
+            });
+            if (res.ok) {
+              this._showMfaEnableModal(profileEmail, (newStatus) => {
+                mfaEnabled = newStatus;
+                updateMfaUI();
+              });
+            } else {
+              const d = await res.json();
+              DialogueBox.show(d.error || 'Failed to initialize MFA setup.', 'MFA SETUP ERROR');
+            }
+          } catch(e) {
+            DialogueBox.show('Network error.', 'MFA SETUP ERROR');
+          } finally {
+            btnToggleMfa.disabled = false;
+            updateMfaUI();
+          }
+        }
+      });
     }
 
     const btnPromoReg = el.querySelector('#btn-profile-register');
@@ -1031,6 +1118,167 @@ export const ProfileScreen = {
     confirmBtn.addEventListener('click', submit);
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.ctrlKey) submit(); if (e.key === 'Escape') closeModal(); });
     setTimeout(() => input.focus(), 50);
+  },
+
+  _showMfaEnableModal(profileEmail, updateUI_cb) {
+    const overlay = this._createModalOverlay();
+    overlay.innerHTML = `
+      <div class="profile-modal-box">
+        <h3 style="color:var(--accent-orange);font-family:'VCR',sans-serif;font-size:var(--text-lg);text-transform:uppercase;margin:0 0 var(--space-sm);text-align:center;">Enable MFA</h3>
+        <p style="font-family:'VCR',sans-serif;font-size:var(--text-sm);color:#ddd;text-align:center;margin-bottom:var(--space-md);line-height:1.4;">A 6-digit code has been sent to <b style="color:var(--accent-orange);">${profileEmail}</b>. Enter it below to enable MFA.</p>
+        <input id="modal-mfa-code" type="text" placeholder="6-DIGIT CODE" class="login-card__input" maxlength="6" autocomplete="off" style="margin-bottom:8px; text-align:center; letter-spacing:4px; font-weight:bold; background: rgba(255,255,255,0.1); border-color: #555;" />
+        <p id="modal-mfa-msg" style="font-family:'VCR',sans-serif;font-size:var(--text-sm);font-weight:bold;min-height:1.2em;text-align:center;margin:0 0 var(--space-sm);color:var(--accent-red);"></p>
+        <button id="modal-mfa-resend" style="background:transparent;border:none;color:#aaa;text-decoration:underline;font-family:'VCR',sans-serif;font-size:var(--text-xs);cursor:pointer;display:block;margin:0 auto var(--space-md);padding:0;">Resend Code</button>
+        <div style="display:flex;gap:var(--space-sm);">
+          <button id="modal-mfa-cancel" style="flex:1;background:transparent;border:2px solid #555; color:#fff; font-family:'VCR',sans-serif; padding:8px; cursor:pointer;">CANCEL</button>
+          <button id="modal-mfa-confirm" style="flex:1;background:var(--accent-orange);border:2px solid #111; color:#111; font-family:'VCR',sans-serif; font-weight:bold; padding:8px; cursor:pointer;">VERIFY</button>
+        </div>
+      </div>
+    `;
+
+    const input = overlay.querySelector('#modal-mfa-code');
+    const msg = overlay.querySelector('#modal-mfa-msg');
+    const confirmBtn = overlay.querySelector('#modal-mfa-confirm');
+    const cancelBtn = overlay.querySelector('#modal-mfa-cancel');
+    const resendBtn = overlay.querySelector('#modal-mfa-resend');
+
+    setTimeout(() => input.focus(), 50);
+    const closeModal = () => overlay.remove();
+    cancelBtn.addEventListener('click', closeModal);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
+
+    input.addEventListener('input', () => {
+      input.value = input.value.replace(/\D/g, '').slice(0, 6);
+    });
+
+    resendBtn.addEventListener('click', async () => {
+      resendBtn.disabled = true;
+      resendBtn.textContent = 'Sending...';
+      try {
+        const res = await fetch('/auth/mfa/setup', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        if (res.ok) {
+          msg.textContent = 'New code sent successfully!';
+          msg.style.color = '#2ecc71';
+        } else {
+          const d = await res.json();
+          msg.textContent = d.error || 'Failed to resend code.';
+          msg.style.color = 'var(--accent-red)';
+        }
+      } catch (err) {
+        msg.textContent = 'Network error.';
+        msg.style.color = 'var(--accent-red)';
+      } finally {
+        resendBtn.disabled = false;
+        resendBtn.textContent = 'Resend Code';
+      }
+    });
+
+    const submit = async () => {
+      const code = input.value.trim();
+      if (!code || code.length !== 6) {
+        msg.textContent = 'Enter the 6-digit verification code.';
+        msg.style.color = 'var(--accent-red)';
+        return;
+      }
+
+      confirmBtn.textContent = 'VERIFYING...';
+      confirmBtn.disabled = true;
+
+      try {
+        const res = await fetch('/auth/mfa/enable', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          updateUI_cb(true);
+          closeModal();
+          DialogueBox.show('MFA is now enabled on your account.', 'SECURITY');
+        } else {
+          msg.textContent = data.error || 'Verification failed.';
+          msg.style.color = 'var(--accent-red)';
+          confirmBtn.textContent = 'VERIFY';
+          confirmBtn.disabled = false;
+        }
+      } catch (err) {
+        msg.textContent = 'Network error.';
+        msg.style.color = 'var(--accent-red)';
+        confirmBtn.textContent = 'VERIFY';
+        confirmBtn.disabled = false;
+      }
+    };
+
+    confirmBtn.addEventListener('click', submit);
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') closeModal(); });
+  },
+
+  _showMfaDisableModal(updateUI_cb) {
+    const overlay = this._createModalOverlay();
+    overlay.innerHTML = `
+      <div class="profile-modal-box">
+        <h3 style="color:var(--accent-orange);font-family:'VCR',sans-serif;font-size:var(--text-lg);text-transform:uppercase;margin:0 0 var(--space-sm);text-align:center;">Disable MFA</h3>
+        <p style="font-family:'VCR',sans-serif;font-size:var(--text-sm);color:#ddd;text-align:center;margin-bottom:var(--space-md);line-height:1.4;">Enter your current password to confirm disabling Multi-Factor Authentication.</p>
+        <input id="modal-mfa-pass" type="password" placeholder="PASSWORD" class="login-card__input" style="margin-bottom:var(--space-xs); background: rgba(255,255,255,0.1); border-color: #555;" />
+        <p id="modal-mfa-msg" style="font-family:'VCR',sans-serif;font-size:var(--text-sm);font-weight:bold;min-height:1.2em;text-align:center;margin:0 0 var(--space-sm);color:var(--accent-red);"></p>
+        <div style="display:flex;gap:var(--space-sm);">
+          <button id="modal-mfa-cancel" style="flex:1;background:transparent;border:2px solid #555; color:#fff; font-family:'VCR',sans-serif; padding:8px; cursor:pointer;">CANCEL</button>
+          <button id="modal-mfa-confirm" style="flex:1;background:var(--accent-orange);border:2px solid #111; color:#111; font-family:'VCR',sans-serif; font-weight:bold; padding:8px; cursor:pointer;">CONFIRM</button>
+        </div>
+      </div>
+    `;
+
+    const input = overlay.querySelector('#modal-mfa-pass');
+    const msg = overlay.querySelector('#modal-mfa-msg');
+    const confirmBtn = overlay.querySelector('#modal-mfa-confirm');
+    const cancelBtn = overlay.querySelector('#modal-mfa-cancel');
+
+    setTimeout(() => input.focus(), 50);
+    const closeModal = () => overlay.remove();
+    cancelBtn.addEventListener('click', closeModal);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
+
+    const submit = async () => {
+      const password = input.value;
+      if (!password) {
+        msg.textContent = 'Password is required.';
+        return;
+      }
+
+      confirmBtn.textContent = 'DISABLING...';
+      confirmBtn.disabled = true;
+
+      try {
+        const res = await fetch('/auth/mfa/disable', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          updateUI_cb(false);
+          closeModal();
+          DialogueBox.show('MFA has been disabled.', 'SECURITY');
+        } else {
+          msg.textContent = data.error || 'Failed to disable MFA.';
+          confirmBtn.textContent = 'CONFIRM';
+          confirmBtn.disabled = false;
+        }
+      } catch (err) {
+        msg.textContent = 'Network error.';
+        confirmBtn.textContent = 'CONFIRM';
+        confirmBtn.disabled = false;
+      }
+    };
+
+    confirmBtn.addEventListener('click', submit);
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') closeModal(); });
   },
 
   onLeave() {
