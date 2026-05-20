@@ -4675,38 +4675,6 @@ a {
   }
 }
 
-/* === PRACTICE TUTORIAL SCREEN === */
-.practice-tutorial-screen {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-
-/* Practice tutorial dialogue positioning - ensure it's below the centered grid */
-.practice-tutorial-screen .dialogue-box--bottom {
-  bottom: clamp(16px, 5vh, 60px);
-  max-width: 600px;
-  width: 90%;
-}
-
-/* Adjust dialogue for smaller screens in practice mode */
-@media screen and (max-height: 600px) {
-  .practice-tutorial-screen .dialogue-box--bottom {
-    bottom: 8px;
-    padding: var(--space-xs) var(--space-sm);
-  }
-  
-  .practice-tutorial-screen .dialogue-box__portrait-container {
-    width: 48px;
-    height: 48px;
-  }
-  
-  .practice-tutorial-screen .dialogue-box__text {
-    font-size: var(--text-sm);
-  }
-}
-
 /* === PROFILE SCREEN (ID CARD AESTHETIC) === */
 #profile-content-wrapper {
   width: 100%;

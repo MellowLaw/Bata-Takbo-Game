@@ -170,14 +170,14 @@ export const GestureTraining = {
       // Hide loading spinner
       this.loadingUi.style.display = 'none';
       this._updateUIFromCounts();
-      
+
       // Only start tutorial if camera is actually running and no gestures trained yet
       const counts = gestureController.getSampleCounts();
       const hasTrainedGestures = Object.values(counts).some(c => c >= 10);
       if (!hasTrainedGestures && !gestureController.isTesting) {
         this._startTutorial(el);
       }
-      
+
     } catch (e) {
       console.error('[GestureTraining] Camera failed:', e);
       this.loadingUi.style.display = 'flex';
@@ -414,138 +414,6 @@ export const GestureTraining = {
     }
   },
 
-  _startTutorial(el) {
-    this.tutorialManager = new TutorialManager('screen-container');
-    const portrait = '/assets/entity/character-icon/character.png';
-    
-    const steps = [
-      {
-        text: "Welcome to Bata, Takbo! Before we begin, let's set up your hand gestures. You'll use your webcam to teach the game how you move!",
-        portrait: portrait,
-        position: 'center'
-      },
-      {
-        text: "This is your camera view. Make sure your hand is clearly visible inside the frame!",
-        portrait: portrait,
-        position: 'center',
-        highlight: '#gesture-camera',
-        buttons: [{ label: 'Got it', action: 'next' }]
-      },
-      {
-        text: "These are the gesture buttons. You will select a direction before you start recording.",
-        portrait: portrait,
-        position: 'center',
-        highlight: '.gesture-directions',
-        buttons: [{ label: 'Next', action: 'next' }]
-      },
-      {
-        text: "Let's train the UP gesture. Make a clear upward hand signal, then press and hold the Record button until the bar fills.",
-        portrait: portrait,
-        position: 'center',
-        buttons: [{ label: '▶ Start Recording', action: 'next' }]
-      },
-      {
-        hideDialogue: true,
-        onEnter: () => {
-          el.querySelector('#dir-up').click();
-          this._showRecordingHint(el, '▲ UP', 'Hold the Record button with your UP gesture. Try using both hands for better accuracy!');
-        },
-        autoAdvance: {
-          type: 'sampleAdded',
-          check: (counts) => { if (counts.up >= 200) { this._hideRecordingHint(); return true; } return false; }
-        }
-      },
-      {
-        text: "Great! Now do the same for DOWN. Make a downward signal and hold record.",
-        portrait: portrait,
-        position: 'center',
-        buttons: [{ label: '▶ Record DOWN', action: 'next' }]
-      },
-      {
-        hideDialogue: true,
-        onEnter: () => {
-          el.querySelector('#dir-down').click();
-          this._showRecordingHint(el, '▼ DOWN', 'Hold the Record button with your DOWN gesture. Try using both hands for better accuracy!');
-        },
-        autoAdvance: {
-          type: 'sampleAdded',
-          check: (counts) => { if (counts.down >= 200) { this._hideRecordingHint(); return true; } return false; }
-        }
-      },
-      {
-        text: "Now point LEFT.",
-        portrait: portrait,
-        position: 'center',
-        buttons: [{ label: '▶ Record LEFT', action: 'next' }]
-      },
-      {
-        hideDialogue: true,
-        onEnter: () => {
-          el.querySelector('#dir-left').click();
-          this._showRecordingHint(el, '◀ LEFT', 'Hold the Record button with your LEFT gesture. Try using both hands for better accuracy!');
-        },
-        autoAdvance: {
-          type: 'sampleAdded',
-          check: (counts) => { if (counts.left >= 200) { this._hideRecordingHint(); return true; } return false; }
-        }
-      },
-      {
-        text: "And point RIGHT.",
-        portrait: portrait,
-        position: 'center',
-        buttons: [{ label: '▶ Record RIGHT', action: 'next' }]
-      },
-      {
-        hideDialogue: true,
-        onEnter: () => {
-          el.querySelector('#dir-right').click();
-          this._showRecordingHint(el, '▶ RIGHT', 'Hold the Record button with your RIGHT gesture. Try using both hands for better accuracy!');
-        },
-        autoAdvance: {
-          type: 'sampleAdded',
-          check: (counts) => { if (counts.right >= 200) { this._hideRecordingHint(); return true; } return false; }
-        }
-      },
-      {
-        text: "One more — make your REST pose. This is what your hand looks like when you are NOT moving (e.g., an open palm or fist).",
-        portrait: portrait,
-        position: 'center',
-        buttons: [{ label: '▶ Record REST', action: 'next' }]
-      },
-      {
-        hideDialogue: true,
-        onEnter: () => {
-          el.querySelector('#dir-idle').click();
-          this._showRecordingHint(el, '✋ REST', 'Hold the Record button with your REST / idle pose. Try using both hands for better accuracy!');
-        },
-        autoAdvance: {
-          type: 'sampleAdded',
-          check: (counts) => { if (counts.idle >= 200) { this._hideRecordingHint(); return true; } return false; }
-        }
-      },
-      {
-        text: "Perfect! Let's test it. Click 'Test My Gestures', move your hand, and see if the arrows highlight correctly.",
-        highlight: "#btn-test-gestures",
-        portrait: portrait,
-        position: 'center',
-        buttons: [{ label: 'Done Testing', action: 'next' }]
-      },
-      {
-        text: this.fromCharSelect
-          ? "Your gesture model has been saved! Head back and pick your character to start playing."
-          : "You're all set! Your gesture model has been saved. You can come back anytime to retrain. Tap the ? button to replay this tutorial.",
-        portrait: portrait,
-        position: 'center',
-        buttons: [{ label: this.fromCharSelect ? 'Back to Character Select' : 'Done', action: 'next' }]
-      }
-    ];
-
-    this.tutorialManager.start(steps, {
-      onComplete: () => this._completeTutorial(),
-      onSkip: () => this._skipTutorial()
-    });
-  },
-
   _showResetModal(el, preselectedDir = null) {
     const existing = document.getElementById('gesture-reset-modal');
     if (existing) existing.remove();
@@ -730,6 +598,142 @@ export const GestureTraining = {
       toast.style.animation = 'fsFadeOut 0.4s ease forwards';
       setTimeout(() => toast.remove(), 400);
     }, 2500);
+  },
+
+  _startTutorial(el) {
+    this.tutorialManager = new TutorialManager('screen-container');
+    const portrait = '/assets/entity/character-icon/character.png';
+
+    const steps = [
+      {
+        text: "Welcome to Bata, Takbo! Before we begin, let's set up your hand gestures. You'll use your webcam to teach the game how you move!",
+        portrait: portrait,
+        position: 'center',
+        buttons: [
+          { label: 'Start Tutorial', action: 'next', style: 'primary' },
+          { label: 'Skip', action: 'skip', style: 'subtle' }
+        ]
+      },
+      {
+        text: "This is your camera view. Make sure your hand is clearly visible inside the frame!",
+        portrait: portrait,
+        position: 'center',
+        highlight: '#gesture-camera',
+        buttons: [{ label: 'Got it', action: 'next' }]
+      },
+      {
+        text: "These are the gesture buttons. You will select a direction before you start recording.",
+        portrait: portrait,
+        position: 'center',
+        highlight: '.gesture-directions',
+        buttons: [{ label: 'Next', action: 'next' }]
+      },
+      {
+        text: "Let's train the UP gesture. Make a clear upward hand signal, then press and hold the Record button until the bar fills.",
+        portrait: portrait,
+        position: 'center',
+        buttons: [{ label: '▶ Start Recording', action: 'next' }]
+      },
+      {
+        hideDialogue: true,
+        onEnter: () => {
+          el.querySelector('#dir-up').click();
+          this._showRecordingHint(el, '▲ UP', 'Hold the Record button with your UP gesture. Try using both hands for better accuracy!');
+        },
+        autoAdvance: {
+          type: 'sampleAdded',
+          check: (counts) => { if (counts.up >= 200) { this._hideRecordingHint(); return true; } return false; }
+        }
+      },
+      {
+        text: "Great! Now do the same for DOWN. Make a downward signal and hold record.",
+        portrait: portrait,
+        position: 'center',
+        buttons: [{ label: '▶ Record DOWN', action: 'next' }]
+      },
+      {
+        hideDialogue: true,
+        onEnter: () => {
+          el.querySelector('#dir-down').click();
+          this._showRecordingHint(el, '▼ DOWN', 'Hold the Record button with your DOWN gesture. Try using both hands for better accuracy!');
+        },
+        autoAdvance: {
+          type: 'sampleAdded',
+          check: (counts) => { if (counts.down >= 200) { this._hideRecordingHint(); return true; } return false; }
+        }
+      },
+      {
+        text: "Now point LEFT.",
+        portrait: portrait,
+        position: 'center',
+        buttons: [{ label: '▶ Record LEFT', action: 'next' }]
+      },
+      {
+        hideDialogue: true,
+        onEnter: () => {
+          el.querySelector('#dir-left').click();
+          this._showRecordingHint(el, '◀ LEFT', 'Hold the Record button with your LEFT gesture. Try using both hands for better accuracy!');
+        },
+        autoAdvance: {
+          type: 'sampleAdded',
+          check: (counts) => { if (counts.left >= 200) { this._hideRecordingHint(); return true; } return false; }
+        }
+      },
+      {
+        text: "And point RIGHT.",
+        portrait: portrait,
+        position: 'center',
+        buttons: [{ label: '▶ Record RIGHT', action: 'next' }]
+      },
+      {
+        hideDialogue: true,
+        onEnter: () => {
+          el.querySelector('#dir-right').click();
+          this._showRecordingHint(el, '▶ RIGHT', 'Hold the Record button with your RIGHT gesture. Try using both hands for better accuracy!');
+        },
+        autoAdvance: {
+          type: 'sampleAdded',
+          check: (counts) => { if (counts.right >= 200) { this._hideRecordingHint(); return true; } return false; }
+        }
+      },
+      {
+        text: "One more — make your REST pose. This is what your hand looks like when you are NOT moving (e.g., an open palm or fist).",
+        portrait: portrait,
+        position: 'center',
+        buttons: [{ label: '▶ Record REST', action: 'next' }]
+      },
+      {
+        hideDialogue: true,
+        onEnter: () => {
+          el.querySelector('#dir-idle').click();
+          this._showRecordingHint(el, '✋ REST', 'Hold the Record button with your REST / idle pose. Try using both hands for better accuracy!');
+        },
+        autoAdvance: {
+          type: 'sampleAdded',
+          check: (counts) => { if (counts.idle >= 200) { this._hideRecordingHint(); return true; } return false; }
+        }
+      },
+      {
+        text: "Perfect! Let's test it. Click 'Test My Gestures', move your hand, and see if the arrows highlight correctly.",
+        highlight: "#btn-test-gestures",
+        portrait: portrait,
+        position: 'center',
+        buttons: [{ label: 'Done Testing', action: 'next' }]
+      },
+      {
+        text: this.fromCharSelect
+          ? "Your gesture model has been saved! Head back and pick your character to start playing."
+          : "You're all set! Your gesture model has been saved. You can come back anytime to retrain. Tap the ? button to replay this tutorial.",
+        portrait: portrait,
+        position: 'center',
+        buttons: [{ label: this.fromCharSelect ? 'Back to Character Select' : 'Done', action: 'next' }]
+      }
+    ];
+
+    this.tutorialManager.start(steps, {
+      onComplete: () => this._completeTutorial(),
+      onSkip: () => this._skipTutorial()
+    });
   },
 
   _showRecordingHint(el, direction, instruction) {

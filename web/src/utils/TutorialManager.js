@@ -54,14 +54,20 @@ export class TutorialManager {
     if (this.onComplete) this.onComplete();
   }
 
-  update(triggerType, data) {
-    if (!this.isActive || this.currentStep >= this.steps.length) return;
-    const step = this.steps[this.currentStep];
-
-    if (step.autoAdvance && step.autoAdvance.type === triggerType) {
-      // If there's a check fn, run it; otherwise matching the type is enough
-      const conditionMet = step.autoAdvance.check ? step.autoAdvance.check(data) : true;
-      if (conditionMet) {
+  /**
+   * Update the tutorial based on external events
+   * @param {string} type - The event type
+   * @param {*} data - Event data
+   */
+  update(type, data) {
+    if (!this.isActive) return;
+    
+    const currentStepData = this.steps[this.currentStep];
+    if (!currentStepData || !currentStepData.autoAdvance) return;
+    
+    if (currentStepData.autoAdvance.type === type) {
+      const shouldAdvance = currentStepData.autoAdvance.check(data);
+      if (shouldAdvance) {
         this.next();
       }
     }
@@ -71,48 +77,58 @@ export class TutorialManager {
     const step = this.steps[this.currentStep];
     if (!step) return;
 
+    // Handle hideDialogue steps (for auto-advance recording)
+    if (step.hideDialogue) {
+      this.dialogue.hide();
+      if (step.onEnter) step.onEnter();
+      return;
+    }
+
+    // Build buttons array
+    const buttons = step.buttons || [{ label: 'Continue', action: 'next', style: 'primary' }];
+    
+    // Ensure buttons have proper actions
+    const processedButtons = buttons.map(btn => ({
+      ...btn,
+      action: btn.action || 'next'
+    }));
+
+    // Show the dialogue with proper configuration
+    this.dialogue.show({
+      text: step.text,
+      portrait: step.portrait,
+      position: step.position || 'center',
+      subtext: step.subtext,
+      buttons: processedButtons
+    }, (action) => {
+      if (action === 'next' || action === 'close') {
+        this.next();
+      } else if (action === 'skip') {
+        this.skip();
+      }
+    });
+
+    // Execute onEnter callback if provided
     if (step.onEnter) {
       step.onEnter();
     }
 
-    const config = {
-      text: step.text,
-      subtext: step.subtext || `Step ${this.currentStep + 1} / ${this.steps.length}`,
-      portrait: step.portrait || '/assets/entity/character-icon/character.png',
-      portraitFrames: step.portraitFrames != null ? step.portraitFrames : 5,
-      position: step.position || 'bottom',
-      highlight: step.highlight,
-      hideDialogue: step.hideDialogue || false,
-      overlay: step.overlay || false,
-      buttons: step.buttons || []
-    };
-
-    const isLastStep = this.currentStep === this.steps.length - 1;
-
-    // If no manual next button: add one
-    // For autoAdvance steps, add it as a subtle fallback so player isn't stuck
-    if (!config.buttons.some(b => b.action === 'next')) {
-      if (!step.autoAdvance) {
-        config.buttons.unshift({ label: 'Next', action: 'next' });
-      } else {
-        // Fallback for autoAdvance in case event never fires (e.g. camera issue)
-        config.buttons.push({ label: 'Skip Step', action: 'next', style: 'subtle' });
-      }
+    // Handle highlight if specified
+    if (step.highlight) {
+      this._handleHighlight(step.highlight);
     }
+  }
 
-    // Last step: replace skip with a done-style label, or omit entirely
-    if (!isLastStep && !config.buttons.some(b => b.action === 'skip')) {
-      config.buttons.push({ label: 'Skip Tutorial', action: 'skip', style: 'subtle' });
-    }
-
-    this.dialogue.show(config, (action) => {
-      if (action === 'next') {
-        this.next();
-      } else if (action === 'skip') {
-        this.skip();
-      } else if (step.onAction) {
-        step.onAction(action, this);
-      }
+  _handleHighlight(selector) {
+    // Remove existing highlights
+    document.querySelectorAll('.tutorial-highlight').forEach(el => {
+      el.classList.remove('tutorial-highlight');
     });
+
+    // Add highlight to target element
+    const target = document.querySelector(selector);
+    if (target) {
+      target.classList.add('tutorial-highlight');
+    }
   }
 }

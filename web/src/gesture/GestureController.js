@@ -166,13 +166,30 @@ class GestureController {
     if (this.classifier) {
       await this.classifier.resetModel();
     }
+    
+    // Clear gesture model from server
+    try {
+      const res = await fetch('/auth/gesture-model', {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      if (!res.ok) {
+        console.error('[GestureController] Failed to clear server gesture model:', res.status);
+      }
+    } catch (err) {
+      console.error('[GestureController] Error clearing server gesture model:', err);
+    }
+    
     state.set('gestureModelTrained', false);
+    state.set('gestureSetupComplete', false);
     state.emit('gesture:sampleAdded', { label: '', counts: {} });
   }
 
   async resetGestureClass(label) {
     if (this.classifier) {
       await this.classifier.resetClass(label);
+      // Sync updated model to server
+      await this.saveModel({ syncToServer: true });
     }
     state.emit('gesture:sampleAdded', { label, counts: this.classifier.getClassExampleCount() });
   }
@@ -200,6 +217,8 @@ class GestureController {
     const data = JSON.parse(text);
     this.classifier.importData(data);
     await this.saveModel();
+    // Also sync imported model to server
+    await this.saveModel({ syncToServer: true });
   }
 }
 

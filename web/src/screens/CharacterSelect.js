@@ -4,6 +4,8 @@
  * Step 2: Choose Your Movement (hand gesture / keyboard)
  */
 import { state } from '../utils/StateManager.js';
+import { DialogueBox } from '../utils/DialogueBox.js';
+import { gestureController } from '../gesture/GestureController.js';
 
 export const CharacterSelect = {
   render() {
@@ -106,14 +108,36 @@ export const CharacterSelect = {
         if (!gender) return;
 
         if (control === 'gesture') {
-          const isTrained = state.get('gestureModelTrained') || state.get('gestureSetupComplete');
-          if (!isTrained) {
-            // Not set up yet — send to gesture training, return here after
-            window.__screenManager.navigate('gesture-training', {
-              fromCharSelect: true,
-              chapterId: this._params.chapterId || 1,
-              isEndless: this._params.isEndless || false,
-              gender
+          // Check actual gesture counts - not just state flags which can be stale
+          const counts = gestureController.getSampleCounts();
+          const hasTrainedGestures = Object.values(counts).some(c => c >= 50);
+          if (!hasTrainedGestures) {
+            // Show popup explaining gestures need to be set up first
+            const dialogue = new DialogueBox('cs-step-2');
+            dialogue.show({
+              text: "Hand Gesture controls require a quick setup! You'll train the game to recognize your hand movements. This takes about 2 minutes.",
+              portrait: '/assets/entity/character-icon/character.png',
+              position: 'center',
+              subtext: 'Setup Required',
+              buttons: [
+                { label: 'Go to Setup', action: 'setup', style: 'primary' },
+                { label: 'Pick Keyboard Instead', action: 'keyboard', style: 'subtle' }
+              ]
+            }, (action) => {
+              dialogue.hide();
+              if (action === 'setup') {
+                // Send to gesture training
+                window.__screenManager.navigate('gesture-training', {
+                  fromCharSelect: true,
+                  chapterId: this._params.chapterId || 1,
+                  isEndless: this._params.isEndless || false,
+                });
+              } else if (action === 'keyboard') {
+                // Switch to keyboard control instead
+                item.classList.remove('active');
+                const keyboardItem = step2.querySelector('[data-control="keyboard"]');
+                if (keyboardItem) keyboardItem.click();
+              }
             });
             return;
           }

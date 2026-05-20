@@ -1039,6 +1039,18 @@ router.post('/reset-password', async (req, res) => {
   }
 });
 
+// DELETE gesture model - clear trained gestures
+router.delete('/gesture-model', authMiddleware, async (req, res) => {
+  try {
+    const db = getDb();
+    await db.run('DELETE FROM user_gesture_models WHERE user_id = ?', [req.user.id]);
+    return res.status(200).json({ success: true, message: 'Gesture model cleared.' });
+  } catch (err) {
+    console.error('Clear gesture model error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // MFA SETUP - Send verification code to user's email
 router.post('/mfa/setup', authMiddleware, async (req, res) => {
   try {
