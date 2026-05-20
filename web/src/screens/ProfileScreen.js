@@ -317,7 +317,7 @@ export const ProfileScreen = {
 
     const pGames = el.querySelector('#profile-games');
     if (pGames && !isGuest) {
-      fetch('/profile/endless-runs', { credentials: 'include' })
+      fetch('/auth/profile/endless-runs', { credentials: 'include' })
         .then(r => r.ok ? r.json() : null)
         .then(d => { if (d && pGames) pGames.textContent = d.count.toLocaleString(); })
         .catch(() => { if (pGames) pGames.textContent = '—'; });

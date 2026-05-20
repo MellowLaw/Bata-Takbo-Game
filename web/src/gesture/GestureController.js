@@ -167,14 +167,17 @@ class GestureController {
       await this.classifier.resetModel();
     }
     
-    // Clear gesture model from server
+    // Clear gesture model from server (only for logged-in users)
     try {
-      const res = await fetch('/auth/gesture-model', {
-        method: 'DELETE',
-        credentials: 'include'
-      });
-      if (!res.ok) {
-        console.error('[GestureController] Failed to clear server gesture model:', res.status);
+      const session = localStorage.getItem('session');
+      if (session) {
+        const res = await fetch('/auth/gesture-model', {
+          method: 'DELETE',
+          credentials: 'include'
+        });
+        if (!res.ok && res.status !== 401) {
+          console.error('[GestureController] Failed to clear server gesture model:', res.status);
+        }
       }
     } catch (err) {
       console.error('[GestureController] Error clearing server gesture model:', err);
