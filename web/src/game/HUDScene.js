@@ -25,26 +25,41 @@ export class HUDScene extends Phaser.Scene {
       return;
     }
 
-    // ========== REGULAR GAME: Full layout with left panel ==========
-    const leftWidth = Math.max(width < 768 ? 160 : 250, Math.min(450, width * 0.28));
+    // ========== REGULAR GAME: Full layout with side panel ==========
+    const settings = state.get('settings');
+    this.panelPosition = settings?.display?.panelPosition || 'left';
+    this.isPanelRight = this.panelPosition === 'right';
 
-    // ========== LEFT PANEL BACKGROUND ==========
-    // Use image background instead of solid color
-    this.leftPanelBg = this.add.image(0, 0, 'left_panel_bg');
-    this.leftPanelBg.setOrigin(0, 0);
-    this.leftPanelBg.setDisplaySize(leftWidth, height);
-    this.leftPanelBg.setDepth(0);
+    const panelWidth = Math.max(width < 768 ? 160 : 250, Math.min(450, width * 0.28));
+    this.panelWidth = panelWidth;
+
+    // Calculate positions based on panel side
+    const panelX = this.isPanelRight ? width - panelWidth : 0;
+    const panelEdgeX = this.isPanelRight ? width - panelWidth : panelWidth;
+    const gameAreaX = this.isPanelRight ? 0 : panelWidth;
+
+    // ========== SIDE PANEL BACKGROUND ==========
+    this.panelBg = this.add.image(panelX, 0, 'left_panel_bg');
+    this.panelBg.setOrigin(0, 0);
+    this.panelBg.setDisplaySize(panelWidth, height);
+    this.panelBg.setDepth(0);
 
     // Panel divider line (keep for visual separation)
-    this.panelBg = this.add.graphics();
-    this.panelBg.lineStyle(4, 0x201c11, 1);
-    this.panelBg.beginPath();
-    this.panelBg.moveTo(leftWidth, 0);
-    this.panelBg.lineTo(leftWidth, height);
-    this.panelBg.strokePath();
+    this.panelDivider = this.add.graphics();
+    this.panelDivider.lineStyle(4, 0x201c11, 1);
+    this.panelDivider.beginPath();
+    this.panelDivider.moveTo(panelEdgeX, 0);
+    this.panelDivider.lineTo(panelEdgeX, height);
+    this.panelDivider.strokePath();
+
+    // Panel position indicator (small label at bottom corner)
+    const positionLabelX = this.isPanelRight ? width - 8 : 8;
+    this.panelPositionLabel = this.add.text(positionLabelX, height - 20, `PANEL: ${this.panelPosition.toUpperCase()}`, {
+      fontFamily: 'VCR', fontSize: '10px', color: '#666'
+    }).setOrigin(this.isPanelRight ? 1 : 0, 0.5).setDepth(1);
 
     // ========== TOP BAR (moved to top of Grid panel) ==========
-    const topBarX = leftWidth + 40;
+    const topBarX = gameAreaX + 40;
     const topBarY = 28;
 
     // Scale top-bar text based on available width
@@ -56,10 +71,10 @@ export class HUDScene extends Phaser.Scene {
     const heartSpacing = isSmall ? 24 : 36;
 
     // In INF mode squeeze 4 columns into the top bar; in normal mode keep 2
-    const rightPanelW = width - leftWidth;
+    const gameAreaW = width - panelWidth;
     // Hearts occupy ~(heartSpacing*3 + margin) on the right
     const heartsW = heartSpacing * 3 + (isSmall ? 20 : 60);
-    const usableW = rightPanelW - heartsW - (isSmall ? 80 : 120); // space after topBarX offset
+    const usableW = gameAreaW - heartsW - (isSmall ? 80 : 120); // space after topBarX offset
     const cols = this.isInfMode ? 4 : 2;
     const colStep = Math.floor(usableW / cols);
     const timeOffsetX  = isSmall ? 60 : 80;
@@ -100,9 +115,9 @@ export class HUDScene extends Phaser.Scene {
       }).setDepth(20);
     }
 
-    // Hearts (top right of grid side)
+    // Hearts (top-right of game area, consistent regardless of panel position)
     this.hearts = [];
-    const heartStartX = leftWidth + rightPanelW - (isSmall ? 20 : 60) - (2 * heartSpacing);
+    const heartStartX = gameAreaX + gameAreaW - (isSmall ? 20 : 60) - (2 * heartSpacing);
     for (let i = 0; i < 3; i++) {
       const heart = this.add.sprite(heartStartX + (i * heartSpacing), topBarY + 6, 'ui_buttons', 147);
       heart.setScale(heartScale).setOrigin(0.5, 0.5).setDepth(20);
@@ -111,15 +126,19 @@ export class HUDScene extends Phaser.Scene {
 
     // ========== BOSS DISPLAY BOX ==========
     const boxPadX = 24;
-    const bossBoxW = leftWidth - boxPadX * 2;
+    const bossBoxW = panelWidth - boxPadX * 2;
+    // When panel is on right, we need to adjust the X position
+    const bossBoxBaseX = this.isPanelRight ? panelX + boxPadX : boxPadX;
 
     // Chapter Title and description headers
     let bossName = `CHAPTER ${this.chapterId}`;
     let bossTitle = "";
 
     if (this.isInfMode) {
-      bossName = "\u221e";
-      bossTitle = "ENDLESS MODE";
+      // Endless mode: show chapter-specific endless title
+      const chapterBossName = this.chapterId === 1 ? 'MANANANGGAL' : this.chapterId === 2 ? 'BUNGISNGIS' : 'KATAW';
+      bossName = `CHAPTER ${this.chapterId}`;
+      bossTitle = `${chapterBossName} ENDLESS MODE`;
     } else if (this.chapterId == 1) {
       bossName = "SI IMELDA";
       bossTitle = "ANG UNANG MANANANGGAL";
@@ -149,25 +168,26 @@ export class HUDScene extends Phaser.Scene {
     const bossBoxRatio = height < 500 ? 0.28 : height < 650 ? 0.32 : 0.38;
     const bossBoxH = Math.floor(remainingHeight * bossBoxRatio);
 
-    // Border only (background is now the left panel image)
-    this.panelBg.lineStyle(3, 0x100c04, 1);
-    this.panelBg.strokeRect(boxPadX, bossBoxY, bossBoxW, bossBoxH);
+    // Border only (background is now the panel image)
+    const bossBoxBorder = this.add.graphics();
+    bossBoxBorder.lineStyle(3, 0x100c04, 1);
+    bossBoxBorder.strokeRect(bossBoxBaseX, bossBoxY, bossBoxW, bossBoxH);
 
     // Main Title (Giga Saturn) - CENTERED
-    this.add.text(boxPadX + bossBoxW / 2, bossNameY, bossName, {
+    this.add.text(bossBoxBaseX + bossBoxW / 2, bossNameY, bossName, {
       fontFamily: 'GigaSaturn', fontSize: bossNameSize, color: '#ffd700', align: 'center',
       wordWrap: { width: bossBoxW, useAdvancedWrap: true }
     }).setOrigin(0.5, 0);
 
     // Subtitle - CENTERED
-    this.add.text(boxPadX + bossBoxW / 2, bossTitleY, bossTitle, {
+    this.add.text(bossBoxBaseX + bossBoxW / 2, bossTitleY, bossTitle, {
       fontFamily: 'VCR', fontSize: bossTitleSize, color: '#f0e6d3', align: 'center',
       wordWrap: { width: bossBoxW, useAdvancedWrap: true }
     }).setOrigin(0.5, 0);
 
     // *** BOSS ANIMATED SPRITE — rendered HERE in HUDScene so it's visible ***
     // The boss_idle and boss_ult_attack spritesheets were loaded by GameScene.
-    const bossCenterX = boxPadX + bossBoxW / 2;
+    const bossCenterX = bossBoxBaseX + bossBoxW / 2;
     const bossCenterY = bossBoxY + bossBoxH / 2;
 
     // Chapter checks
@@ -245,6 +265,7 @@ export class HUDScene extends Phaser.Scene {
     this.bossSprite.setOrigin(0.5, 0.5);
 
     const updateBossScale = () => {
+      if (!this.bossSprite || !this.bossSprite.setScale) return;
       const w = this.bossSprite.width || 122;
       const h = this.bossSprite.height || 110;
       const fitScale = Math.min((bossBoxW - 10) / w, (bossBoxH - 10) / h);
@@ -253,36 +274,39 @@ export class HUDScene extends Phaser.Scene {
 
     updateBossScale();
 
-    // Revert to idle after attacking (ch2+)
-    this.bossSprite.on('animationcomplete-anim_boss_attack', () => {
-      if (hasBossTexture && this.bossSprite.setTexture) this.bossSprite.setTexture('boss_idle');
-      updateBossScale();
-      if (hasBossTexture && this.anims.exists('anim_boss_idle')) this.bossSprite.play('anim_boss_idle');
-    });
+    // Only register animation events if bossSprite supports them (not a placeholder)
+    if (hasBossTexture && this.bossSprite.on) {
+      // Revert to idle after attacking (ch2+)
+      this.bossSprite.on('animationcomplete-anim_boss_attack', () => {
+        if (hasBossTexture && this.bossSprite.setTexture) this.bossSprite.setTexture('boss_idle');
+        updateBossScale();
+        if (hasBossTexture && this.anims.exists('anim_boss_idle') && this.bossSprite.play) this.bossSprite.play('anim_boss_idle');
+      });
 
-    // Revert to idle after ult attack (ch1)
-    this.bossSprite.on('animationcomplete-anim_boss_ult_attack', () => {
-      if (hasBossTexture && this.bossSprite.setTexture) this.bossSprite.setTexture('boss_idle');
-      updateBossScale();
-      if (hasBossTexture && this.anims.exists('anim_boss_idle')) this.bossSprite.play('anim_boss_idle');
-    });
+      // Revert to idle after ult attack (ch1)
+      this.bossSprite.on('animationcomplete-anim_boss_ult_attack', () => {
+        if (hasBossTexture && this.bossSprite.setTexture) this.bossSprite.setTexture('boss_idle');
+        updateBossScale();
+        if (hasBossTexture && this.anims.exists('anim_boss_idle') && this.bossSprite.play) this.bossSprite.play('anim_boss_idle');
+      });
 
-    // Revert to idle after ult attack (ch2)
-    this.bossSprite.on('animationcomplete-anim_boss_ch2_ult_attack', () => {
-      if (hasBossTexture && this.bossSprite.setTexture) this.bossSprite.setTexture('boss_idle');
-      updateBossScale();
-      if (hasBossTexture && this.anims.exists('anim_boss_idle')) this.bossSprite.play('anim_boss_idle');
-    });
+      // Revert to idle after ult attack (ch2)
+      this.bossSprite.on('animationcomplete-anim_boss_ch2_ult_attack', () => {
+        if (hasBossTexture && this.bossSprite.setTexture) this.bossSprite.setTexture('boss_idle');
+        updateBossScale();
+        if (hasBossTexture && this.anims.exists('anim_boss_idle') && this.bossSprite.play) this.bossSprite.play('anim_boss_idle');
+      });
 
-    // Revert to idle after ult attack (ch3)
-    this.bossSprite.on('animationcomplete-anim_boss_ch3_ult_attack', () => {
-      if (hasBossTexture && this.bossSprite.setTexture) this.bossSprite.setTexture('boss_idle');
-      updateBossScale();
-      if (hasBossTexture && this.anims.exists('anim_boss_idle')) this.bossSprite.play('anim_boss_idle');
-    });
+      // Revert to idle after ult attack (ch3)
+      this.bossSprite.on('animationcomplete-anim_boss_ch3_ult_attack', () => {
+        if (hasBossTexture && this.bossSprite.setTexture) this.bossSprite.setTexture('boss_idle');
+        updateBossScale();
+        if (hasBossTexture && this.anims.exists('anim_boss_idle') && this.bossSprite.play) this.bossSprite.play('anim_boss_idle');
+      });
+    }
 
-    // Play animation only if it exists
-    if (hasBossTexture && this.anims.exists('anim_boss_idle')) {
+    // Play animation only if it exists and sprite supports it
+    if (hasBossTexture && this.anims.exists('anim_boss_idle') && this.bossSprite.play) {
       this.bossSprite.play('anim_boss_idle');
     }
 
@@ -467,18 +491,22 @@ export class HUDScene extends Phaser.Scene {
     }
 
     // Boss Frame Overlay
-    this.bossFrameOverlay = this.add.image(boxPadX + bossBoxW / 2, bossBoxY + bossBoxH / 2, 'boss_frame');
+    this.bossFrameOverlay = this.add.image(bossBoxBaseX + bossBoxW / 2, bossBoxY + bossBoxH / 2, 'boss_frame');
     this.bossFrameOverlay.setOrigin(0.5, 0.5);
     this.bossFrameOverlay.setDisplaySize(bossBoxW, bossBoxH);
     this.bossFrameOverlay.setDepth(15);
     this.playBossAttack = () => {
       if (this.chapterId === 1 || this.chapterId === 2 || this.chapterId === 3) return;
+      if (!this.bossSprite || !this.bossSprite.play) return;
       if (hasBossTexture && this.textures.exists('boss_cast')) this.bossSprite.setTexture('boss_cast');
       if (updateBossScale) updateBossScale();
       if (this.anims.exists('anim_boss_attack')) this.bossSprite.play('anim_boss_attack');
     };
 
     this.playBossUltAttack = () => {
+      // Guard: skip if bossSprite is a placeholder (no animation support)
+      if (!this.bossSprite || !this.bossSprite.play) return;
+
       if (this.chapterId === 1) {
         if (hasBossTexture && this.textures.exists('boss_ult_attack')) this.bossSprite.setTexture('boss_ult_attack');
         updateBossScale();
@@ -501,7 +529,11 @@ export class HUDScene extends Phaser.Scene {
     const HP_BAR_FRAMES = 50;
     const hpBarScaleY = 2.2;
     const hpBarScaleX = Math.min(3, (bossBoxW - 8) / 64);
-    this.hpBarSprite = this.add.sprite(boxPadX, hpBarY + 8, 'boss_hp_bar', 0);
+    // In endless mode, center the HP bar; otherwise left-align it
+    const hpBarX = (this.chapterId === 4 || this.isInfMode)
+      ? bossBoxBaseX + bossBoxW / 2 - (64 * hpBarScaleX) / 2  // centered
+      : bossBoxBaseX;  // left-aligned
+    this.hpBarSprite = this.add.sprite(hpBarX, hpBarY + 8, 'boss_hp_bar', 0);
     this.hpBarSprite.setOrigin(0, 0.5);
     this.hpBarSprite.setScale(hpBarScaleX, hpBarScaleY);
     this.hpBarSprite.setDepth(10);
@@ -513,13 +545,11 @@ export class HUDScene extends Phaser.Scene {
     const hpTextSize = bossBoxW < 200 ? '11px' : '13px';
     
     if (this.chapterId === 4 || this.isInfMode) {
-      // Do not hide the health bar in INF mode, just show infinity symbol beside it
-      this.bossHpText = this.add.text(boxPadX + (64 * hpBarScaleX) + 8, hpBarY + 8, '∞', {
-        fontFamily: 'VCR', fontSize: '18px', color: '#f0e6d3', align: 'left'
-      }).setOrigin(0, 0.5).setDepth(11);
+      // In endless mode, hide the HP text completely (boss is immortal)
+      this.bossHpText = null;
     } else {
       // Initial placeholder text — actual HP will update from boss data (in thousands format)
-      this.bossHpText = this.add.text(boxPadX + (64 * hpBarScaleX) + 8, hpBarY + 8, '5,000/5,000', {
+      this.bossHpText = this.add.text(bossBoxBaseX + (64 * hpBarScaleX) + 8, hpBarY + 8, '5,000/5,000', {
         fontFamily: 'VCR', fontSize: hpTextSize, color: '#f0e6d3', align: 'left'
       }).setOrigin(0, 0.5).setDepth(11);
     }
@@ -536,17 +566,17 @@ export class HUDScene extends Phaser.Scene {
       // ── D-PAD (on-screen arrow buttons) ──────────────────────────────────
       const dpadW = bossBoxW - 8;
       const dpadH = Math.min(Math.floor(dpadW * 2 / 3), availCamH);
-      const dpadX = boxPadX + 4;
+      const dpadX = bossBoxBaseX + 4;
       const dpadY = camStartY + Math.floor((availCamH - dpadH) / 2);
       this._buildDpad(dpadX, dpadY, dpadW, dpadH);
     } else {
       // ── CAMERA PiP (gesture mode) ────────────────────────────────
-      // Background is now the left panel image
+      // Background is now the side panel image
 
       // Position the live camera PiP to fill the reserved camera box area
       const pip = document.getElementById('game-camera-pip');
       if (pip) {
-        pip.style.left = `${boxPadX + 2}px`;
+        pip.style.left = `${bossBoxBaseX + 2}px`;
         pip.style.top = `${camBoxY + 2}px`;
         pip.style.width = `${bossBoxW - 4}px`;
         pip.style.height = `${camBoxH - 4}px`;
@@ -600,12 +630,12 @@ export class HUDScene extends Phaser.Scene {
       gameScene.events.on('player:health_changed', (hp) => this.updateLives(hp));
     }
 
-    // ========== BLOOD SCREEN OVERLAY (right panel / grid area) ==========
+    // ========== BLOOD SCREEN OVERLAY (game area) ==========
     // Semi-transparent so grid/projectiles/player remain visible beneath it.
     // Depth 5 keeps it above the grid background but below all HUD controls (depth 20).
-    this.bloodOverlay = this.add.image(leftWidth, 0, 'blood_screen_2left');
+    this.bloodOverlay = this.add.image(gameAreaX, 0, 'blood_screen_2left');
     this.bloodOverlay.setOrigin(0, 0);
-    this.bloodOverlay.setDisplaySize(width - leftWidth, height);
+    this.bloodOverlay.setDisplaySize(width - panelWidth, height);
     this.bloodOverlay.setDepth(5);
     this.bloodOverlay.setAlpha(0); // hidden until needed
 
@@ -614,8 +644,12 @@ export class HUDScene extends Phaser.Scene {
     this._repositionDomOverlays = (gameSize) => {
       const w = gameSize ? gameSize.width  : this.scale.width;
       const h = gameSize ? gameSize.height : this.scale.height;
-      const lw  = Math.max(w < 768 ? 160 : 250, Math.min(450, w * 0.28));
-      const bbW = lw - 24 * 2;
+      const pw  = Math.max(w < 768 ? 160 : 250, Math.min(450, w * 0.28));
+      const isPanelRight = this.isPanelRight;
+      const panelX = isPanelRight ? w - pw : 0;
+      const gameAreaX = isPanelRight ? 0 : pw;
+      const bbW = pw - 24 * 2;
+      const bbBaseX = isPanelRight ? panelX + 24 : 24;
 
       // Mirror the same dynamic layout as create()
       const bossNamePx  = bbW < 160 ? 14 : bbW < 200 ? 18 : bbW < 250 ? 22 : 28;
@@ -634,28 +668,51 @@ export class HUDScene extends Phaser.Scene {
       const camBoxH    = Math.min(targetCamH, availCamH);
       const camBoxY    = camStartY + Math.floor((availCamH - camBoxH) / 2);
 
-      // Resize left panel background
-      if (this.leftPanelBg) {
-        this.leftPanelBg.setDisplaySize(lw, h);
+      // Resize panel background
+      if (this.panelBg) {
+        this.panelBg.setPosition(panelX, 0);
+        this.panelBg.setDisplaySize(pw, h);
+      }
+
+      // Resize panel divider
+      if (this.panelDivider) {
+        const panelEdgeX = isPanelRight ? w - pw : pw;
+        this.panelDivider.clear();
+        this.panelDivider.lineStyle(4, 0x201c11, 1);
+        this.panelDivider.beginPath();
+        this.panelDivider.moveTo(panelEdgeX, 0);
+        this.panelDivider.lineTo(panelEdgeX, h);
+        this.panelDivider.strokePath();
+      }
+
+      // Reposition panel position label
+      if (this.panelPositionLabel) {
+        const newLabelX = isPanelRight ? w - 8 : 8;
+        this.panelPositionLabel.setPosition(newLabelX, h - 20);
+        this.panelPositionLabel.setOrigin(isPanelRight ? 1 : 0, 0.5);
       }
 
       // Resize blood overlay
       if (this.bloodOverlay) {
-        this.bloodOverlay.setPosition(lw, 0);
-        this.bloodOverlay.setDisplaySize(w - lw, h);
+        this.bloodOverlay.setPosition(gameAreaX, 0);
+        this.bloodOverlay.setDisplaySize(w - pw, h);
       }
 
-      // Reposition hpBarSprite
+      // Reposition hpBarSprite (centered in endless mode, left-aligned otherwise)
       const hpBarScaleX = Math.min(3, (bbW - 8) / 64);
       if (this.hpBarSprite) {
-        this.hpBarSprite.setPosition(24, hpBarY + 8);
+        const isEndless = this.chapterId === 4 || this.isInfMode;
+        const hpBarX = isEndless
+          ? bbBaseX + bbW / 2 - (64 * hpBarScaleX) / 2  // centered
+          : bbBaseX;  // left-aligned
+        this.hpBarSprite.setPosition(hpBarX, hpBarY + 8);
         this.hpBarSprite.setScale(hpBarScaleX, 2.2);
       }
 
       // Reposition boss HP text directly next to health bar
       if (this.bossHpText) {
         const hpTextSize = bbW < 200 ? '11px' : '13px';
-        this.bossHpText.setPosition(24 + (64 * hpBarScaleX) + 8, hpBarY + 8);
+        this.bossHpText.setPosition(bbBaseX + (64 * hpBarScaleX) + 8, hpBarY + 8);
         this.bossHpText.setFontSize(hpTextSize);
       }
 
@@ -664,7 +721,7 @@ export class HUDScene extends Phaser.Scene {
         if (dpad) {
           const dpadW = bbW - 8;
           const dpadH = Math.min(Math.floor(dpadW * 2 / 3), availCamH);
-          const dpadX = 24 + Math.floor((bbW - dpadW) / 2);
+          const dpadX = bbBaseX + Math.floor((bbW - dpadW) / 2);
           const dpadY = camStartY + Math.floor((availCamH - dpadH) / 2);
           dpad.style.left   = `${dpadX}px`;
           dpad.style.top    = `${dpadY}px`;
@@ -674,7 +731,7 @@ export class HUDScene extends Phaser.Scene {
       } else {
         const pip = document.getElementById('game-camera-pip');
         if (pip) {
-          pip.style.left   = `${26}px`;
+          pip.style.left   = `${bbBaseX + 2}px`;
           pip.style.top    = `${camBoxY + 2}px`;
           pip.style.width  = `${bbW - 4}px`;
           pip.style.height = `${camBoxH - 4}px`;
@@ -762,11 +819,11 @@ export class HUDScene extends Phaser.Scene {
   }
 
   playBossAttack() {
-    if (!this.bossSprite) return;
+    if (!this.bossSprite || !this.bossSprite.play) return;
     if (this.chapterId === 1 || this.chapterId === 2 || this.chapterId === 3 || this.isInfMode) return;
     this.bossSprite.play('anim_boss_attack');
     this.bossSprite.once('animationcomplete', () => {
-      this.bossSprite.play('anim_boss_idle');
+      if (this.bossSprite && this.bossSprite.play) this.bossSprite.play('anim_boss_idle');
     });
   }
 
@@ -947,14 +1004,10 @@ export class HUDScene extends Phaser.Scene {
     }
 
     if (this.bossHpText) {
-      if (this.chapterId === 4 || this.isInfMode || max === Infinity || !isFinite(max)) {
-        this.bossHpText.setText('∞');
-      } else {
-        // Show boss HP in thousands format (5 HP = 5000)
-        const currentHp = Math.ceil(current) * 1000;
-        const maxHp = Math.ceil(max) * 1000;
-        this.bossHpText.setText(`${currentHp.toLocaleString()}/${maxHp.toLocaleString()}`);
-      }
+      // Show boss HP in thousands format (5 HP = 5000)
+      const currentHp = Math.ceil(current) * 1000;
+      const maxHp = Math.ceil(max) * 1000;
+      this.bossHpText.setText(`${currentHp.toLocaleString()}/${maxHp.toLocaleString()}`);
     }
   }
 

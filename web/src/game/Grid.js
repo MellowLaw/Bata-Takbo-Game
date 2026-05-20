@@ -6,12 +6,15 @@ export class Grid {
    * @param {Phaser.Scene} scene
    * @param {number} cols 
    * @param {number} rows 
+   * @param {boolean} useFullScreen
+   * @param {boolean} isPanelRight - Whether the side panel is on the right (default false = left)
    */
-  constructor(scene, cols = 7, rows = 9, useFullScreen = false) {
+  constructor(scene, cols = 7, rows = 9, useFullScreen = false, isPanelRight = false) {
     this.scene = scene;
     this.cols = cols;
     this.rows = rows;
     this.useFullScreen = useFullScreen;
+    this.isPanelRight = isPanelRight;
     
     // Will hold graphic backgrounds or tile sprites
     this.cells = [];
@@ -57,30 +60,32 @@ export class Grid {
       return;
     }
     
-    // For regular game, use right panel layout (with left panel for boss/camera)
-    const leftWidth = Math.max(width < 768 ? 160 : 250, Math.min(450, width * 0.28));
-    const rightWidth = width - leftWidth;
-    const rightHeight = height;
+    // For regular game, use game area layout (with side panel for boss/camera)
+    const panelWidth = Math.max(width < 768 ? 160 : 250, Math.min(450, width * 0.28));
+    const gameAreaW = width - panelWidth;
+    const gameAreaH = height;
+    const panelX = this.isPanelRight ? width - panelWidth : 0;
+    const gameAreaX = this.isPanelRight ? 0 : panelWidth;
 
     this.panelRect = {
-      x: leftWidth,
+      x: gameAreaX,
       y: 0,
-      w: rightWidth,
-      h: rightHeight
+      w: gameAreaW,
+      h: gameAreaH
     };
 
-    // Calculate maximum STRICTLY SQUARE tileSize to fit within the right panel with significant padding
-    const paddingX = rightWidth * 0.12; 
-    const paddingY = rightHeight * 0.12;
-    const availableWidth = rightWidth - paddingX * 2;
-    const availableHeight = rightHeight - paddingY * 2;
+    // Calculate maximum STRICTLY SQUARE tileSize to fit within the game area with significant padding
+    const paddingX = gameAreaW * 0.12;
+    const paddingY = gameAreaH * 0.12;
+    const availableWidth = gameAreaW - paddingX * 2;
+    const availableHeight = gameAreaH - paddingY * 2;
 
     const rawWidth = availableWidth / this.cols;
     const rawHeight = availableHeight / this.rows;
-    
+
     // STRICT SQUARE preserves projectile/highlight integrity
     this.tileSize = Math.floor(Math.min(rawWidth, rawHeight));
-    
+
     // The exact size of the grid itself inside the panel
     const gridWidth = this.tileSize * this.cols;
     const gridHeight = this.tileSize * this.rows;
@@ -89,9 +94,9 @@ export class Grid {
     this.boardWidth = gridWidth;
     this.boardHeight = gridHeight;
 
-    // Perfectly center the grid INSIDE the right panel avoiding any bleed.
-    this.offsetX = leftWidth + Math.floor((rightWidth - gridWidth) / 2);
-    this.offsetY = Math.floor((rightHeight - gridHeight) / 2);
+    // Perfectly center the grid INSIDE the game area avoiding any bleed.
+    this.offsetX = gameAreaX + Math.floor((gameAreaW - gridWidth) / 2);
+    this.offsetY = Math.floor((gameAreaH - gridHeight) / 2);
   }
 
   drawBackground() {

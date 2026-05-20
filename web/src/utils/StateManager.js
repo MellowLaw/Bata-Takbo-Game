@@ -111,6 +111,7 @@ class StateManager {
         screenShake: true,
         particles: true,
         showFps: false,
+        panelPosition: 'left',
       },
     };
 

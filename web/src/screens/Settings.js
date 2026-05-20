@@ -196,6 +196,21 @@ export const Settings = {
                   </div>
                 </div>
 
+                <div class="setting-row" style="color:#111; flex-direction: column; align-items: stretch; gap: var(--space-sm);">
+                  <div>
+                    <h3 style="color:#111; font-family:'VCR',monospace; font-size:var(--text-sm); text-transform:uppercase; letter-spacing:1px;">Panel Position</h3>
+                    <p style="font-family:'VCR',monospace; font-size:11px; margin-top:4px; color:#444;">Position of the boss info panel during gameplay</p>
+                  </div>
+                  <div style="display:flex; gap: var(--space-sm);">
+                    <button class="settings-quality-btn ${(s.display.panelPosition || 'left') === 'left' ? 'active' : ''}" data-panel-position="left" style="flex:1; ${(s.display.panelPosition || 'left') === 'left' ? 'border: 3px solid #ff6b1a; box-shadow: 0 0 12px rgba(255,107,26,0.4);' : ''}">
+                      ${(s.display.panelPosition || 'left') === 'left' ? '✓ ' : ''}LEFT
+                    </button>
+                    <button class="settings-quality-btn ${(s.display.panelPosition || 'left') === 'right' ? 'active' : ''}" data-panel-position="right" style="flex:1; ${(s.display.panelPosition || 'left') === 'right' ? 'border: 3px solid #ff6b1a; box-shadow: 0 0 12px rgba(255,107,26,0.4);' : ''}">
+                      ${(s.display.panelPosition || 'left') === 'right' ? '✓ ' : ''}RIGHT
+                    </button>
+                  </div>
+                </div>
+
               </div>
             </div>
 
@@ -263,11 +278,20 @@ export const Settings = {
     });
 
     // Camera Quality buttons
-    el.querySelectorAll('.settings-quality-btn').forEach(btn => {
+    el.querySelectorAll('[data-quality]').forEach(btn => {
       btn.addEventListener('click', () => {
-        el.querySelectorAll('.settings-quality-btn').forEach(b => b.classList.remove('active'));
+        el.querySelectorAll('[data-quality]').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         this._updateSetting('camera.quality', btn.dataset.quality);
+      });
+    });
+
+    // Panel Position buttons
+    el.querySelectorAll('[data-panel-position]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        el.querySelectorAll('[data-panel-position]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        this._updateSetting('display.panelPosition', btn.dataset.panelPosition);
       });
     });
 

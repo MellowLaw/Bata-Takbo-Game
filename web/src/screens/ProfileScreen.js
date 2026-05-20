@@ -13,6 +13,7 @@ export const ProfileScreen = {
             </button>
             <button class="profile-tab-btn active" data-target="panel-stats">ID CARD / STATS</button>
             <button class="profile-tab-btn" data-target="panel-account" id="tab-btn-account">ACCOUNT SETTINGS</button>
+            <button class="profile-tab-btn" data-target="panel-settings" id="tab-btn-settings">GAME SETTINGS</button>
             <button class="profile-tab-btn" data-target="panel-danger" id="tab-btn-danger">THE VOID</button>
             <button class="profile-tab-btn" id="btn-admin-panel" style="display: none; color: #e74c3c;">ADMIN PANEL</button>
             <button class="profile-tab-btn" data-target="panel-logout" id="tab-btn-logout" style="margin-top: auto; color: #e74c3c; border-left: 3px solid #e74c3c; padding-left: calc(var(--space-md) - 1px);">LOGOUT</button>
@@ -127,6 +128,18 @@ export const ProfileScreen = {
                 <p style="font-family:'VCR',sans-serif;font-size:12px;margin-top:4px;">Short description about you (max 150 chars)</p>
               </div>
               <button id="btn-modal-bio" style="padding: var(--space-sm) var(--space-md); font-family:'VCR',sans-serif; font-size: var(--text-sm);">CHANGE</button>
+            </div>
+          </div>
+
+          <!-- GAME SETTINGS PANEL -->
+          <div id="panel-settings" class="profile-panel">
+            <h2 style="font-family:var(--font-display); color:#111; margin-bottom:var(--space-md); border-bottom:3px solid #111; padding-bottom:8px;">Game Settings</h2>
+            
+            <div class="profile-card" style="flex-direction: column; align-items: stretch; gap: var(--space-md);">
+              <p style="font-family:'VCR',sans-serif; font-size: var(--text-sm); color:#555; margin-bottom: var(--space-sm);">Configure your gameplay experience</p>
+              <button id="btn-profile-settings" style="padding: var(--space-sm) var(--space-md); font-family:'VCR',sans-serif; font-size: var(--text-sm); background: #111; color: #e4cfc0; border: 2px solid #111; cursor: pointer; letter-spacing: 2px; text-transform: uppercase;">
+                OPEN GAME SETTINGS
+              </button>
             </div>
           </div>
 
@@ -361,6 +374,14 @@ export const ProfileScreen = {
     const confirmLogoutBtn = el.querySelector('#btn-confirm-logout');
     if (confirmLogoutBtn) {
       confirmLogoutBtn.addEventListener('click', () => this._showLogoutModal());
+    }
+
+    // Game Settings button - navigate to settings screen
+    const btnGameSettings = el.querySelector('#btn-profile-settings');
+    if (btnGameSettings) {
+      btnGameSettings.addEventListener('click', () => {
+        window.__screenManager.navigate('settings');
+      });
     }
   },
 

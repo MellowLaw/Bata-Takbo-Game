@@ -368,7 +368,12 @@ export class GameScene extends Phaser.Scene {
       gridRows = 9;
     }
 
-    this.grid = new Grid(this, gridCols, gridRows, this.isPracticeTutorial);
+    // Get panel position from settings
+    const settings = state.get('settings');
+    this.panelPosition = settings?.display?.panelPosition || 'left';
+    this.isPanelRight = this.panelPosition === 'right';
+
+    this.grid = new Grid(this, gridCols, gridRows, this.isPracticeTutorial, this.isPanelRight);
 
     // 2. Initialize Player on the grid
     this.player = new Player(this, this.grid);
@@ -1180,7 +1185,8 @@ export class GameScene extends Phaser.Scene {
     audioManager.play('ch1_ultimate', { volume: 0.9 });
 
     const { width, height } = this.scale;
-    const leftWidth = Math.max(width < 768 ? 160 : 250, Math.min(450, width * 0.28));
+    const panelWidth = Math.max(width < 768 ? 160 : 250, Math.min(450, width * 0.28));
+    const panelX = this.isPanelRight ? width - panelWidth : 0;
 
     // Pick a random target tile (slightly away from grid edges for drama)
     const tC = Phaser.Math.Between(1, this.grid.cols - 2);
@@ -1193,6 +1199,14 @@ export class GameScene extends Phaser.Scene {
 
     // "REVENGE!" warning text (smaller)
     this.cameras.main.shake(500, 0.015);
+
+    // Throw vortex from the villain sprite position in the side panel.
+    // Boss sprite center in HUDScene: bossCenterX = panelX + panelWidth/2, bossCenterY = 155 + bossBoxH/2
+    // bossBoxH = (height - 155) * 0.38
+    const bossBoxH = Math.floor((height - 155) * 0.38);
+    const throwFromX = panelX + panelWidth / 2;
+    const throwFromY = 155 + bossBoxH / 2;
+
     const revengeText = this.add.text(targetPos.x, targetPos.y - 55, 'REVENGE!', {
       fontFamily: 'GigaSaturn', fontSize: '20px', color: '#ff0000',
       stroke: '#000', strokeThickness: 5
@@ -1202,12 +1216,6 @@ export class GameScene extends Phaser.Scene {
       onComplete: () => revengeText.destroy()
     });
 
-    // Throw vortex from the villain sprite position in the left panel.
-    // Boss sprite center in HUDScene: bossCenterX = leftWidth/2, bossCenterY = 155 + bossBoxH/2
-    // bossBoxH = (height - 155) * 0.38
-    const bossBoxH = Math.floor((height - 155) * 0.38);
-    const throwFromX = leftWidth / 2;
-    const throwFromY = 155 + bossBoxH / 2;
     const vortex = this.add.sprite(throwFromX, throwFromY, 'ult_start')
       .setScale(vortexScale * 0.3).setDepth(50).setAlpha(0.9);
 
@@ -1896,15 +1904,22 @@ export class GameScene extends Phaser.Scene {
     const msg = isVictory ? "VICTORY!" : "GAME OVER";
     const color = isVictory ? "#ffd700" : "#ff0000";
 
-    // Center on the RIGHT panel (grid area), not the full screen
-    const leftWidth = Math.max(250, Math.min(450, width * 0.28));
-    const rightPanelCenterX = leftWidth + (width - leftWidth) / 2;
+    // Center on the game area (grid area), accounting for panel position
+    const panelWidth = Math.max(width < 768 ? 160 : 250, Math.min(450, width * 0.28));
+    const gameAreaX = this.isPanelRight ? 0 : panelWidth;
+    const gameAreaW = width - panelWidth;
+    const gameAreaCenterX = gameAreaX + gameAreaW / 2;
 
-    const flashFontSize = Math.max(32, Math.min(72, Math.floor((width - leftWidth) * 0.12)));
-    this.add.text(rightPanelCenterX, height / 2, msg, {
+    // Responsive font size: smaller on mobile, larger on desktop
+    const isMobile = width < 768 || height < 600;
+    const maxFontSize = isMobile ? 48 : 72;
+    const minFontSize = isMobile ? 24 : 32;
+    const flashFontSize = Math.max(minFontSize, Math.min(maxFontSize, Math.floor(gameAreaW * 0.12)));
+
+    this.add.text(gameAreaCenterX, height / 2, msg, {
       fontFamily: 'GigaSaturn', fontSize: `${flashFontSize}px`, color,
-      stroke: '#000000', strokeThickness: 8,
-      shadow: { offsetX: 0, offsetY: 0, color: color, blur: 30, fill: true }
+      stroke: '#000000', strokeThickness: isMobile ? 4 : 8,
+      shadow: { offsetX: 0, offsetY: 0, color: color, blur: isMobile ? 15 : 30, fill: true }
     }).setOrigin(0.5).setDepth(1000);
 
     this.time.delayedCall(3000, () => {
