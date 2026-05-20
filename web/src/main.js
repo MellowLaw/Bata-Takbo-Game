@@ -309,7 +309,20 @@ document.addEventListener('keydown', (e) => {
   document.addEventListener('touchend', onTap, { passive: true });
 })();
 
-// PWA: Register service worker
+// PWA: Register service worker & install prompt tracking
+window.deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  window.deferredPrompt = e;
+  window.dispatchEvent(new CustomEvent('pwa-installable'));
+});
+
+// Reset deferredPrompt if app is installed
+window.addEventListener('appinstalled', () => {
+  window.deferredPrompt = null;
+  window.dispatchEvent(new CustomEvent('pwa-installed'));
+});
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js')
@@ -320,5 +333,96 @@ if ('serviceWorker' in navigator) {
 // Warn guests about losing progress on tab close / refresh
 installBeforeUnloadGuard();
 
+// Offline Detection & Premium Banner UI
+function initOfflineDetector() {
+  let offlineBanner = null;
+
+  function showBanner(isOffline) {
+    if (offlineBanner) {
+      offlineBanner.remove();
+      offlineBanner = null;
+    }
+
+    offlineBanner = document.createElement('div');
+    offlineBanner.id = 'network-status-banner';
+    
+    if (isOffline) {
+      offlineBanner.innerHTML = `
+        <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+          <span style="color: #ffb703; font-size: 1.2rem;">⚠️</span>
+          <span><strong>Offline Mode</strong> — Authenticated features & leaderboards are disabled. Guest play is active.</span>
+        </div>
+      `;
+      offlineBanner.style.cssText = `
+        position: fixed; top: 0; left: 0; right: 0;
+        background: rgba(26, 18, 10, 0.95);
+        color: #e4cfc0;
+        border-bottom: 2px solid #ffb703;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        padding: 12px 24px;
+        text-align: center;
+        font-family: 'Outfit', sans-serif;
+        font-size: clamp(0.75rem, 2.5vw, 0.9rem);
+        z-index: 999999;
+        transform: translateY(-100%);
+        transition: transform 0.4s cubic-bezier(0.1, 0.9, 0.2, 1);
+        pointer-events: auto;
+      `;
+    } else {
+      offlineBanner.innerHTML = `
+        <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+          <span style="color: #2ec4b6; font-size: 1.2rem;">✓</span>
+          <span>Connection Restored — Online features active!</span>
+        </div>
+      `;
+      offlineBanner.style.cssText = `
+        position: fixed; top: 0; left: 0; right: 0;
+        background: rgba(10, 26, 18, 0.95);
+        color: #e4cfc0;
+        border-bottom: 2px solid #2ec4b6;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        padding: 12px 24px;
+        text-align: center;
+        font-family: 'Outfit', sans-serif;
+        font-size: clamp(0.75rem, 2.5vw, 0.9rem);
+        z-index: 999999;
+        transform: translateY(-100%);
+        transition: transform 0.4s cubic-bezier(0.1, 0.9, 0.2, 1);
+        pointer-events: auto;
+      `;
+    }
+
+    document.body.appendChild(offlineBanner);
+
+    // Trigger sliding animation
+    requestAnimationFrame(() => {
+      offlineBanner.style.transform = 'translateY(0)';
+    });
+
+    if (!isOffline) {
+      // Auto-hide online banner after 3 seconds
+      setTimeout(() => {
+        if (offlineBanner) {
+          offlineBanner.style.transform = 'translateY(-100%)';
+          setTimeout(() => {
+            if (offlineBanner) {
+              offlineBanner.remove();
+              offlineBanner = null;
+            }
+          }, 400);
+        }
+      }, 3000);
+    }
+  }
+
+  window.addEventListener('offline', () => showBanner(true));
+  window.addEventListener('online', () => showBanner(false));
+
+  if (!navigator.onLine) {
+    showBanner(true);
+  }
+}
+
 // Start the app
+initOfflineDetector();
 init();

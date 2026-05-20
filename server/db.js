@@ -26,9 +26,11 @@ function makeDb(pool) {
     // INSERT / UPDATE / DELETE — returns { lastID, changes }
     async run(sql, params = []) {
       const converted = convertPlaceholders(sql);
-      // For INSERTs we append RETURNING id so we get lastID back
+      // For INSERTs we append RETURNING id so we get lastID back (only for tables with an 'id' column)
       const isInsert = /^\s*INSERT/i.test(sql);
-      const finalSql = isInsert && !/RETURNING/i.test(sql) ? `${converted} RETURNING id` : converted;
+      const lowerSql = sql.toLowerCase();
+      const hasIdColumn = isInsert && (lowerSql.includes('users') || lowerSql.includes('inf_scores'));
+      const finalSql = hasIdColumn && !/RETURNING/i.test(sql) ? `${converted} RETURNING id` : converted;
       const { rows, rowCount } = await pool.query(finalSql, params);
       return { lastID: rows[0]?.id ?? null, changes: rowCount };
     },
@@ -39,6 +41,15 @@ function makeDb(pool) {
     // Raw pool access for transactions
     pool,
   };
+}
+
+export let dbInstance = null;
+
+export function getDb() {
+  if (!dbInstance) {
+    throw new Error('Database has not been initialized yet. Call initDb() first.');
+  }
+  return dbInstance;
 }
 
 export async function initDb() {
@@ -57,6 +68,7 @@ export async function initDb() {
   });
 
   const db = makeDb(pool);
+  dbInstance = db;
   // ─── Create tables ────────────────────────────────────────────────────────
   await db.exec(`
     CREATE TABLE IF NOT EXISTS users (
@@ -106,9 +118,17 @@ export async function initDb() {
     )
   `);
 
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS blacklisted_tokens (
+      token      TEXT PRIMARY KEY,
+      expires_at BIGINT NOT NULL
+    )
+  `);
+
   // ─── Indexes ──────────────────────────────────────────────────────────────
   // ─── Migrations ───────────────────────────────────────────────────────────
   await db.exec(`ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT`);
+  await db.exec(`ALTER TABLE users ADD COLUMN IF NOT EXISTS push_subscription TEXT`);
 
   // ─── Indexes ──────────────────────────────────────────────────────────────
   await db.exec(`CREATE INDEX IF NOT EXISTS idx_users_username      ON users(LOWER(username))`);

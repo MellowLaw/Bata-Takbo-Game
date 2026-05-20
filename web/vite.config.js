@@ -19,7 +19,9 @@ export default defineConfig({
     proxy: {
       '/auth': API_URL,
       '/admin': API_URL,
-      '/leaderboard': API_URL
+      '/leaderboard': API_URL,
+      '/api': API_URL,
+      '/health': API_URL
     }
   },
 });

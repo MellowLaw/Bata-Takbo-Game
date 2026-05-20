@@ -8,7 +8,7 @@ export const AdminDashboard = {
   render() {
     return `
       <div class="settings-screen screen" id="admin-container" style="padding: 0;">
-        <div class="settings-screen__content" id="profile-content-wrapper" style="background: transparent; border: none; box-shadow: none; padding: var(--space-md); gap: var(--space-md); max-width: 1600px; width: 98%;">
+        <div class="settings-screen__content" id="profile-content-wrapper" style="background: transparent !important; border: none !important; box-shadow: none !important; padding: var(--space-md) !important; gap: var(--space-md) !important; max-width: none !important; width: 100% !important; margin: 0 !important; height: 100vh !important;">
           
           <!-- SIDEBAR NAVIGATION -->
           <div class="profile-sidebar" style="min-width: 200px; width: 18%;">
@@ -22,56 +22,76 @@ export const AdminDashboard = {
           </div>
 
           <!-- MAIN CONTENT AREA -->
-          <div class="profile-content-area scrollable" style="width: 100%;">
-          
-            <!-- DASHBOARD PANEL -->
-            <div id="panel-dashboard" class="profile-panel active" style="max-width: 100%; margin: 0 auto;">
-              <h2 style="font-family:'VCR',sans-serif; color:#111; text-transform:uppercase; margin:0 0 var(--space-sm) 0; font-size:var(--text-xl); border-bottom:2px solid #111; padding-bottom:8px;">Server Overview</h2>
-
-              <!-- Stat Cards -->
-              <div id="admin-stats-container" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-md); margin-bottom: var(--space-lg);">
-                <div class="profile-stat-box">
-                  <i class="fas fa-users" style="font-size:28px;color:#e67e22;width:36px;text-align:center;flex-shrink:0;"></i>
-                  <div><div class="profile-stat-label">Total Users</div><div class="profile-stat-value" id="stat-users">...</div></div>
-                </div>
-                <div class="profile-stat-box">
-                  <i class="fas fa-gamepad" style="font-size:28px;color:#3498db;width:36px;text-align:center;flex-shrink:0;"></i>
-                  <div><div class="profile-stat-label">Total Games Played</div><div class="profile-stat-value" id="stat-games">...</div></div>
-                </div>
-                <div class="profile-stat-box">
-                  <i class="fas fa-database" style="font-size:28px;color:#9b59b6;width:36px;text-align:center;flex-shrink:0;"></i>
-                  <div><div class="profile-stat-label">Database Size</div><div class="profile-stat-value" id="stat-db">...</div></div>
-                </div>
-                <div class="profile-stat-box">
-                  <i class="fas fa-server" style="font-size:28px;color:#27ae60;width:36px;text-align:center;flex-shrink:0;"></i>
-                  <div><div class="profile-stat-label">Server Uptime</div><div class="profile-stat-value" id="stat-uptime">...</div></div>
+          <div class="profile-content-area scrollable" style="flex: 1; width: auto;">
+                      <!-- DASHBOARD PANEL -->
+            <div id="panel-dashboard" class="profile-panel active" style="max-width: 100%; margin: 0 auto; height: 100%; min-height: 0; box-sizing: border-box; overflow: hidden;">
+              <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #111; padding-bottom:8px; margin-bottom:var(--space-sm); flex-shrink: 0;">
+                <h2 style="font-family:'VCR',sans-serif; color:#111; text-transform:uppercase; margin:0; font-size:var(--text-xl);">Server Overview</h2>
+                <div id="admin-health-badge" style="display:flex; align-items:center; gap:6px; font-family:'VCR',sans-serif; font-size:12px; font-weight:bold; color:#7f8c8d; background:rgba(127,140,141,0.1); border:1px solid #7f8c8d; padding:4px 8px; border-radius:4px; transition: all 0.3s ease;">
+                  <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#7f8c8d; margin-right:4px;"></span>API PINGING...
                 </div>
               </div>
 
-              <!-- Charts Row -->
-              <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:var(--space-md); margin-bottom:var(--space-md); width:100%;">
-                <div class="profile-stat-box" style="flex-direction:column;align-items:center; min-width:0;">
-                  <div style="font-family:'VCR',sans-serif;font-size:var(--text-xs);color:#555;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Games by Type</div>
-                  <canvas id="chart-games" width="140" height="140" style="max-width:140px;"></canvas>
-                </div>
-                <div class="profile-stat-box" style="flex-direction:column;align-items:stretch; min-width:0;">
-                  <div style="font-family:'VCR',sans-serif;font-size:var(--text-xs);color:#555;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Recent Logins (last 7 days)</div>
-                  <canvas id="chart-logins" height="120" style="max-height:120px;"></canvas>
-                </div>
-              </div>
+              <!-- Two Column Layout Container -->
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md); flex-grow: 1; min-height: 0; height: 100%; overflow: hidden;">
+                
+                <!-- Left Column -->
+                <div style="display: flex; flex-direction: column; gap: var(--space-md); overflow-y: auto; height: 100%; min-height: 0;">
+                  
+                  <!-- Stat Cards 2x2 grid -->
+                  <div id="admin-stats-container" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-sm); flex-shrink: 0;">
+                    <div class="profile-stat-box" style="padding: 8px 12px; min-height: 50px;">
+                      <i class="fas fa-users" style="font-size:20px;color:#e67e22;width:28px;text-align:center;flex-shrink:0;"></i>
+                      <div><div class="profile-stat-label" style="font-size: 10px;">Total Users</div><div class="profile-stat-value" id="stat-users" style="font-size: 14px;">...</div></div>
+                    </div>
+                    <div class="profile-stat-box" style="padding: 8px 12px; min-height: 50px;">
+                      <i class="fas fa-gamepad" style="font-size:20px;color:#3498db;width:28px;text-align:center;flex-shrink:0;"></i>
+                      <div><div class="profile-stat-label" style="font-size: 10px;">Total Games Played</div><div class="profile-stat-value" id="stat-games" style="font-size: 14px;">...</div></div>
+                    </div>
+                    <div class="profile-stat-box" style="padding: 8px 12px; min-height: 50px;">
+                      <i class="fas fa-database" style="font-size:20px;color:#9b59b6;width:28px;text-align:center;flex-shrink:0;"></i>
+                      <div><div class="profile-stat-label" style="font-size: 10px;">Database Size</div><div class="profile-stat-value" id="stat-db" style="font-size: 14px;">...</div></div>
+                    </div>
+                    <div class="profile-stat-box" style="padding: 8px 12px; min-height: 50px;">
+                      <i class="fas fa-server" style="font-size:20px;color:#27ae60;width:28px;text-align:center;flex-shrink:0;"></i>
+                      <div><div class="profile-stat-label" style="font-size: 10px;">Server Uptime</div><div class="profile-stat-value" id="stat-uptime" style="font-size: 14px;">...</div></div>
+                    </div>
+                  </div>
 
-              <!-- Activity Log -->
-              <h3 style="font-family:'VCR',sans-serif; color:#111; text-transform:uppercase; margin:0 0 var(--space-sm) 0; border-bottom:2px solid #111; padding-bottom:4px;">Recent Activity Log</h3>
-              <div class="inf-stats-container" style="max-height: 300px; overflow-y: auto;">
-                <div class="inf-stats-header" style="grid-template-columns: 2fr 1.5fr 2fr 1fr;">
-                  <div>USERNAME</div>
-                  <div>ACTION</div>
-                  <div>TIME</div>
-                  <div>VALUE</div>
+                  <!-- Charts Container -->
+                  <div style="display: grid; grid-template-columns: 1fr 1.2fr; gap: var(--space-sm); flex: 1; min-height: 0;">
+                    <div class="profile-stat-box" style="flex-direction:column;align-items:stretch; min-width:0; position:relative; padding: 12px 8px; height: 100%; display: flex; box-sizing: border-box;">
+                      <div style="font-family:'VCR',sans-serif;font-size:10px;color:#555;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;text-align:center;flex-shrink:0;">Controls Breakdown</div>
+                      <div style="position:relative; flex: 1; width:100%; min-height: 0;">
+                        <canvas id="chart-games" style="position: absolute; left: 0; top: 0; width: 100%; height: 100%;"></canvas>
+                      </div>
+                    </div>
+                    <div class="profile-stat-box" style="flex-direction:column;align-items:stretch; min-width:0; position:relative; padding: 12px 8px; height: 100%; display: flex; box-sizing: border-box;">
+                      <div style="font-family:'VCR',sans-serif;font-size:10px;color:#555;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;text-align:center;flex-shrink:0;">Recent Logins (last 7 days)</div>
+                      <div style="position:relative; flex: 1; width:100%; min-height: 0;">
+                        <canvas id="chart-logins" style="position: absolute; left: 0; top: 0; width: 100%; height: 100%;"></canvas>
+                      </div>
+                    </div>
+                  </div>
+
                 </div>
-                <div id="admin-activity-log">
-                  <div style="padding:var(--space-sm);text-align:center;">Loading activity...</div>
+
+                <!-- Right Column -->
+                <div style="display: flex; flex-direction: column; height: 100%; min-height: 0; overflow: hidden;">
+                  <h3 style="font-family:'VCR',sans-serif; color:#111; text-transform:uppercase; margin:0 0 var(--space-xs) 0; border-bottom:2px solid #111; padding-bottom:4px; flex-shrink: 0;">Recent Activity Log</h3>
+                  <div class="inf-stats-container" style="flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; min-height: 0; background: rgba(255,255,255,0.3); border: 2px solid #111; border-radius: 6px;">
+                    <div class="inf-stats-header" style="grid-template-columns: 2fr 1.5fr 2fr 1fr; flex-shrink: 0; border-bottom: 2px solid #111;">
+                      <div>USERNAME</div>
+                      <div>ACTION</div>
+                      <div>TIME</div>
+                      <div>VALUE</div>
+                    </div>
+                    <div id="admin-activity-log" style="flex-grow: 1; overflow-y: auto; min-height: 0;">
+                      <div style="padding:var(--space-sm);text-align:center;">Loading activity...</div>
+                    </div>
+                  </div>
                 </div>
+
               </div>
             </div>
 
@@ -225,6 +245,29 @@ export const AdminDashboard = {
   },
 
   async loadDashboard() {
+    // Check real-time API health
+    const healthBadge = this.container.querySelector('#admin-health-badge');
+    try {
+      const healthRes = await fetch('/health');
+      if (healthRes.ok) {
+        if (healthBadge) {
+          healthBadge.style.color = '#27ae60';
+          healthBadge.style.backgroundColor = 'rgba(39,174,96,0.1)';
+          healthBadge.style.borderColor = '#27ae60';
+          healthBadge.innerHTML = '<span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#27ae60; box-shadow: 0 0 8px #27ae60; margin-right:4px;"></span>API ONLINE';
+        }
+      } else {
+        throw new Error();
+      }
+    } catch(e) {
+      if (healthBadge) {
+        healthBadge.style.color = '#c0392b';
+        healthBadge.style.backgroundColor = 'rgba(192,57,43,0.1)';
+        healthBadge.style.borderColor = '#c0392b';
+        healthBadge.innerHTML = '<span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#c0392b; margin-right:4px;"></span>API OFFLINE';
+      }
+    }
+
     try {
       const res = await fetch('/admin/stats', { credentials: 'include' });
       const data = await res.json();
@@ -252,21 +295,36 @@ export const AdminDashboard = {
       
       this.container.querySelector('#admin-activity-log').innerHTML = actHtml || '<div style="padding:8px;text-align:center;">No recent activity</div>';
 
-      // --- Chart: Games by Type (Doughnut) ---
+      // --- Chart: Controls Breakdown (Doughnut) ---
       const gamesCanvas = this.container.querySelector('#chart-games');
       if (gamesCanvas && window.Chart) {
         if (gamesCanvas._chartInstance) gamesCanvas._chartInstance.destroy();
-        const endlessCount = data.stats.totalEndlessGames ?? 0;
+        const keyboardCount = data.stats.keyboardGames ?? 0;
+        const gestureCount = data.stats.gestureGames ?? 0;
         gamesCanvas._chartInstance = new Chart(gamesCanvas, {
           type: 'doughnut',
           data: {
-            labels: ['Endless Mode'],
-            datasets: [{ data: [endlessCount], backgroundColor: ['#e67e22'], borderWidth: 2, borderColor: '#111' }]
+            labels: ['D-PAD', 'Gesture'],
+            datasets: [{ 
+              data: [keyboardCount, gestureCount], 
+              backgroundColor: ['#e67e22', '#2ecc71'], 
+              borderWidth: 2, 
+              borderColor: '#111' 
+            }]
           },
           options: {
-            responsive: false,
+            responsive: true,
+            maintainAspectRatio: false,
             plugins: {
-              legend: { position: 'bottom', labels: { color: '#111', font: { family: "'VCR', monospace", size: 10 }, boxWidth: 12, padding: 8 } }
+              legend: { 
+                position: 'bottom', 
+                labels: { 
+                  color: '#111', 
+                  font: { family: "'VCR', monospace", size: 10 }, 
+                  boxWidth: 12, 
+                  padding: 8 
+                } 
+              }
             },
             cutout: '60%'
           }
@@ -297,6 +355,7 @@ export const AdminDashboard = {
           },
           options: {
             responsive: true,
+            maintainAspectRatio: false,
             plugins: { legend: { display: false } },
             scales: {
               x: { ticks: { color: '#555', font: { family: "'VCR', monospace", size: 9 } }, grid: { display: false } },
@@ -319,7 +378,10 @@ export const AdminDashboard = {
 
       let html = '';
       data.users.forEach(u => {
-        const joinDate = u.created_at ? new Date(u.created_at).toLocaleDateString() : 'Unknown';
+        const dateObj = u.created_at ? new Date(Number(u.created_at)) : null;
+        const joinDate = (dateObj && !isNaN(dateObj.getTime()))
+          ? dateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+          : 'Unknown';
         const bannedStyle = u.banned ? 'text-decoration:line-through;color:#e74c3c;' : '';
         html += `
           <div class="inf-stat-row admin-user-row" data-username="${u.username.toLowerCase()}" style="grid-template-columns: 2fr 3fr 1fr 1fr 2.5fr; background:${u.banned?'rgba(231,76,60,0.1)':'transparent'}">

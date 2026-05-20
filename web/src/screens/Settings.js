@@ -226,6 +226,22 @@ export const Settings = {
                     Reset Tutorial
                   </button>
                 </div>
+                
+                <div id="settings-pwa-install-section" style="margin-top: 16px; padding-top: 16px; border-top: 1px dashed rgba(0,0,0,0.15); display: none;">
+                  <h3 style="color:#111; font-family:'VCR',monospace; font-size:var(--text-sm); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">App Installation</h3>
+                  <p style="font-family:'VCR',monospace; font-size:11px; color:#444; margin-bottom:var(--space-md);">Install Bata, Takbo! to your home screen for full-screen immersive play and quick offline access.</p>
+                  <button class="menu-btn" id="btn-install-pwa" style="font-size: var(--text-sm); padding: var(--space-sm) var(--space-md);">
+                    Install App
+                  </button>
+                </div>
+
+                <div id="settings-push-notification-section" style="margin-top: 16px; padding-top: 16px; border-top: 1px dashed rgba(0,0,0,0.15); display: none;">
+                  <h3 style="color:#111; font-family:'VCR',monospace; font-size:var(--text-sm); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">Push Notifications</h3>
+                  <p style="font-family:'VCR',monospace; font-size:11px; color:#444; margin-bottom:var(--space-md);">Get updates about new chapters, leaderboards, and game events directly on your device.</p>
+                  <button class="menu-btn" id="btn-enable-notifications" style="font-size: var(--text-sm); padding: var(--space-sm) var(--space-md);">
+                    Enable Notifications
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -299,6 +315,120 @@ export const Settings = {
     el.querySelector('#btn-reset-tutorial').addEventListener('click', () => {
       this._showResetConfirmModal(el);
     });
+
+    // PWA Programmatic Install prompt integration
+    const installSection = el.querySelector('#settings-pwa-install-section');
+    const installBtn = el.querySelector('#btn-install-pwa');
+
+    const updateInstallUI = () => {
+      if (window.deferredPrompt) {
+        installSection.style.display = 'block';
+      } else {
+        installSection.style.display = 'none';
+      }
+    };
+
+    updateInstallUI();
+    window.addEventListener('pwa-installable', updateInstallUI);
+    window.addEventListener('pwa-installed', updateInstallUI);
+
+    if (installBtn) {
+      installBtn.addEventListener('click', async () => {
+        const promptEvent = window.deferredPrompt;
+        if (!promptEvent) return;
+        promptEvent.prompt();
+        const { outcome } = await promptEvent.userChoice;
+        console.log(`[PWA] Install choice outcome: ${outcome}`);
+        window.deferredPrompt = null;
+        updateInstallUI();
+      });
+    }
+
+    // Push Notifications subscription flow
+    const pushSection = el.querySelector('#settings-push-notification-section');
+    const pushBtn = el.querySelector('#btn-enable-notifications');
+
+    const updatePushUI = () => {
+      const sessionData = localStorage.getItem('guest_session');
+      let isRegistered = false;
+      if (sessionData) {
+        try {
+          const parsed = JSON.parse(sessionData);
+          if (parsed && parsed.is_guest === false) {
+            isRegistered = true;
+          }
+        } catch (e) {}
+      }
+
+      const isSupported = ('Notification' in window) && ('serviceWorker' in navigator) && ('PushManager' in window);
+      if (isRegistered && isSupported) {
+        pushSection.style.display = 'block';
+        if (Notification.permission === 'granted') {
+          pushBtn.textContent = 'Notifications Enabled ✓';
+          pushBtn.disabled = true;
+          pushBtn.style.opacity = '0.7';
+          pushBtn.style.cursor = 'default';
+        } else if (Notification.permission === 'denied') {
+          pushBtn.textContent = 'Blocked ⚠️';
+          pushBtn.disabled = true;
+          pushBtn.style.opacity = '0.7';
+          pushBtn.style.cursor = 'default';
+        } else {
+          pushBtn.textContent = 'Enable Notifications';
+          pushBtn.disabled = false;
+          pushBtn.style.opacity = '1';
+          pushBtn.style.cursor = 'pointer';
+        }
+      } else {
+        pushSection.style.display = 'none';
+      }
+    };
+
+    updatePushUI();
+
+    if (pushBtn) {
+      pushBtn.addEventListener('click', async () => {
+        try {
+          const permission = await Notification.requestPermission();
+          if (permission !== 'granted') {
+            this._showSuccessToast(el, 'Notification permission denied/dismissed.');
+            updatePushUI();
+            return;
+          }
+
+          pushBtn.textContent = 'Subscribing...';
+          pushBtn.disabled = true;
+
+          const reg = await navigator.serviceWorker.ready;
+          
+          // Get VAPID public key from server
+          const keyRes = await fetch('/api/notifications/vapid-public-key');
+          if (!keyRes.ok) throw new Error('Failed to fetch public key');
+          const { publicKey } = await keyRes.json();
+
+          const sub = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(publicKey)
+          });
+
+          // Send to server
+          const subRes = await fetch('/api/notifications/subscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ subscription: sub })
+          });
+
+          if (!subRes.ok) throw new Error('Failed to save subscription on server');
+
+          this._showSuccessToast(el, 'Successfully subscribed to push notifications!');
+          updatePushUI();
+        } catch (err) {
+          console.error('[PUSH] Subscription flow failed:', err);
+          this._showSuccessToast(el, 'Failed to subscribe to notifications.');
+          updatePushUI();
+        }
+      });
+    }
 
     // Populate camera device dropdown
     await this._populateCameraDevices(el);
@@ -448,3 +578,17 @@ export const Settings = {
     }
   },
 };
+
+// Helper utility for push notifications base64 conversion
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding)
+    .replace(/\-/g, '+')
+    .replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
